@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://tizen.org/ns/packages"
+	package="context-service"
+	version="0.0.0"
+	install-location="internal-only"
+	type="rpm">
+	<label>Context Service</label>
+	<description>Context Service</description>
+	<service-application appid="context-service"
+		exec="/usr/bin/contextd"
+		type="capp"
+		multiple="false"
+		taskmanage="false"
+		nodisplay="true"
+		mainapp="true">
+		<label>Context Service</label>
+	</service-application>
+	<privileges>
+		<privilege>http://tizen.org/privilege/location</privilege>
+	</privileges>
+</manifest>

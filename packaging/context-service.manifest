@@ -1,0 +1,68 @@
+<manifest>
+	<define>
+		<domain name="context-service"/>
+		<permit>
+			<smack permit="dbus" type="rwx"/>
+		</permit>
+		<request>
+			<smack request="xorg" type="rw"/>
+			<smack request="security-server::api-cookie-check" type="w"/>
+			<smack request="security-server::api-privilege-by-pid" type="w"/>
+			<smack request="vasum::manage" type="rw"/>
+			<smack request="sys-assert::core" type="rwxat"/>
+			<smack request="system::vconf" type="rwxl"/>
+			<smack request="system::vconf_system" type="rl"/>
+			<smack request="system::vconf_inhouse" type="rl"/>
+			<smack request="system::vconf_multimedia" type="rl"/>
+			<smack request="device::app_logging" type="rw"/>
+			<smack request="device::sys_logging" type="rw"/>
+			<smack request="deviced::display" type="rw"/>
+			<smack request="ail::db" type="rlx"/>
+			<smack request="pkgmgr" type="r"/>
+			<smack request="pkgmgr::db" type="rwx"/>
+			<smack request="pkgmgr::info" type="r"/>
+			<smack request="alarm-server::alarm" type="rw"/>
+			<smack request="libaccounts-svc" type="r"/>
+			<smack request="libaccounts-svc::db" type="rl"/>
+			<smack request="libaccounts-svc::check_read" type="r"/>
+			<smack request="telephony_framework::api_sim" type="r"/>
+			<smack request="telephony_framework::api_phonebook" type="rx"/>
+			<smack request="telephony_framework::properties" type="rw"/>
+			<smack request="connman::get" type="rw"/>
+			<smack request="connman::set" type="rw"/>
+			<smack request="connman::profile" type="rw"/>
+			<smack request="telephony_framework::api_ps_public" type="rw"/>
+			<smack request="telephony_framework::api_ps_profile" type="rw"/>
+			<smack request="telephony_framework::api_sms" type="rwx"/>
+			<smack request="telephony_framework::api_network" type="rwx"/>
+			<smack request="telephony_framework::api_call" type="rwx"/>
+			<smack request="privilege::tizen::telephony.admin" type="rw"/>
+			<smack request="privilege::tizen::telephony" type="rw"/>
+			<smack request="data-provider-master::notification" type="rwl"/>
+			<smack request="data-provider-master::notification.client" type="rw"/>
+			<smack request="aul::launch" type="x"/>
+			<smack request="privilege::tizen::call" type="rw"/>
+			<smack request="privilege::tizen::bluetooth" type="rw"/>
+			<smack request="privilege::tizen::network.get" type="rw"/>
+			<smack request="privilege::tizen::network.profile" type="rw"/>
+			<smack request="privilege::tizen::message.read" type="rw"/>
+			<smack request="msg-service" type="rwx"/>
+			<smack request="msg-service::db" type="r"/>
+			<smack request="msg-service::read" type="rw"/>
+			<smack request="msg-service::vconf" type="r"/>
+			<smack request="tizen::vconf::message" type="r"/>
+			<smack request="privilege::tizen::message.write" type="rw"/>
+			<smack request="privilege::tizen::message.read" type="rw"/>
+			<smack request="msg-service::write" type="rw"/>
+			<smack request="msg-service::read" type="rw"/>
+			<smack request="app-svc::jump" type="x"/>
+			<smack request="tizen::vconf::public::r::platform::rw" type="rlw"/>
+		</request>
+	</define>
+	<request>
+		<domain name="context-service"/>
+	</request>
+	<assign>
+		<filesystem path="/usr/bin/contextd" exec_label="context-service" label="context-service"/>
+	</assign>
+</manifest>
