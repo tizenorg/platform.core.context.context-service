@@ -16,12 +16,8 @@
 
 #include <string>
 #include <map>
-
-#include <pkgmgr-info.h>
 #include <privilege_checker.h>
-
 #include <types_internal.h>
-
 #include "config_loader.h"
 #include "privilege.h"
 
@@ -72,28 +68,4 @@ bool ctx::privilege_manager::is_allowed(const char* pkg_id, const char* subject)
 	int ret = privilege_checker_check_package_privilege(pkg_id, priv.c_str());
 	_D("Privilege Check Result: %#x", ret);
 	return (ret == PRIV_CHECKER_ERR_NONE);
-}
-
-std::string ctx::privilege_manager::get_pkg_id(const char* app_id)
-{
-	std::string pkg_id;
-	IF_FAIL_RETURN_TAG(app_id, pkg_id, _E, "Null AppId");
-
-	int ret;
-	pkgmgrinfo_appinfo_h app_info;
-
-	ret = pkgmgrinfo_appinfo_get_appinfo(app_id, &app_info);
-	IF_FAIL_RETURN_TAG(ret == PMINFO_R_OK, pkg_id, _E, "Failed to get app_info");
-
-	char *pkg_name = NULL;
-	ret = pkgmgrinfo_appinfo_get_pkgname(app_info, &pkg_name);
-	if (ret != PMINFO_R_OK || pkg_name == NULL) {
-		pkgmgrinfo_appinfo_destroy_appinfo(app_info);
-		_E("Failed to get package name");
-		return pkg_id;
-	}
-
-	pkg_id = pkg_name;
-	pkgmgrinfo_appinfo_destroy_appinfo(app_info);
-	return pkg_id;
 }

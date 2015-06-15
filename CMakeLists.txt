@@ -17,7 +17,6 @@ SET(DEPS
 	capi-system-info
 	capi-appfw-app-manager
 	appsvc
-	pkgmgr-info
 	capi-security-privilege-manager
 	alarm-service
 	notification

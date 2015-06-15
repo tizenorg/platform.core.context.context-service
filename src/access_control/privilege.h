@@ -27,7 +27,6 @@ namespace ctx {
 
 		void set(const char* subject, const char* priv);
 		bool is_allowed(const char* pkg_id, const char* subject);
-		std::string get_pkg_id(const char* app_id);
 
 	}	/* namespace ctx::privilege_manager */
 }	/* namespace ctx */
