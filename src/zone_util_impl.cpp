@@ -15,27 +15,34 @@
  */
 
 #include <unistd.h>
+#ifdef _ZONE_ENABLED_
 #include <vasum.h>
+#endif
 #include <system_info.h>
 #include <types_internal.h>
 #include "zone_util_impl.h"
 
 #define HOST_NAME ""
 
+#if _ZONE_ENABLED_
 static bool container_enabled = false;
 static vsm_context_h _vsm_ctx = NULL;
+#endif
 static ctx::zone_util_impl* _instance = NULL;
 
 const char* ctx::zone_util_impl::default_zone()
 {
+#if _ZONE_ENABLED_
 	if (container_enabled)
 		return VSM_DEFAULT_ZONE;
+#endif
 
 	return HOST_NAME;
 }
 
 void* ctx::zone_util_impl::join_by_name(const char* name)
 {
+#if _ZONE_ENABLED_
 	IF_FAIL_RETURN(container_enabled, NULL);
 	IF_FAIL_RETURN_TAG(_vsm_ctx, NULL, _E, "Not initialized");
 
@@ -53,26 +60,36 @@ void* ctx::zone_util_impl::join_by_name(const char* name)
 
 	_I(YELLOW("Joining to '%s'"), name);
 	return vsm_join_zone(target_zone);
+#else
+	return NULL;
+#endif
 }
 
 void* ctx::zone_util_impl::join_to_zone(void* zone)
 {
+#if _ZONE_ENABLED_
 	IF_FAIL_RETURN(container_enabled, NULL);
 	IF_FAIL_RETURN_TAG(_vsm_ctx, NULL, _E, "Not initialized");
 	IF_FAIL_RETURN(zone, NULL);
 	vsm_zone_h target = static_cast<vsm_zone_h>(zone);
 	_I(YELLOW("Joining to '%s'"), vsm_get_zone_name(target));
 	return vsm_join_zone(target);
+#else
+	return NULL;
+#endif
 }
 
 bool ctx::zone_util::init()
 {
+#if _ZONE_ENABLED_
 	system_info_get_platform_bool("tizen.org/feature/container", &container_enabled);
 	IF_FAIL_RETURN_TAG(_instance == NULL, true, _W, "Re-initialization");
+#endif
 
 	_instance = new(std::nothrow) zone_util_impl();
 	IF_FAIL_RETURN_TAG(_instance, false, _E, "Memory allocation failed");
 
+#if _ZONE_ENABLED_
 	if (container_enabled) {
 		_vsm_ctx = vsm_create_context();
 		if (!_vsm_ctx) {
@@ -81,6 +98,7 @@ bool ctx::zone_util::init()
 			return false;
 		}
 	}
+#endif
 
 	zone_util::set_instance(_instance);
 	return true;
@@ -93,16 +111,22 @@ void ctx::zone_util::release()
 	delete _instance;
 	_instance = NULL;
 
+#if _ZONE_ENABLED_
 	if (_vsm_ctx)
 		vsm_cleanup_context(_vsm_ctx);
 
 	_vsm_ctx = NULL;
+#endif
 }
 
 const char* ctx::zone_util::get_name_by_pid(pid_t pid)
 {
+#if _ZONE_ENABLED_
 	IF_FAIL_RETURN(container_enabled, HOST_NAME);
 	IF_FAIL_RETURN_TAG(_vsm_ctx, NULL, _E, "Not initialized");
 	vsm_zone_h zn = vsm_lookup_zone_by_pid(_vsm_ctx, pid);
 	return vsm_get_zone_name(zn);
+#else
+	return HOST_NAME;
+#endif
 }

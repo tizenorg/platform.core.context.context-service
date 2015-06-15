@@ -823,6 +823,7 @@ static void trigger_action_app_control(ctx::json& action, std::string zone)
 	app_control_create(&app);
 	app_control_import_from_bundle(app, appctl_bundle);
 
+#if _ZONE_ENABLED_
 	char* op;
 	app_control_get_operation(app, &op);
 	app_control_set_operation(app, APP_SVC_OPERATION_JUMP);
@@ -830,6 +831,7 @@ static void trigger_action_app_control(ctx::json& action, std::string zone)
 	if (op != NULL) {
 		app_control_add_extra_data(app, APP_SVC_K_JUMP_ORIGIN_OPERATION, op);
 	}
+#endif
 
 	error = app_control_send_launch_request(app, NULL, NULL);
 	if (error != APP_CONTROL_ERROR_NONE) {

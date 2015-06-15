@@ -2,7 +2,7 @@ Name:       context-service
 Summary:    Context-Service
 Version:    0.4.4
 Release:    1
-Group:      Framework/system
+Group:      System/Service
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1:	context-service.service
@@ -18,7 +18,6 @@ BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(appsvc)
 BuildRequires: pkgconfig(pkgmgr-info)
 BuildRequires: pkgconfig(capi-security-privilege-manager)
-BuildRequires: pkgconfig(vasum)
 BuildRequires: pkgconfig(alarm-service)
 BuildRequires: pkgconfig(notification)
 

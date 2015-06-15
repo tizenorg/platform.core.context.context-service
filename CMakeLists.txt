@@ -19,7 +19,6 @@ SET(DEPS
 	appsvc
 	pkgmgr-info
 	capi-security-privilege-manager
-	vasum
 	alarm-service
 	notification
 	clips
