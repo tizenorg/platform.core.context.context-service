@@ -21,6 +21,7 @@ SET(DEPS
 	capi-security-privilege-manager
 	alarm-service
 	notification
+	cynara-creds-gdbus
 	clips
 	context-common
 	device-context-provider

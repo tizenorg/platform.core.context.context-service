@@ -21,6 +21,8 @@ BuildRequires: pkgconfig(capi-security-privilege-manager)
 BuildRequires: pkgconfig(alarm-service)
 BuildRequires: pkgconfig(notification)
 
+BuildRequires: pkgconfig(cynara-creds-gdbus)
+
 BuildRequires: pkgconfig(clips)
 BuildRequires: pkgconfig(context-common)
 BuildRequires: pkgconfig(context)

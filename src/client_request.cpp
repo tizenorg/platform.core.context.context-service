@@ -16,56 +16,17 @@
 
 #include <unistd.h>
 #include <glib.h>
-#include <security-server.h>
 #include <app_manager.h>
 #include <types_internal.h>
 #include <dbus_server.h>
 #include "zone_util_impl.h"
 #include "dbus_server_impl.h"
-#include "access_control/privilege.h"
 #include "client_request.h"
 
-ctx::client_request::client_request(int type, const char* client, int req_id, const char* subj, const char* desc, const char* cookie, GDBusMethodInvocation *inv)
+ctx::client_request::client_request(int type, const char* client, int req_id, const char* subj, const char* desc, GDBusMethodInvocation *inv)
 	: request_info(type, client, req_id, subj, desc)
 	, invocation(inv)
 {
-	gsize size;
-	int client_pid;
-	char *decoded = NULL;
-	const char *zone_name = NULL;
-	char *pkg_id = NULL;
-
-	decoded = reinterpret_cast<char*>(g_base64_decode(cookie, &size));
-	IF_FAIL_CATCH_TAG(decoded, _E, "Cookie decoding failed");
-
-	raw_cookie = decoded;
-	client_pid = security_server_get_cookie_pid(decoded);
-	pkg_id = security_server_get_smacklabel_cookie(decoded);
-	g_free(decoded);
-	IF_FAIL_CATCH_TAG(client_pid > 0, _E, "Invalid PID (%d)", client_pid);
-
-	if (pkg_id == NULL) {
-		_W(RED("security_server_get_smacklabel_cookie() failed"));
-		char* app_id = NULL;
-		app_manager_get_app_id(client_pid, &app_id);
-		client_app_id = ctx::privilege_manager::get_pkg_id(app_id);
-		g_free(app_id);
-	} else {
-		//FIXME: Yes.. this is actually the package id
-		client_app_id = pkg_id;
-		g_free(pkg_id);
-	}
-
-	zone_name = ctx::zone_util::get_name_by_pid(client_pid);
-	IF_FAIL_CATCH_TAG(zone_name, _E, RED("Zone name retrieval failed"));
-	_zone_name = zone_name;
-
-	_SD(CYAN("Package: '%s' / Zone: '%s'"), client_app_id.c_str(), zone_name);
-	return;
-
-CATCH:
-	invocation = NULL;
-	throw ERR_OPERATION_FAILED;
 }
 
 ctx::client_request::~client_request()
@@ -74,9 +35,12 @@ ctx::client_request::~client_request()
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 }
 
-const char* ctx::client_request::get_cookie()
+bool ctx::client_request::set_peer_creds(const char *smack_label, const char *zone)
 {
-	return raw_cookie.c_str();
+	IF_FAIL_RETURN_TAG(smack_label && zone, false, _E, "Invalid parameter");
+	client_app_id = smack_label;
+	_zone_name = zone;
+	return true;
 }
 
 const char* ctx::client_request::get_app_id()

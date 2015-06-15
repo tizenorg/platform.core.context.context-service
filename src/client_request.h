@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Samsung Electronics Co., Ltd.
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +24,10 @@ namespace ctx {
 
 	class client_request : public request_info {
 		public:
-			client_request(int type, const char* client, int req_id, const char* subj, const char* desc, const char* cookie, GDBusMethodInvocation *inv);
+			client_request(int type, const char* client, int req_id, const char* subj, const char* desc, GDBusMethodInvocation *inv);
 			~client_request();
 
-			const char* get_cookie();
+			bool set_peer_creds(const char *smack_label, const char *zone);
 			const char* get_app_id();
 
 			bool reply(int error);
@@ -37,9 +37,7 @@ namespace ctx {
 
 		private:
 			GDBusMethodInvocation *invocation;
-			std::string raw_cookie;
 			std::string client_app_id;
-			std::string exec_path;
 	};
 
 }	/* namespace ctx */

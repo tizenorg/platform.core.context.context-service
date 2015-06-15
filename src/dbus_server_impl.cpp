@@ -22,6 +22,8 @@
 #include <dbus_listener_iface.h>
 #include "server.h"
 #include "client_request.h"
+#include "access_control/peer_creds.h"
+#include "zone_util_impl.h"
 #include "dbus_server_impl.h"
 
 static ctx::dbus_server_impl *_instance = NULL;
@@ -78,17 +80,20 @@ static void handle_request(const char *sender, GVariant *param, GDBusMethodInvoc
 	_I("[%s] ReqId: %d, Subject: %s", req_type_to_str(req_type), req_id, subject);
 	_SI("Input: %s", input);
 
-	//TODO: Parameter validation
-
 	ctx::client_request *request = NULL;
 	try {
-		request = new ctx::client_request(req_type, sender, req_id, subject, input, cookie, invocation);
+		request = new ctx::client_request(req_type, sender, req_id, subject, input, invocation);
 	} catch (std::bad_alloc& ba) {
 		_E("Memory allocation failed");
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 		return;
-	} catch (int e) {
-		_E("Caught %d", e);
+	}
+
+	std::string smack_label = ctx::peer_creds::get_smack_label(dbus_connection, sender);
+	pid_t pid = ctx::peer_creds::get_pid(dbus_connection, sender);
+	const char* zone = ctx::zone_util::get_name_by_pid(pid);
+
+	if (smack_label.empty() || !request->set_peer_creds(smack_label.c_str(), zone)) {
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 		return;
 	}
