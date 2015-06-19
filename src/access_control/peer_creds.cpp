@@ -18,22 +18,17 @@
 #include <types_internal.h>
 #include "peer_creds.h"
 
-std::string ctx::peer_creds::get_smack_label(GDBusConnection *connection, const char *unique_name)
+bool ctx::peer_creds::get(GDBusConnection *connection, const char *unique_name, std::string &smack_label, pid_t &pid)
 {
 	gchar *client = NULL;
 	int err = cynara_creds_gdbus_get_client(connection, unique_name, CLIENT_METHOD_SMACK, &client);
-	IF_FAIL_RETURN_TAG(err == CYNARA_API_SUCCESS, "", _E, "cynara_creds_gdbus_get_client() failed");
+	IF_FAIL_RETURN_TAG(err == CYNARA_API_SUCCESS, false, _E, "cynara_creds_gdbus_get_client() failed");
 
-	std::string ret = client;
+	smack_label = client;
 	g_free(client);
-	return ret;
-}
 
-pid_t ctx::peer_creds::get_pid(GDBusConnection *connection, const char *unique_name)
-{
-	pid_t pid = -1;
-	int err = cynara_creds_gdbus_get_pid(connection, unique_name, &pid);
-	IF_FAIL_RETURN_TAG(err == CYNARA_API_SUCCESS, -1, _E, "cynara_creds_gdbus_get_pid() failed");
+	err = cynara_creds_gdbus_get_pid(connection, unique_name, &pid);
+	IF_FAIL_RETURN_TAG(err == CYNARA_API_SUCCESS, false, _E, "cynara_creds_gdbus_get_pid() failed");
 
-	return pid;
+	return true;
 }

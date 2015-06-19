@@ -89,16 +89,16 @@ static void handle_request(const char *sender, GVariant *param, GDBusMethodInvoc
 		return;
 	}
 
-	std::string smack_label = ctx::peer_creds::get_smack_label(dbus_connection, sender);
-	pid_t pid = ctx::peer_creds::get_pid(dbus_connection, sender);
-	const char* zone = ctx::zone_util::get_name_by_pid(pid);
+	std::string smack_label;
+	pid_t pid;
 
-	if (smack_label.empty() || !request->set_peer_creds(smack_label.c_str(), zone)) {
-		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
+	if (ctx::peer_creds::get(dbus_connection, sender, smack_label, pid) &&
+			!request->set_peer_creds(smack_label.c_str(), ctx::zone_util::get_name_by_pid(pid))) {
+		ctx::server::send_request(request);
 		return;
 	}
 
-	ctx::server::send_request(request);
+	g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 }
 
 static void handle_method_call(GDBusConnection *conn, const gchar *sender,
