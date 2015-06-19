@@ -23,8 +23,7 @@
 
 namespace ctx {
 	namespace peer_creds {
-		std::string get_smack_label(GDBusConnection *connection, const char *unique_name);
-		pid_t get_pid(GDBusConnection *connection, const char *unique_name);
+		bool get(GDBusConnection *connection, const char *unique_name, std::string &smack_label, pid_t &pid);
 	}
 }	/* namespace ctx */
 
