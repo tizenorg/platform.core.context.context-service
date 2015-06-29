@@ -1,6 +1,6 @@
 Name:       context-service
 Summary:    Context-Service
-Version:    0.4.4
+Version:    0.5.0
 Release:    1
 Group:      System/Service
 License:    Apache-2.0
@@ -42,12 +42,6 @@ Requires(post): /usr/bin/systemctl
 Requires(post): /usr/bin/sqlite3
 Requires(postun): /usr/bin/systemctl
 
-%ifarch %{arm}
-%define ARCH arm
-%else
-%define ARCH i586
-%endif
-
 %description
 Context-Service
 
@@ -71,7 +65,7 @@ export   CFLAGS+=" -DTIZEN_ENGINEER_MODE"
 export CXXFLAGS+=" -DTIZEN_ENGINEER_MODE"
 export   FFLAGS+=" -DTIZEN_ENGINEER_MODE"
 
-cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DARCH=%{ARCH} -DMAJORVER=${MAJORVER} -DFULLVER=%{version} -DPROFILE=%{?tizen_profile_name} -DMAINLOOP=%{MAINLOOP}
+cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DMAJORVER=${MAJORVER} -DFULLVER=%{version} -DMAINLOOP=%{MAINLOOP}
 make %{?jobs:-j%jobs}
 
 %install

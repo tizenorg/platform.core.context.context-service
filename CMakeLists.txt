@@ -27,22 +27,6 @@ SET(DEPS
 	place-context-provider
 )
 
-# Dependencies regarding profiles
-IF("${PROFILE}" STREQUAL "mobile")
-	ADD_DEFINITIONS("-D_MOBILE")
-ENDIF("${PROFILE}" STREQUAL "mobile")
-
-IF("${PROFILE}" STREQUAL "wearable")
-	ADD_DEFINITIONS("-D_WEARABLE")
-ENDIF("${PROFILE}" STREQUAL "wearable")
-
-# Target vs Emulator
-IF("${ARCH}" STREQUAL "arm")
-	ADD_DEFINITIONS("-D_TARGET")
-ELSE("${ARCH}" STREQUAL "arm")
-	ADD_DEFINITIONS("-D_EMULATOR")
-ENDIF("${ARCH}" STREQUAL "arm")
-
 IF("${MAINLOOP}" STREQUAL "ecore")
 	ADD_DEFINITIONS("-D_USE_ECORE_MAIN_LOOP_")
 	SET(DEPS
