@@ -16,7 +16,6 @@
 
 #include <string>
 #include <map>
-#include <security-server.h>
 #include <types_internal.h>
 #include "config_loader.h"
 #include "privilege.h"
@@ -53,6 +52,8 @@ void ctx::privilege_manager::set(const char* subject, const char* priv)
 
 bool ctx::privilege_manager::is_allowed(const char* pkg_id, const char* subject)
 {
+	/* TODO: need to be implemented using Cynara */
+#if 0
 	IF_FAIL_RETURN_TAG(pkg_id && subject, true, _E, "Invalid parameter");
 	IF_FAIL_RETURN_TAG(pkg_id[0]!='\0' && subject[0]!='\0', true, _E, "Invalid parameter");
 
@@ -71,4 +72,6 @@ bool ctx::privilege_manager::is_allowed(const char* pkg_id, const char* subject)
 	IF_FAIL_RETURN_TAG(err == SECURITY_SERVER_API_SUCCESS, false, _E, "Privilege checking failed");
 
 	return (result == 1);
+#endif
+	return true;
 }
