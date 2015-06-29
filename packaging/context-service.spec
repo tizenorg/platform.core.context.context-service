@@ -9,7 +9,7 @@ Source1:	context-service.service
 Source2:	org.tizen.context.service
 
 # For active window hooking, we need to use 'ecore' mainloop instead of the 'glib' mainloop.
-%define MAINLOOP ecore
+%define MAINLOOP glib
 
 BuildRequires: cmake
 BuildRequires: sed
