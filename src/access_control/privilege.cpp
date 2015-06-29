@@ -16,7 +16,7 @@
 
 #include <string>
 #include <map>
-#include <privilege_checker.h>
+#include <security-server.h>
 #include <types_internal.h>
 #include "config_loader.h"
 #include "privilege.h"
@@ -62,10 +62,13 @@ bool ctx::privilege_manager::is_allowed(const char* pkg_id, const char* subject)
 		return true;
 	}
 
-	_D("PkgId: %s, Priv: %s", pkg_id, (it->second).c_str());
-	std::string priv = "http://tizen.org/privilege/";
+	std::string priv = "org.tizen.privilege.";
 	priv += (it->second).c_str();
-	int ret = privilege_checker_check_package_privilege(pkg_id, priv.c_str());
-	_D("Privilege Check Result: %#x", ret);
-	return (ret == PRIV_CHECKER_ERR_NONE);
+	int result = 0;
+	int err = security_server_app_has_privilege(pkg_id, PERM_APP_TYPE_EFL, priv.c_str(), &result);
+
+	_D("PkgId: %s, PrivName: %s, Enabled: %d", pkg_id, (it->second).c_str(), result);
+	IF_FAIL_RETURN_TAG(err == SECURITY_SERVER_API_SUCCESS, false, _E, "Privilege checking failed");
+
+	return (result == 1);
 }

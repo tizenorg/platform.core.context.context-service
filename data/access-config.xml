@@ -40,13 +40,6 @@
 		<Allow subject="video/history/play_freq"/>
 	</Privilege>
 
-	<Privilege name="mediahistory.admin">
-		<Allow subject="music/event/start"/>
-		<Allow subject="music/event/stop"/>
-		<Allow subject="video/event/start"/>
-		<Allow subject="video/event/stop"/>
-	</Privilege>
-
 	<Privilege name="callhistory.read">
 		<Allow subject="contact/history/comm_freq"/>
 	</Privilege>

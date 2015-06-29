@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-//#define _USE_ECORE_MAIN_LOOP_
-
 #include <stdlib.h>
 #include <new>
 #include <glib.h>
@@ -45,13 +43,8 @@ static ctx::db_manager_impl *database_mgr = NULL;
 static ctx::dbus_server_impl *dbus_handle = NULL;
 static ctx::context_trigger *trigger = NULL;
 
-void ctx::server::run()
+void ctx::server::initialize()
 {
-	if (started) {
-		_W("Started already");
-		return;
-	}
-
 	_I("Init MainLoop");
 #ifdef _USE_ECORE_MAIN_LOOP_
 	ecore_init();
@@ -59,6 +52,26 @@ void ctx::server::run()
 #else
 	mainloop = g_main_loop_new(NULL, FALSE);
 #endif
+
+	_I("Init Dbus Connection");
+	dbus_handle = new(std::nothrow) ctx::dbus_server_impl();
+	IF_FAIL_VOID_TAG(dbus_handle, _E, "Memory allocation failed");
+
+	dbus_server::set_instance(dbus_handle);
+	IF_FAIL_VOID_TAG(dbus_handle->init(), _E, "Initialization Failed");
+
+	// Start the main loop
+	_I(CYAN("Launching Context-Service"));
+#ifdef _USE_ECORE_MAIN_LOOP_
+	ecore_main_loop_begin();
+#else
+	g_main_loop_run(mainloop);
+#endif
+}
+
+void ctx::server::activate()
+{
+	IF_FAIL_VOID(!started);
 
 	bool result = false;
 
@@ -97,38 +110,43 @@ void ctx::server::run()
 	result = trigger->init(context_mgr);
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
-	_I("Init Dbus Connection");
-	dbus_handle = new(std::nothrow) ctx::dbus_server_impl();
-	IF_FAIL_CATCH_TAG(dbus_handle, _E, "Memory allocation failed");
-	dbus_server::set_instance(dbus_handle);
-	result = dbus_handle->init();
-	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
-
-	// Start the main loop
 	started = true;
 	_I(CYAN("Context-Service Launched"));
+	return;
+
+CATCH:
+	_E(RED("Launching Failed"));
+
+	// Stop the main loop
 #ifdef _USE_ECORE_MAIN_LOOP_
-	ecore_main_loop_begin();
+	ecore_main_loop_quit();
 #else
-	g_main_loop_run(mainloop);
+	g_main_loop_quit(mainloop);
 #endif
+}
 
+void ctx::server::release()
+{
 	_I(CYAN("Terminating Context-Service"));
-
 	_I("Release Context Trigger");
-	trigger->release();
+	if (trigger)
+		trigger->release();
 
 	_I("Release Analyzer Manager");
-	context_mgr->release();
+	if (context_mgr)
+		context_mgr->release();
 
 	_I("Release Dbus Connection");
-	dbus_handle->release();
+	if (dbus_handle)
+		dbus_handle->release();
 
 	_I("Close the Database");
-	database_mgr->release();
+	if (database_mgr)
+		database_mgr->release();
 
 	_I("Release Timer Manager");
-	timer_mgr->release();
+	if (timer_mgr)
+		timer_mgr->release();
 
 	_I("Release Access control configuration");
 	ctx::privilege_manager::release();
@@ -142,15 +160,6 @@ void ctx::server::run()
 	g_main_loop_unref(mainloop);
 #endif
 
-	delete trigger;
-	delete context_mgr;
-	delete dbus_handle;
-	delete database_mgr;
-	delete timer_mgr;
-	return;
-
-CATCH:
-	_E(RED("Launching Failed"));
 	delete trigger;
 	delete context_mgr;
 	delete dbus_handle;
@@ -192,7 +201,8 @@ int main(int argc, char* argv[])
 	g_type_init();
 #endif
 
-	ctx::server::run();
+	ctx::server::initialize();
+	ctx::server::release();
 
 	return EXIT_SUCCESS;
 }

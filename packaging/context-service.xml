@@ -17,5 +17,6 @@
 	</service-application>
 	<privileges>
 		<privilege>http://tizen.org/privilege/location</privilege>
+		<privilege>http://tizen.org/privilege/packagemanager.info</privilege>
 	</privileges>
 </manifest>

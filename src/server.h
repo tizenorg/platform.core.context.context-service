@@ -23,7 +23,9 @@ namespace ctx {
 
 	namespace server {
 
-		void run();
+		void initialize();
+		void activate();
+		void release();
 		void send_request(request_info* request);
 
 	};	/* namespace ctx::server */

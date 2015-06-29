@@ -7,16 +7,13 @@
 		<request>
 			<smack request="xorg" type="rw"/>
 			<smack request="security-server::api-cookie-check" type="w"/>
-			<smack request="security-server::api-privilege-by-pid" type="w"/>
+			<smack request="security-server::api-app-privilege-by-name" type="rlw"/>
+			<smack request="security-server::api-permissions" type="rlw"/>
 			<smack request="vasum::manage" type="rw"/>
 			<smack request="sys-assert::core" type="rwxat"/>
 			<smack request="device::app_logging" type="rw"/>
 			<smack request="device::sys_logging" type="rw"/>
 			<smack request="deviced::display" type="rw"/>
-			<smack request="ail::db" type="rlx"/>
-			<smack request="pkgmgr" type="r"/>
-			<smack request="pkgmgr::db" type="rwx"/>
-			<smack request="pkgmgr::info" type="r"/>
 			<smack request="alarm-server::alarm" type="rw"/>
 			<smack request="libaccounts-svc" type="r"/>
 			<smack request="libaccounts-svc::db" type="rl"/>
@@ -53,6 +50,8 @@
 			<smack request="tizen::vconf::message" type="r"/>
 			<smack request="tizen::vconf::setting::admin" type="rl"/>
 			<smack request="tizen::vconf::volume::set" type="rl"/>
+			<smack request="sound_server" type="rlwx"/>
+			<smack request="media-data::db" type="rlw"/>
 		</request>
 	</define>
 	<request>

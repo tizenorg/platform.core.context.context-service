@@ -26,6 +26,8 @@
 #include "zone_util_impl.h"
 #include "dbus_server_impl.h"
 
+static bool conn_acquired = false;
+static bool name_acquired = false;
 static ctx::dbus_server_impl *_instance = NULL;
 static GDBusConnection *dbus_connection = NULL;
 static guint dbus_owner_id = 0;
@@ -98,7 +100,7 @@ static void handle_request(const char *sender, GVariant *param, GDBusMethodInvoc
 		return;
 	}
 
-	g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
+	delete request;
 }
 
 static void handle_method_call(GDBusConnection *conn, const gchar *sender,
@@ -130,12 +132,22 @@ static void on_bus_acquired(GDBusConnection *conn, const gchar *name, gpointer u
 		raise(SIGTERM);
 	}
 
+	conn_acquired = true;
 	dbus_connection = conn;
+
+	_I("Dbus connection acquired");
+
+	if (name_acquired)
+		ctx::server::activate();
 }
 
 static void on_name_acquired(GDBusConnection *conn, const gchar *name, gpointer user_data)
 {
+	name_acquired = true;
 	_SI("Dbus name acquired: %s", name);
+
+	if (conn_acquired)
+		ctx::server::activate();
 }
 
 static void on_name_lost(GDBusConnection *conn, const gchar *name, gpointer user_data)

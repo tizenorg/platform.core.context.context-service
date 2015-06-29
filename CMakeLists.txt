@@ -17,7 +17,6 @@ SET(DEPS
 	capi-system-info
 	capi-appfw-app-manager
 	appsvc
-	capi-security-privilege-manager
 	alarm-service
 	notification
 	cynara-creds-gdbus
@@ -43,6 +42,14 @@ IF("${ARCH}" STREQUAL "arm")
 ELSE("${ARCH}" STREQUAL "arm")
 	ADD_DEFINITIONS("-D_EMULATOR")
 ENDIF("${ARCH}" STREQUAL "arm")
+
+IF("${MAINLOOP}" STREQUAL "ecore")
+	ADD_DEFINITIONS("-D_USE_ECORE_MAIN_LOOP_")
+	SET(DEPS
+		${DEPS}
+		ecore
+	)
+ENDIF("${MAINLOOP}" STREQUAL "ecore")
 
 # Common Options
 INCLUDE(FindPkgConfig)

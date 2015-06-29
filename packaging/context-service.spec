@@ -8,6 +8,9 @@ Source0:    %{name}-%{version}.tar.gz
 Source1:	context-service.service
 Source2:	org.tizen.context.service
 
+# For active window hooking, we need to use 'ecore' mainloop instead of the 'glib' mainloop.
+%define MAINLOOP ecore
+
 BuildRequires: cmake
 BuildRequires: sed
 BuildRequires: pkgconfig(vconf)
@@ -16,16 +19,18 @@ BuildRequires: pkgconfig(sqlite3)
 BuildRequires: pkgconfig(capi-system-info)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(appsvc)
-BuildRequires: pkgconfig(capi-security-privilege-manager)
 BuildRequires: pkgconfig(alarm-service)
 BuildRequires: pkgconfig(notification)
+
+%if "%{MAINLOOP}" == "ecore"
+BuildRequires: pkgconfig(ecore)
+%endif
 
 BuildRequires: pkgconfig(cynara-creds-gdbus)
 
 BuildRequires: pkgconfig(clips)
 BuildRequires: pkgconfig(context-common)
 BuildRequires: pkgconfig(context)
-BuildRequires: context-internal
 
 BuildRequires: pkgconfig(device-context-provider)
 BuildRequires: pkgconfig(statistics-context-provider)
@@ -66,7 +71,7 @@ export   CFLAGS+=" -DTIZEN_ENGINEER_MODE"
 export CXXFLAGS+=" -DTIZEN_ENGINEER_MODE"
 export   FFLAGS+=" -DTIZEN_ENGINEER_MODE"
 
-cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DARCH=%{ARCH} -DMAJORVER=${MAJORVER} -DFULLVER=%{version} -DPROFILE=%{?tizen_profile_name}
+cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DARCH=%{ARCH} -DMAJORVER=${MAJORVER} -DFULLVER=%{version} -DPROFILE=%{?tizen_profile_name} -DMAINLOOP=%{MAINLOOP}
 make %{?jobs:-j%jobs}
 
 %install
