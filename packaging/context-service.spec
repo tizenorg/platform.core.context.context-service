@@ -6,6 +6,7 @@ Group:      System/Service
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1:	context-service.service
+Source2:	org.tizen.context.conf
 
 # For active window hooking, we need to use 'ecore' mainloop instead of the 'glib' mainloop.
 %define MAINLOOP glib
@@ -87,6 +88,9 @@ cp data/access-config.xml %{buildroot}/opt/data/context-service/
 cp data/trigger-template.json %{buildroot}/opt/data/context-service/
 sh data/template-json-to-sql.sh data/trigger-template.json > %{buildroot}/opt/data/context-service/trigger-template.sql
 
+mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/system.d
+install -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/dbus-1/system.d/
+
 %post
 sqlite3 -echo /opt/dbspace/.context-service.db < /opt/data/context-service/trigger-template.sql
 chsmack -a "context-service" /opt/dbspace/.context-service.db*
@@ -107,6 +111,7 @@ systemctl daemon-reload
 
 %files
 %manifest packaging/%{name}.manifest
+%config %{_sysconfdir}/dbus-1/system.d/*
 %defattr(-,root,root,-)
 %{_bindir}/*
 %{_unitdir}/context-service.service
