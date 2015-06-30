@@ -6,7 +6,6 @@ Group:      System/Service
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1:	context-service.service
-Source2:	org.tizen.context.service
 
 # For active window hooking, we need to use 'ecore' mainloop instead of the 'glib' mainloop.
 %define MAINLOOP glib
@@ -73,7 +72,6 @@ rm -rf %{buildroot}
 %make_install
 
 mkdir -p %{buildroot}%{_unitdir}
-#mkdir -p %{buildroot}%{_datadir}/dbus-1/services
 mkdir -p %{buildroot}%{_datadir}/license
 mkdir -p %{buildroot}%{_datadir}/packages
 mkdir -p %{buildroot}/opt/dbspace
@@ -82,7 +80,6 @@ sqlite3 %{buildroot}/opt/dbspace/.context-service.db "PRAGMA journal_mode = PERS
 sqlite3 %{buildroot}/opt/dbspace/.context-service.db "CREATE TABLE VERSION (VERSION TEXT);"
 sqlite3 %{buildroot}/opt/dbspace/.context-service.db "INSERT INTO VERSION VALUES ('%{version}');"
 install -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}
-#install -m 0644 %{SOURCE2} %{buildroot}%{_datadir}/dbus-1/services/
 cp LICENSE %{buildroot}%{_datadir}/license/%{name}
 sed -i "s/^\tversion=\".*\"/\tversion=\"%{version}\"/g" packaging/context-service.xml
 cp packaging/context-service.xml %{buildroot}%{_datadir}/packages/
@@ -97,9 +94,6 @@ mkdir -p %{_unitdir}/graphical.target.wants
 ln -s ../context-service.service %{_unitdir}/graphical.target.wants/
 /sbin/ldconfig
 systemctl daemon-reload
-#if [ $1 == 1 ]; then
-#    systemctl restart context-service
-#fi
 
 %preun
 if [ $1 == 0 ]; then
@@ -116,7 +110,6 @@ systemctl daemon-reload
 %defattr(-,root,root,-)
 %{_bindir}/*
 %{_unitdir}/context-service.service
-#%{_datadir}/dbus-1/services/org.tizen.context.service
 %{_datadir}/license/%{name}
 %{_datadir}/packages/*.xml
 %defattr(0600,system,system,-)

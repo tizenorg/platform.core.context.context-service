@@ -1,6 +1,0 @@
-[D-BUS Service]
-Name=org.tizen.context
-Exec=/bin/false
-SystemdService=context-service.service
-User=system
-Group=system
