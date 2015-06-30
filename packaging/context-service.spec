@@ -92,6 +92,7 @@ sh data/template-json-to-sql.sh data/trigger-template.json > %{buildroot}/opt/da
 
 %post
 sqlite3 -echo /opt/dbspace/.context-service.db < /opt/data/context-service/trigger-template.sql
+chsmack -a "context-service" /opt/dbspace/.context-service.db*
 mkdir -p %{_unitdir}/graphical.target.wants
 ln -s ../context-service.service %{_unitdir}/graphical.target.wants/
 /sbin/ldconfig
