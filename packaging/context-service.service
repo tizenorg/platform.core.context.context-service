@@ -5,7 +5,6 @@ Description=Contextual Service Framework Daemon
 Type=dbus
 User=system
 Group=system
-SmackProcessLabel=context-service
 BusName=org.tizen.context
 ExecStart=/usr/bin/contextd
 Restart=always
