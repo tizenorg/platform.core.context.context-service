@@ -116,68 +116,26 @@ bool ctx::context_manager_impl::register_provider(const char* subject, ctx::cont
 
 void ctx::context_manager_impl::assign_request(ctx::request_info* request)
 {
-	int req_type = request->get_type();
-	context_provider_iface *provider = NULL;
-
-	if (req_type != REQ_UNSUBSCRIBE) {
-		subject_provider_map_t::iterator it = subject_provider_map.find(request->get_subject());
-		if (it == subject_provider_map.end()) {
-			_E("Unknown subject '%s'", request->get_subject());
-			request->reply(ERR_NOT_SUPPORTED);
-			delete request;
-			return;
-		}
-		provider = it->second;
-	}
-
-	std::string app_id;
-	// If the ClientAppId attribute exists but is empty.
-	if (request->get_description().get(NULL, COMMON_ATTR_CLIENT_APP_ID, &app_id)) {
-		if (app_id.empty() && request->get_app_id()) {
-			request->get_description().set(NULL, COMMON_ATTR_CLIENT_APP_ID, request->get_app_id());
-		}
-	}
-
-	switch (req_type) {
-		case REQ_SUBSCRIBE:
-			if (!check_permission(request)) {
-				request->reply(ERR_PERMISSION_DENIED);
-				delete request;
-				break;
-			}
-			subscribe(request, provider);
-			break;
-		case REQ_UNSUBSCRIBE:
-			unsubscribe(request);
-			break;
-		case REQ_READ:
-		case REQ_READ_SYNC:
-			if (!check_permission(request)) {
-				request->reply(ERR_PERMISSION_DENIED);
-				delete request;
-				break;
-			}
-			read(request, provider);
-			break;
-		case REQ_WRITE:
-			if (!check_permission(request)) {
-				request->reply(ERR_PERMISSION_DENIED);
-				delete request;
-				break;
-			}
-			write(request, provider);
-			break;
-		case REQ_SUPPORT:
-			if (provider->is_supported(request->get_subject(), request->get_zone_name())) {
-				request->reply(ERR_NONE);
-			} else {
-				request->reply(ERR_NOT_SUPPORTED);
-			}
-			delete request;
-			break;
-		default:
-			_E("Invalid type of request");
-			delete request;
+	switch (request->get_type()) {
+	case REQ_SUBSCRIBE:
+		subscribe(request);
+		break;
+	case REQ_UNSUBSCRIBE:
+		unsubscribe(request);
+		break;
+	case REQ_READ:
+	case REQ_READ_SYNC:
+		read(request);
+		break;
+	case REQ_WRITE:
+		write(request);
+		break;
+	case REQ_SUPPORT:
+		is_supported(request);
+		break;
+	default:
+		_E("Invalid type of request");
+		delete request;
 	}
 }
 
@@ -187,6 +145,16 @@ bool ctx::context_manager_impl::is_supported(const char* subject, const char* zo
 	IF_FAIL_RETURN(it != subject_provider_map.end(), false);
 
 	return it->second->is_supported(subject, zone);
+}
+
+void ctx::context_manager_impl::is_supported(request_info *request)
+{
+	if (is_supported(request->get_subject(), request->get_zone_name()))
+		request->reply(ERR_NONE);
+	else
+		request->reply(ERR_NOT_SUPPORTED);
+
+	delete request;
 }
 
 ctx::context_manager_impl::request_list_t::iterator
@@ -220,24 +188,52 @@ ctx::context_manager_impl::find_request(request_list_t::iterator begin, request_
 	return it;
 }
 
+ctx::context_provider_iface* ctx::context_manager_impl::get_provider(ctx::request_info *request)
+{
+	subject_provider_map_t::iterator it = subject_provider_map.find(request->get_subject());
+	if (it == subject_provider_map.end()) {
+		_E("Unknown subject '%s'", request->get_subject());
+		request->reply(ERR_NOT_SUPPORTED);
+		delete request;
+		return NULL;
+	}
+	return it->second;
+}
+
 bool ctx::context_manager_impl::check_permission(ctx::request_info* request)
 {
 	const char* app_id = request->get_app_id();
 	_D("Peer AppID: %s", app_id);
-	IF_FAIL_RETURN_TAG(app_id, false, _E, "AppID NULL");
+
+	if (app_id == NULL) {
+		_E("AppID NULL");
+		request->reply(ERR_PERMISSION_DENIED);
+		delete request;
+		return false;
+	}
+
 	IF_FAIL_RETURN_TAG(!STR_EQ(app_id, TRIGGER_CLIENT_NAME), true, _D, "Skipping permission check for Trigger");
 
 	scope_zone_joiner sz(request->get_zone_name());
 
 	bool allowed = ctx::privilege_manager::is_allowed(app_id, request->get_subject());
-	IF_FAIL_RETURN_TAG(allowed, false, _W, "Permission denied");
+	if (!allowed) {
+		_W("Permission denied");
+		request->reply(ERR_PERMISSION_DENIED);
+		delete request;
+		return false;
+	}
 
 	return true;
 }
 
-void ctx::context_manager_impl::subscribe(ctx::request_info* request, ctx::context_provider_iface* provider)
+void ctx::context_manager_impl::subscribe(ctx::request_info *request)
 {
 	_I(CYAN("[%s] '%s' subscribes '%s' (RID-%d)"), request->get_zone_name(), request->get_client(), request->get_subject(), request->get_id());
+	IF_FAIL_VOID(check_permission(request));
+
+	context_provider_iface *provider = get_provider(request);
+	IF_FAIL_VOID(provider);
 
 	ctx::json request_result;
 	int error = provider->subscribe(request->get_subject(), request->get_description().str(), &request_result, request->get_zone_name());
@@ -252,7 +248,7 @@ void ctx::context_manager_impl::subscribe(ctx::request_info* request, ctx::conte
 	subscribe_request_list.push_back(request);
 }
 
-void ctx::context_manager_impl::unsubscribe(ctx::request_info* request)
+void ctx::context_manager_impl::unsubscribe(ctx::request_info *request)
 {
 	_I(CYAN("[%s] '%s' unsubscribes RID-%d"), request->get_zone_name(), request->get_client(), request->get_id());
 
@@ -296,9 +292,13 @@ void ctx::context_manager_impl::unsubscribe(ctx::request_info* request)
 	delete req_found;
 }
 
-void ctx::context_manager_impl::read(ctx::request_info* request, ctx::context_provider_iface* provider)
+void ctx::context_manager_impl::read(ctx::request_info *request)
 {
 	_I(CYAN("[%s] '%s' reads '%s' (RID-%d)"), request->get_zone_name(), request->get_client(), request->get_subject(), request->get_id());
+	IF_FAIL_VOID(check_permission(request));
+
+	context_provider_iface *provider = get_provider(request);
+	IF_FAIL_VOID(provider);
 
 	ctx::json request_result;
 	int error = provider->read(request->get_subject(), request->get_description().str(), &request_result, request->get_zone_name());
@@ -313,9 +313,13 @@ void ctx::context_manager_impl::read(ctx::request_info* request, ctx::context_pr
 	read_request_list.push_back(request);
 }
 
-void ctx::context_manager_impl::write(ctx::request_info* request, ctx::context_provider_iface* provider)
+void ctx::context_manager_impl::write(ctx::request_info *request)
 {
 	_I(CYAN("[%s] '%s' writes '%s' (RID-%d)"), request->get_zone_name(), request->get_client(), request->get_subject(), request->get_id());
+	IF_FAIL_VOID(check_permission(request));
+
+	context_provider_iface *provider = get_provider(request);
+	IF_FAIL_VOID(provider);
 
 	ctx::json request_result;
 	int error = provider->write(request->get_subject(), request->get_description(), &request_result, request->get_zone_name());

@@ -28,49 +28,50 @@
 namespace ctx {
 
 	class context_manager_impl : public context_manager_iface {
-		public:
-			typedef std::list<request_info*> request_list_t;
+	public:
+		typedef std::list<request_info*> request_list_t;
 
-			context_manager_impl();
-			~context_manager_impl();
+		context_manager_impl();
+		~context_manager_impl();
 
-			bool init();
-			void release();
+		bool init();
+		void release();
 
-			void assign_request(ctx::request_info* request);
-			bool is_supported(const char* subject, const char* zone);
+		void assign_request(ctx::request_info *request);
+		bool is_supported(const char *subject, const char *zone);
 
-			// From the interface class
-			bool register_provider(const char* subject, ctx::context_provider_iface* cp);
-			bool publish(const char* subject, ctx::json& option, int error, ctx::json& data_updated, const char* zone);
-			bool reply_to_read(const char* subject, ctx::json& option, int error, ctx::json& data_read, const char* zone);
-			// ---
+		/* From the interface class */
+		bool register_provider(const char *subject, ctx::context_provider_iface *cp);
+		bool publish(const char *subject, ctx::json& option, int error, ctx::json& data_updated, const char *zone);
+		bool reply_to_read(const char *subject, ctx::json& option, int error, ctx::json& data_read, const char *zone);
 
-		private:
-			typedef std::vector<context_provider_iface*> provider_list_t;
-			typedef std::map<std::string, context_provider_iface*> subject_provider_map_t;
+	private:
+		typedef std::vector<context_provider_iface*> provider_list_t;
+		typedef std::map<std::string, context_provider_iface*> subject_provider_map_t;
 
-			provider_list_t provider_list;
-			request_list_t subscribe_request_list;
-			request_list_t read_request_list;
-			subject_provider_map_t subject_provider_map;
+		provider_list_t provider_list;
+		request_list_t subscribe_request_list;
+		request_list_t read_request_list;
+		subject_provider_map_t subject_provider_map;
 
-			void load_provider(ctx::context_provider_iface* provider);
+		void load_provider(ctx::context_provider_iface *provider);
 
-			void subscribe(request_info* request, context_provider_iface* provider);
-			void unsubscribe(request_info* request);
-			void read(request_info* request, context_provider_iface* provider);
-			void write(request_info* request, context_provider_iface* provider);
+		void subscribe(request_info *request);
+		void unsubscribe(request_info *request);
+		void read(request_info *request);
+		void write(request_info *request);
+		void is_supported(request_info *request);
 
-			bool check_permission(request_info* request);
+		context_provider_iface *get_provider(request_info *request);
+		bool check_permission(request_info *request);
 
-			static gboolean thread_switcher(gpointer data);
-			bool _publish(const char* subject, ctx::json option, int error, ctx::json data_updated, const char* zone);
-			bool _reply_to_read(const char* subject, ctx::json option, int error, ctx::json data_read, const char* zone);
+		static gboolean thread_switcher(gpointer data);
+		bool _publish(const char *subject, ctx::json option, int error, ctx::json data_updated, const char *zone);
+		bool _reply_to_read(const char *subject, ctx::json option, int error, ctx::json data_read, const char *zone);
 
-			request_list_t::iterator find_request(request_list_t& r_list, std::string subject, json& option, const char* zone);
-			request_list_t::iterator find_request(request_list_t& r_list, std::string client, int req_id);
-			request_list_t::iterator find_request(request_list_t::iterator begin, request_list_t::iterator end, std::string subject, json& option, const char* zone);
+		request_list_t::iterator find_request(request_list_t& r_list, std::string subject, json& option, const char *zone);
+		request_list_t::iterator find_request(request_list_t& r_list, std::string client, int req_id);
+		request_list_t::iterator find_request(request_list_t::iterator begin, request_list_t::iterator end, std::string subject, json& option, const char *zone);
 
 	};	/* class context_manager_impl */
 
