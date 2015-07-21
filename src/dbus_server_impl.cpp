@@ -23,7 +23,6 @@
 #include "server.h"
 #include "client_request.h"
 #include "access_control/peer_creds.h"
-#include "zone_util_impl.h"
 #include "dbus_server_impl.h"
 
 static bool conn_acquired = false;
@@ -94,8 +93,7 @@ static void handle_request(const char *sender, GVariant *param, GDBusMethodInvoc
 	std::string smack_label;
 	pid_t pid;
 
-	if (ctx::peer_creds::get(dbus_connection, sender, smack_label, pid) &&
-			request->set_peer_creds(smack_label.c_str(), ctx::zone_util::get_name_by_pid(pid))) {
+	if (ctx::peer_creds::get(dbus_connection, sender, smack_label, pid) && request->set_peer_creds(smack_label.c_str())) {
 		ctx::server::send_request(request);
 		return;
 	}

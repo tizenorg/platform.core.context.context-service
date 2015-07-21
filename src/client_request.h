@@ -27,7 +27,7 @@ namespace ctx {
 			client_request(int type, const char* client, int req_id, const char* subj, const char* desc, GDBusMethodInvocation *inv);
 			~client_request();
 
-			bool set_peer_creds(const char *smack_label, const char *zone);
+			bool set_peer_creds(const char *smack_label);
 			const char* get_app_id();
 
 			bool reply(int error);

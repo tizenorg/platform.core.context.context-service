@@ -24,9 +24,8 @@ namespace ctx {
 
 	class clips_handler {
 		public:
-			clips_handler();
+			clips_handler(ctx::rule_manager* rm);
 			~clips_handler();
-			bool init(ctx::rule_manager* rm);
 
 			int define_template(std::string& script);
 			int define_class(std::string& script);
@@ -36,13 +35,14 @@ namespace ctx {
 			int route_string_command(std::string& fact);
 			int make_instance(std::string& script);
 			int unmake_instance(std::string& instance_name);
-			static int execute_action();
+			static int execute_action(void);
 			bool find_instance(std::string& instance_name);
 			bool define_global_variable_string(std::string variable_name, std::string value);
 			bool set_global_variable_string(std::string variable_name, std::string value);
 
 		private:
-			int init_environment(void* &environment);
+			clips_handler();
+			int init_environment(void);
 			int env_build(std::string& script);
 			void* find_instance_internal(std::string& instance_name);
 

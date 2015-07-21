@@ -43,7 +43,6 @@ namespace ctx {
 		typedef std::map<int, timer_state_s> timer_state_map_t;
 
 		ctx::context_trigger *trigger;
-		std::string zone;
 		ref_count_map_t ref_count_map;
 		timer_state_map_t timer_state_map;
 
@@ -55,7 +54,7 @@ namespace ctx {
 		bool on_timer_expired(int timer_id, void *user_data);
 
 	public:
-		trigger_timer(ctx::context_trigger *tr, std::string z);
+		trigger_timer(ctx::context_trigger *tr);
 		~trigger_timer();
 
 		bool add(int minute, int day_of_week);

@@ -36,10 +36,7 @@ namespace ctx {
 			void release();
 
 			bool assign_request(ctx::request_info* request);
-			void push_fact(int req_id, int error, const char* subject, ctx::json& option, ctx::json& data, const char* zone);
-			bool publish(int rule_id, int error, ctx::json data);
-			bool _publish(int rule_id, int error, ctx::json data);
-
+			void push_fact(int req_id, int error, const char* subject, ctx::json& option, ctx::json& data);
 
 		private:
 			enum event_type_e {

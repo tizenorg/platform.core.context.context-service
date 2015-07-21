@@ -17,13 +17,11 @@
 #include <types_internal.h>
 #include "fact_request.h"
 
-ctx::fact_request::fact_request(int type, const char* client, int req_id, const char* subj, const char* desc, const char* zone, fact_reader* reader)
+ctx::fact_request::fact_request(int type, const char* client, int req_id, const char* subj, const char* desc, fact_reader* reader)
 	: request_info(type, client, req_id, subj, desc)
 	, _reader(reader)
 	, replied(false)
 {
-	if (zone)
-		_zone_name = zone;
 }
 
 ctx::fact_request::~fact_request()
@@ -34,7 +32,7 @@ ctx::fact_request::~fact_request()
 bool ctx::fact_request::reply(int error)
 {
 	IF_FAIL_RETURN(!replied && _reader, true);
-	_reader->reply_result(_req_id, error, _zone_name.c_str());
+	_reader->reply_result(_req_id, error);
 	return (replied = true);
 }
 
@@ -42,26 +40,20 @@ bool ctx::fact_request::reply(int error, ctx::json& request_result)
 {
 	IF_FAIL_RETURN(!replied && _reader, true);
 	IF_FAIL_RETURN(_type != REQ_READ_SYNC, true);
-	_reader->reply_result(_req_id, error, _zone_name.c_str(), &request_result);
+	_reader->reply_result(_req_id, error, &request_result);
 	return (replied = true);
 }
 
 bool ctx::fact_request::reply(int error, ctx::json& request_result, ctx::json& data_read)
 {
 	IF_FAIL_RETURN(!replied && _reader, true);
-	_reader->reply_result(_req_id, error, _zone_name.c_str(), &request_result, &data_read);
+	_reader->reply_result(_req_id, error, &request_result, &data_read);
 	return (replied = true);
 }
 
 bool ctx::fact_request::publish(int error, ctx::json& data)
 {
 	IF_FAIL_RETURN(_reader, true);
-	_reader->publish_fact(_req_id, error, _zone_name.c_str(), _subject.c_str(), &get_description(), &data);
+	_reader->publish_fact(_req_id, error, _subject.c_str(), &get_description(), &data);
 	return true;
-}
-
-void ctx::fact_request::set_zone_name(const char* zone_name)
-{
-	if (zone_name)
-		_zone_name = zone_name;
 }

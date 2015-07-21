@@ -25,7 +25,7 @@ namespace ctx {
 		std::string generate_defclass(ctx::json* item);
 		std::string generate_makeinstance(ctx::json* item);
 		std::string generate_undefrule(std::string rule_id);
-		std::string generate_defrule(std::string rule_id, ctx::json event_template, ctx::json rule, ctx::json* inst_names, std::string zone);
+		std::string generate_defrule(std::string rule_id, ctx::json event_template, ctx::json rule, ctx::json* inst_names);
 		std::string generate_fact(std::string item_name, ctx::json event_template, ctx::json option, ctx::json data);
 		std::string generate_modifyinstance(std::string instance_name, ctx::json condition_template, ctx::json data);
 

@@ -23,16 +23,13 @@ ctx::context_fact::context_fact()
 {
 }
 
-ctx::context_fact::context_fact(int id, int err, const char* s, ctx::json& o, ctx::json& d, const char* z)
+ctx::context_fact::context_fact(int id, int err, const char* s, ctx::json& o, ctx::json& d)
 	: req_id(id)
 	, error(err)
 	, subject(s)
 	, option(o)
 	, data(d)
 {
-	if (z) {
-		zone_name = z;
-	}
 }
 
 ctx::context_fact::~context_fact()
@@ -64,11 +61,6 @@ void ctx::context_fact::set_data(ctx::json& d)
 	data = d;
 }
 
-void ctx::context_fact::set_zone_name(const char* z)
-{
-	zone_name = z;
-}
-
 int ctx::context_fact::get_req_id()
 {
 	return req_id;
@@ -82,11 +74,6 @@ int ctx::context_fact::get_error()
 const char* ctx::context_fact::get_subject()
 {
 	return subject.c_str();
-}
-
-const char* ctx::context_fact::get_zone_name()
-{
-	return zone_name.c_str();
 }
 
 ctx::json& ctx::context_fact::get_option()

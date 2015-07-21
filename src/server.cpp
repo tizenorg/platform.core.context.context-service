@@ -24,7 +24,6 @@
 #include "db_mgr_impl.h"
 #include "timer_mgr_impl.h"
 #include "context_mgr_impl.h"
-#include "zone_util_impl.h"
 #include "access_control/privilege.h"
 #include "context_trigger/trigger.h"
 #include "server.h"
@@ -74,10 +73,6 @@ void ctx::server::activate()
 	IF_FAIL_VOID(!started);
 
 	bool result = false;
-
-	_I("Init vasum context");
-	result = ctx::zone_util::init();
-	IF_FAIL_CATCH_TAG(result, _E, "Vasum context initialization failed");
 
 	_I("Init access control configuration");
 	result = ctx::privilege_manager::init();
@@ -150,9 +145,6 @@ void ctx::server::release()
 
 	_I("Release Access control configuration");
 	ctx::privilege_manager::release();
-
-	_I("Release Vasum context");
-	ctx::zone_util::release();
 
 #ifdef _USE_ECORE_MAIN_LOOP_
 	ecore_shutdown();

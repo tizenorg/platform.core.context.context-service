@@ -31,7 +31,7 @@ namespace ctx {
 			rule_manager();
 			~rule_manager();
 			bool init(ctx::context_trigger* tr, ctx::fact_reader* fr);
-			int add_rule(std::string creator, ctx::json rule, std::string zone, ctx::json* rule_id);
+			int add_rule(std::string creator, ctx::json rule, ctx::json* rule_id);
 			int remove_rule(int rule_id);
 			int enable_rule(int rule_id);
 			int disable_rule(int rule_id);
@@ -40,24 +40,25 @@ namespace ctx {
 			int check_rule(std::string creator, int rule_id);
 			bool is_rule_enabled(int rule_id);
 
-			void on_event_received(std::string item, ctx::json option, ctx::json data, std::string zone);
+			void on_event_received(std::string item, ctx::json option, ctx::json data);
 			void on_rule_triggered(int rule_id);
 
 		private:
-			clips_handler clips_h;
+			clips_handler* clips_h;
 			context_monitor c_monitor;
 
 			bool reenable_rule(void);
-			int verify_rule(ctx::json& rule, const char* app_id, const char* zone);
-			int64_t get_duplicated_rule(std::string creator, std::string zone, ctx::json& rule);
+			int verify_rule(ctx::json& rule, const char* app_id);
+			int64_t get_duplicated_rule(std::string creator, ctx::json& rule);
 			bool rule_data_arr_elem_equals(ctx::json& lelem, ctx::json& relem);
 			bool rule_item_equals(ctx::json& litem, ctx::json& ritem);
 			bool rule_equals(ctx::json& lrule, ctx::json& rrule);
 			std::string get_instance_name(std::string name, ctx::json& condition);
 			void make_condition_option_based_on_event_data(ctx::json& ctemplate, ctx::json& edata, ctx::json* coption);
+			bool initialize_clips(void);
+			void destroy_clips(void);
 
 			std::map<std::string, int> cond_cnt_map; // <condition instance name, count>
-
    };	/* class rule_manager */
 
 }	/* namespace ctx */

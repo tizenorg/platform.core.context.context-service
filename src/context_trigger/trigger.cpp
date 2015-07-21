@@ -53,6 +53,9 @@ void ctx::context_trigger::release()
 	// This function is called from the main thread during the service termination process.
 	delete _reader;
 	_reader = NULL;
+
+	delete rule_mgr;
+	rule_mgr = NULL;
 }
 
 void ctx::context_trigger::on_thread_event_popped(int type, void* data)
@@ -138,9 +141,9 @@ void ctx::context_trigger::process_request(ctx::request_info* request)
 	}
 }
 
-void ctx::context_trigger::push_fact(int req_id, int error, const char* subject, ctx::json& option, ctx::json& data, const char* zone)
+void ctx::context_trigger::push_fact(int req_id, int error, const char* subject, ctx::json& option, ctx::json& data)
 {
-	context_fact *fact = new(std::nothrow) context_fact(req_id, error, subject, option, data, zone);
+	context_fact *fact = new(std::nothrow) context_fact(req_id, error, subject, option, data);
 	IF_FAIL_VOID_TAG(fact, _E, "Memory allocation failed");
 
 	push_thread_event(ETYPE_FACT, fact);
@@ -149,7 +152,7 @@ void ctx::context_trigger::push_fact(int req_id, int error, const char* subject,
 void ctx::context_trigger::process_fact(ctx::context_fact* fact)
 {
 	// Process the context fact.
-	rule_mgr->on_event_received(fact->get_subject(), fact->get_option(), fact->get_data(), fact->get_zone_name());
+	rule_mgr->on_event_received(fact->get_subject(), fact->get_option(), fact->get_data());
 }
 
 void ctx::context_trigger::process_initialize(void)
@@ -174,13 +177,7 @@ void ctx::context_trigger::add_rule(ctx::request_info* request)
 		return;
 	}
 
-	const char* zone_name = request->get_zone_name();
-	if (zone_name == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
-
-	int error = rule_mgr->add_rule(app_id, request->get_description(), zone_name, &rule_id);
+	int error = rule_mgr->add_rule(app_id, request->get_description(), &rule_id);
 	_I("'%s' adds a rule (Error: %#x)", request->get_client(), error);
 
 	request->reply(error, rule_id);

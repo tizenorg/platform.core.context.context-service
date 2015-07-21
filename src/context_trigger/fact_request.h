@@ -24,10 +24,9 @@ namespace ctx {
 
 	class fact_request : public request_info {
 		public:
-			fact_request(int type, const char* client, int req_id, const char* subj, const char* desc, const char* zone, fact_reader* reader);
+			fact_request(int type, const char* client, int req_id, const char* subj, const char* desc, fact_reader* reader);
 			~fact_request();
 
-			void set_zone_name(const char* zone_name);
 			bool reply(int error);
 			bool reply(int error, ctx::json& request_result);
 			bool reply(int error, ctx::json& request_result, ctx::json& data_read);

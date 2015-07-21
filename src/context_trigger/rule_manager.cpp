@@ -29,7 +29,6 @@
 #include <context_trigger_types_internal.h>
 #include <context_trigger.h>
 #include <db_mgr.h>
-#include <zone_util.h>
 #include "../access_control/privilege.h"
 #include "rule_manager.h"
 #include "script_generator.h"
@@ -40,9 +39,9 @@
 #define CONDITION_TABLE "context_trigger_condition"
 #define TEMPLATE_TABLE "context_trigger_template"
 
-#define RULE_TABLE_COLUMNS "enabled INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '', details TEXT DEFAULT '' NOT NULL, zone TEXT DEFAULT '' NOT NULL"
-#define EVENT_TABLE_COLUMNS "rule_id INTEGER references context_trigger_rule(row_id) ON DELETE CASCADE NOT NULL, name TEXT DEFAULT '' NOT NULL, instance_name TEXT DEFAULT '', zone TEXT DEFAULT '' NOT NULL"
-#define CONDITION_TABLE_COLUMNS "rule_id INTEGER references context_trigger_rule(row_id) ON DELETE CASCADE NOT NULL, name TEXT DEFAULT '' NOT NULL, option TEXT DEFAULT '', instance_name TEXT DEFAULT '', zone TEXT DEFAULT '' NOT NULL"
+#define RULE_TABLE_COLUMNS "enabled INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '', details TEXT DEFAULT '' NOT NULL"
+#define EVENT_TABLE_COLUMNS "rule_id INTEGER references context_trigger_rule(row_id) ON DELETE CASCADE NOT NULL, name TEXT DEFAULT '' NOT NULL, instance_name TEXT DEFAULT ''"
+#define CONDITION_TABLE_COLUMNS "rule_id INTEGER references context_trigger_rule(row_id) ON DELETE CASCADE NOT NULL, name TEXT DEFAULT '' NOT NULL, option TEXT DEFAULT '', instance_name TEXT DEFAULT ''"
 #define CREATE_TEMPLATE_TABLE "CREATE TABLE IF NOT EXISTS context_trigger_template (name TEXT DEFAULT '' NOT NULL PRIMARY KEY, j_template TEXT DEFAULT '' NOT NULL)"
 #define QUERY_TEMPLATE_TABLE "SELECT j_template FROM context_trigger_template"
 #define FOREIGN_KEYS_ON "PRAGMA foreign_keys = ON"
@@ -51,7 +50,7 @@
 #define UPDATE_RULE_DISABLED_STATEMENT "UPDATE context_trigger_rule SET enabled = 0 WHERE row_id = "
 #define QUERY_NAME_INSTANCE_NAME_AND_TEMPLATE_BY_RULE_ID_STATEMENT "SELECT context_trigger_condition.name, instance_name, j_template as templates FROM context_trigger_condition JOIN context_trigger_template ON (context_trigger_condition.name = context_trigger_template.name) WHERE rule_id = "
 #define QUERY_CONDITION_TEMPLATES_OF_INVOKED_EVENT_STATEMENT "SELECT DISTINCT context_trigger_condition.name, instance_name, option, j_template FROM context_trigger_condition JOIN context_trigger_template ON (context_trigger_condition.name = context_trigger_template.name) WHERE rule_id IN (SELECT row_id FROM context_trigger_rule WHERE enabled = 1 AND row_id IN (SELECT rule_id FROM context_trigger_event WHERE context_trigger_event.instance_name = '"
-#define QUERY_RULE_AND_ZONE_BY_RULE_ID "SELECT details, zone FROM context_trigger_rule WHERE row_id = "
+#define QUERY_RULE_BY_RULE_ID "SELECT details FROM context_trigger_rule WHERE row_id = "
 #define QUERY_EVENT_TEMPLATE_BY_RULE_ID "SELECT j_template FROM context_trigger_template WHERE name IN (SELECT name FROM context_trigger_event WHERE rule_id = "
 #define QUERY_CONDITION_BY_RULE_ID "SELECT name, option FROM context_trigger_condition WHERE rule_id = "
 
@@ -59,6 +58,7 @@
 #define EVENT_KEY_PREFIX "?"
 
 static ctx::context_trigger* trigger = NULL;
+static int enb_rule_cnt = 0;
 
 static int string_to_int(std::string str)
 {
@@ -85,19 +85,17 @@ ctx::rule_manager::rule_manager()
 
 ctx::rule_manager::~rule_manager()
 {
+	destroy_clips();
 }
 
 bool ctx::rule_manager::init(ctx::context_trigger* tr, ctx::fact_reader* fr)
 {
-	int error;
 	bool ret;
 
+	clips_h = NULL;
 	trigger = tr;
-
-	ret = clips_h.init(this);
-	IF_FAIL_RETURN_TAG(ret, false, _E, "CLIPS handler initialization failed");
-
 	ret = c_monitor.init(fr, tr);
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Context monitor initialization failed");
 
 	// Create tables into db (rule, event, condition, action, template)
 	ret = db_manager::create_table(1, RULE_TABLE, RULE_TABLE_COLUMNS, NULL, NULL);
@@ -112,9 +110,29 @@ bool ctx::rule_manager::init(ctx::context_trigger* tr, ctx::fact_reader* fr)
 	ret = db_manager::execute(4, CREATE_TEMPLATE_TABLE, NULL);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create template table failed");
 
+	// Foreign keys on
+	std::vector<json> record;
+	ret = db_manager::execute_sync(FOREIGN_KEYS_ON, &record);
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Foreign keys on failed");
+
+	ret = reenable_rule();
+
+	return ret;
+}
+
+bool ctx::rule_manager::initialize_clips(void)
+{
+	if (clips_h) {
+		_D("CLIPS handler already initialized");
+		return true;
+	}
+
+	clips_h = new(std::nothrow) clips_handler(this);
+	IF_FAIL_RETURN_TAG(clips_h, false, _E, "CLIPS handler initialization failed");
+
 	// Load all templates from DB
 	std::vector<json> record;
-	ret = db_manager::execute_sync(QUERY_TEMPLATE_TABLE, &record);
+	bool ret = db_manager::execute_sync(QUERY_TEMPLATE_TABLE, &record);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Query template table failed");
 
 	// Make scripts for deftemplate, defclass, make-instance and load them to clips
@@ -126,25 +144,26 @@ bool ctx::rule_manager::init(ctx::context_trigger* tr, ctx::fact_reader* fr)
 		ctx::json tmpl = tmpl_str;
 
 		std::string deftemplate_str = script_generator::generate_deftemplate(&tmpl);
-		error = clips_h.define_template(deftemplate_str);
+		int error = clips_h->define_template(deftemplate_str);
 		IF_FAIL_RETURN_TAG(error == ERR_NONE, false, _E, "Deftemplate failed");
 
 		std::string defclass_str = script_generator::generate_defclass(&tmpl);
-		error = clips_h.define_class(defclass_str);
+		error = clips_h->define_class(defclass_str);
 		IF_FAIL_RETURN_TAG(error == ERR_NONE, false, _E, "Defclass failed");
 
 		std::string makeinstance_str = script_generator::generate_makeinstance(&tmpl);
-		error = clips_h.make_instance(makeinstance_str);
+		error = clips_h->make_instance(makeinstance_str);
 		IF_FAIL_RETURN_TAG(error == ERR_NONE, false, _E, "Makeinstance failed");
 	}
 
-	// Foreign keys on
-	ret = db_manager::execute_sync(FOREIGN_KEYS_ON, &record);
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Foreign keys on failed");
+	_D(YELLOW("Deftemplate, Defclass, Make-instance completed"));
+	return true;
+}
 
-	ret = reenable_rule();
-
-	return ret;
+void ctx::rule_manager::destroy_clips(void)
+{
+	delete clips_h;
+	clips_h = NULL;
 }
 
 bool ctx::rule_manager::reenable_rule(void)
@@ -166,7 +185,7 @@ bool ctx::rule_manager::reenable_rule(void)
 		if (error != ERR_NONE) {
 			_E("Re-enable rule%d failed(%d)", row_id, error);
 		} else {
-			_E("Re-enable rule%d succeeded", row_id);
+			_D("Re-enable rule%d succeeded", row_id);
 		}
 	}
 
@@ -327,12 +346,10 @@ bool ctx::rule_manager::rule_equals(ctx::json& lrule, ctx::json& rrule)
 	return true;
 }
 
-int64_t ctx::rule_manager::get_duplicated_rule(std::string creator, std::string zone, ctx::json& rule)
+int64_t ctx::rule_manager::get_duplicated_rule(std::string creator, ctx::json& rule)
 {
 	std::string q = "SELECT row_id, details FROM context_trigger_rule WHERE creator = '";
 	q += creator;
-	q += "' AND zone ='";
-	q += zone;
 	q += "'";
 
 	std::vector<json> record;
@@ -361,7 +378,7 @@ int64_t ctx::rule_manager::get_duplicated_rule(std::string creator, std::string 
 	return -1;
 }
 
-int ctx::rule_manager::verify_rule(ctx::json& rule, const char* app_id, const char* zone)
+int ctx::rule_manager::verify_rule(ctx::json& rule, const char* app_id)
 {
 	ctx::json details;
 	rule.get(NULL, CT_RULE_DETAILS, &details);
@@ -369,7 +386,7 @@ int ctx::rule_manager::verify_rule(ctx::json& rule, const char* app_id, const ch
 	std::string e_name;
 	rule.get(CT_RULE_DETAILS "." CT_RULE_EVENT, CT_RULE_EVENT_ITEM, &e_name);
 
-	IF_FAIL_RETURN_TAG(c_monitor.is_supported(e_name, zone), ERR_NOT_SUPPORTED, _I, "Event(%s) is not supported", e_name.c_str());
+	IF_FAIL_RETURN_TAG(c_monitor.is_supported(e_name), ERR_NOT_SUPPORTED, _I, "Event(%s) is not supported", e_name.c_str());
 
 	if (app_id) {
 		if (!ctx::privilege_manager::is_allowed(app_id, e_name.c_str())) {
@@ -383,7 +400,7 @@ int ctx::rule_manager::verify_rule(ctx::json& rule, const char* app_id, const ch
 		std::string c_name;
 		it.get(NULL, CT_RULE_CONDITION_ITEM, &c_name);
 
-		IF_FAIL_RETURN_TAG(c_monitor.is_supported(c_name, zone), ERR_NOT_SUPPORTED, _I, "Condition(%s) is not supported", c_name.c_str());
+		IF_FAIL_RETURN_TAG(c_monitor.is_supported(c_name), ERR_NOT_SUPPORTED, _I, "Condition(%s) is not supported", c_name.c_str());
 
 		if (!ctx::privilege_manager::is_allowed(app_id, c_name.c_str())) {
 			_W("Permission denied for '%s'", c_name.c_str());
@@ -394,18 +411,18 @@ int ctx::rule_manager::verify_rule(ctx::json& rule, const char* app_id, const ch
 	return ERR_NONE;
 }
 
-int ctx::rule_manager::add_rule(std::string creator, ctx::json rule, std::string zone, ctx::json* rule_id)
+int ctx::rule_manager::add_rule(std::string creator, ctx::json rule, ctx::json* rule_id)
 {
 	// * Insert rule to DB
 	bool ret;
 	int64_t rid;
 
 	// Check if all items are supported && allowed to access
-	int err = verify_rule(rule, creator.c_str(), zone.c_str());
+	int err = verify_rule(rule, creator.c_str());
 	IF_FAIL_RETURN(err==ERR_NONE, err);
 
 	// Check if duplicated rule exits
-	if ((rid = get_duplicated_rule(creator, zone, rule)) > 0) {
+	if ((rid = get_duplicated_rule(creator, rule)) > 0) {
 		// Save rule id
 		rule_id->set(NULL, CT_RULE_ID, rid);
 		return ERR_NONE;
@@ -420,7 +437,6 @@ int ctx::rule_manager::add_rule(std::string creator, ctx::json rule, std::string
 	r_record.set(NULL, "creator", creator);
 	r_record.set(NULL, "description", description);
 	r_record.set(NULL, "details", details.str());
-	r_record.set(NULL, "zone", zone);
 	ret = db_manager::insert_sync(RULE_TABLE, r_record, &rid);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Insert rule to db failed");
 
@@ -440,7 +456,6 @@ int ctx::rule_manager::add_rule(std::string creator, ctx::json rule, std::string
 	e_record.set(NULL, "rule_id", rid);
 	e_record.set(NULL, "name", e_name);
 	e_record.set(NULL, "instance_name", e_inst);
-	e_record.set(NULL, "zone", zone);
 	ret = db_manager::insert(1, EVENT_TABLE, e_record, NULL);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Insert event to db failed");
 
@@ -463,7 +478,6 @@ int ctx::rule_manager::add_rule(std::string creator, ctx::json rule, std::string
 		c_record.set(NULL, "name", c_name);
 		c_record.set(NULL, "option", (c_option_str)? c_option_str : "");
 		c_record.set(NULL, "instance_name", c_inst);
-		c_record.set(NULL, "zone", zone);
 
 		ret = db_manager::insert(2, CONDITION_TABLE, c_record, NULL);
 		IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Insert conditions to db failed");
@@ -493,45 +507,57 @@ int ctx::rule_manager::remove_rule(int rule_id)
 
 int ctx::rule_manager::enable_rule(int rule_id)
 {
+	if (enb_rule_cnt == 0) {
+		initialize_clips();
+	}
+
 	// Subscribe event
-	bool ret;
 	int error;
+	std::string query;
+	std::string ename;
+	std::string script;
+	std::string r_details;
+	std::string etmpl_str;
+
+	ctx::json jrule;
+	ctx::json jetemplate;
+	ctx::json jevent;
+	ctx::json inst_names;
+
+	std::vector<json> rule_record;
+	std::vector<json> etemplate_record;
+	std::vector<json> cond_record;
+	std::vector<json> record;
+	std::vector<json>::iterator vec_end;
+
 	std::string id_str = int_to_string(rule_id);
 
 	// Get rule json by rule id;
-	std::string q1 = QUERY_RULE_AND_ZONE_BY_RULE_ID;
-	q1 += int_to_string(rule_id);
-	std::vector<json> rule_record;
-	ret = db_manager::execute_sync(q1.c_str(), &rule_record);
-	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query rule by rule id failed");
-	std::string r1;
-	std::string zone;
-	rule_record[0].get(NULL, "details", &r1);
-	rule_record[0].get(NULL, "zone", &zone);
-	ctx::json rule = r1;
-	ctx::json event;
-	rule.get(NULL, CT_RULE_EVENT, &event);
+	query = QUERY_RULE_BY_RULE_ID;
+	query += int_to_string(rule_id);
+	error = (db_manager::execute_sync(query.c_str(), &rule_record))? ERR_NONE : ERR_OPERATION_FAILED;
+	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Query rule by rule id failed");
+
+	rule_record[0].get(NULL, "details", &r_details);
+	jrule = r_details;
+	jrule.get(NULL, CT_RULE_EVENT, &jevent);
 
 	// Get event template by rule id
-	std::string q2 = QUERY_EVENT_TEMPLATE_BY_RULE_ID;
-	q2 += int_to_string(rule_id);
-	q2 += ")";
-	std::vector<json> etemplate_record;
-	ret = db_manager::execute_sync(q2.c_str(), &etemplate_record);
-	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query event template by rule id failed");
-	std::string r2;
-	etemplate_record[0].get(NULL, "j_template", &r2);
-	ctx::json etemplate = r2;
+	query = QUERY_EVENT_TEMPLATE_BY_RULE_ID;
+	query += int_to_string(rule_id);
+	query += ")";
+	error = (db_manager::execute_sync(query.c_str(), &etemplate_record))? ERR_NONE : ERR_OPERATION_FAILED;
+	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Query event template by rule id failed");
+	etemplate_record[0].get(NULL, "j_template", &etmpl_str);
+	jetemplate = etmpl_str;
 
 	// Query name, instance name & template for conditions of the rule
-	std::string q3 = QUERY_NAME_INSTANCE_NAME_AND_TEMPLATE_BY_RULE_ID_STATEMENT;
-	q3 += id_str;
-	std::vector<json> cond_record;
-	ret = db_manager::execute_sync(q3.c_str(), &cond_record);
-	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query condition's names, instance names, templates by rule id failed");
+	query = QUERY_NAME_INSTANCE_NAME_AND_TEMPLATE_BY_RULE_ID_STATEMENT;
+	query += id_str;
+	error = (db_manager::execute_sync(query.c_str(), &cond_record))? ERR_NONE : ERR_OPERATION_FAILED;
+	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Query condition's names, instance names, templates by rule id failed");
 
-	ctx::json inst_names;
-	std::vector<json>::iterator vec_end = cond_record.end();
+	vec_end = cond_record.end();
 	for (std::vector<json>::iterator vec_pos = cond_record.begin(); vec_pos != vec_end; ++vec_pos) {
 		ctx::json elem = *vec_pos;
 
@@ -543,16 +569,17 @@ int ctx::rule_manager::enable_rule(int rule_id)
 		elem.get(NULL, "templates", &temp);
 		ctx::json ctemplate = temp;
 		ctemplate.set(NULL, "instance_name", ciname);
-		// TODO ctemplate (name, instance_name, attributes) now - it is based on form using when templates are inserted into db when rebooting
 
 		// For defrule script generation
 		inst_names.set(NULL, cname.c_str(), ciname);
 
 		if (cname.compare(ciname) != 0) {
-			if (!clips_h.find_instance(ciname)) {
+			if (!clips_h->find_instance(ciname)) {
 				std::string makeinst_script = script_generator::generate_makeinstance(&ctemplate);
-				error = clips_h.make_instance(makeinst_script);
-				IF_FAIL_RETURN_TAG(error == ERR_NONE, ERR_OPERATION_FAILED, _E, "Add condition instance([%s]) failed", ciname.c_str());
+				error = (makeinst_script.length() > 0)? ERR_NONE : ERR_OPERATION_FAILED;
+				IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Make instance script generation failed");
+				error = clips_h->make_instance(makeinst_script);
+				IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Add condition instance([%s]) failed", ciname.c_str());
 
 				cond_cnt_map[ciname] = 1;
 			} else {
@@ -562,28 +589,33 @@ int ctx::rule_manager::enable_rule(int rule_id)
 	}
 
 	// Subscribe event
-	std::string ename;
-	etemplate.get(NULL, "name", &ename);
-
-	//TODO: set the proper zone
-	error = c_monitor.subscribe(rule_id, ename, event, zone.c_str());
-	IF_FAIL_RETURN(error == ERR_NONE, ERR_OPERATION_FAILED);
+	jetemplate.get(NULL, "name", &ename);
+	error = c_monitor.subscribe(rule_id, ename, jevent);
+	IF_FAIL_CATCH(error == ERR_NONE);
 
 	// Generate defrule script and execute it
-	std::string script = script_generator::generate_defrule(id_str, etemplate, rule, &inst_names, zone);
-	error = clips_h.define_rule(script);
-	IF_FAIL_RETURN_TAG(error == ERR_NONE, ERR_OPERATION_FAILED, _E, "Defrule failed");
+	script = script_generator::generate_defrule(id_str, jetemplate, jrule, &inst_names);
+	error = clips_h->define_rule(script);
+	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Defrule failed");
 
 	// Update db to set 'enabled'
-	std::string q4 = UPDATE_RULE_ENABLED_STATEMENT;
-	q4 += id_str;
-	std::vector<json> record;
-	ret = db_manager::execute_sync(q4.c_str(), &record);
-	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Update db failed");
+	query = UPDATE_RULE_ENABLED_STATEMENT;
+	query += id_str;
+	error = (db_manager::execute_sync(query.c_str(), &record))? ERR_NONE : ERR_OPERATION_FAILED;
+	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Update db failed");
 
+	enb_rule_cnt++;
 	_D(YELLOW("Enable Rule%d succeeded"), rule_id);
 
 	return ERR_NONE;
+
+CATCH:
+	if (enb_rule_cnt <= 0) {
+		enb_rule_cnt = 0;
+		destroy_clips();
+	}
+
+	return error;
 }
 
 std::string ctx::rule_manager::get_instance_name(std::string name, ctx::json& option)
@@ -626,15 +658,13 @@ int ctx::rule_manager::disable_rule(int rule_id)
 
 	// For event with options
 	// Get rule json by rule id;
-	std::string q1 = QUERY_RULE_AND_ZONE_BY_RULE_ID;
+	std::string q1 = QUERY_RULE_BY_RULE_ID;
 	q1 += int_to_string(rule_id);
 	std::vector<json> rule_record;
 	ret = db_manager::execute_sync(q1.c_str(), &rule_record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query rule by rule id failed");
 	std::string r1;
-	std::string zone;
 	rule_record[0].get(NULL, "details", &r1);
-	rule_record[0].get(NULL, "zone", &zone);
 	ctx::json rule = r1;
 	ctx::json event;
 	rule.get(NULL, CT_RULE_EVENT, &event);
@@ -642,13 +672,13 @@ int ctx::rule_manager::disable_rule(int rule_id)
 	event.get(NULL, CT_RULE_EVENT_ITEM, &ename);
 
 	// Unsubscribe event
-	error = c_monitor.unsubscribe(rule_id, ename, event, zone.c_str());
+	error = c_monitor.unsubscribe(rule_id, ename, event);
 	IF_FAIL_RETURN(error == ERR_NONE, ERR_OPERATION_FAILED);
 
 	// Undef rule in clips
 	std::string id_str = int_to_string(rule_id);
 	std::string script = script_generator::generate_undefrule(id_str);
-	error = clips_h.route_string_command(script);
+	error = clips_h->route_string_command(script);
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, ERR_OPERATION_FAILED, _E, "Undefrule failed");
 
 	// Update db to set 'disabled'
@@ -658,7 +688,7 @@ int ctx::rule_manager::disable_rule(int rule_id)
 	ret = db_manager::execute_sync(q2.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Update db failed");
 
-	// Remove condition instances TODO
+	// Remove condition instances
 	std::string q3 = "SELECT name, instance_name FROM context_trigger_condition WHERE rule_id = ";
 	q3 += id_str;
 	std::vector<json> name_record;
@@ -678,7 +708,7 @@ int ctx::rule_manager::disable_rule(int rule_id)
 			cond_cnt_map[ciname]--;
 
 			if (cond_cnt_map[ciname] == 0) {
-				error = clips_h.unmake_instance(ciname);
+				error = clips_h->unmake_instance(ciname);
 				IF_FAIL_RETURN(error == ERR_NONE, error);
 
 				cond_cnt_map.erase(ciname);
@@ -686,6 +716,10 @@ int ctx::rule_manager::disable_rule(int rule_id)
 		}
 	}
 
+	if (--enb_rule_cnt <= 0) {
+		enb_rule_cnt = 0;
+		destroy_clips();
+	}
 	return ERR_NONE;
 }
 
@@ -710,19 +744,13 @@ void ctx::rule_manager::make_condition_option_based_on_event_data(ctx::json& cte
 	}
 }
 
-void ctx::rule_manager::on_event_received(std::string item, ctx::json option, ctx::json data, std::string zone)
+void ctx::rule_manager::on_event_received(std::string item, ctx::json option, ctx::json data)
 {
 	_D(YELLOW("Event(%s(%s) - %s) is invoked."), item.c_str(), option.str().c_str(), data.str().c_str());
 	// TODO: Check permission of an event(item), if permission denied, return
 
 	int err;
 	bool ret;
-	// Set the zone
-	ret = clips_h.set_global_variable_string("zone", zone);
-	if (!ret) {
-		_E("Set clips zone to %s failed", zone.c_str());
-		return;
-	}
 
 	// Generate event fact script
 	std::string q1 = "SELECT j_template FROM context_trigger_template WHERE name = '";
@@ -740,8 +768,6 @@ void ctx::rule_manager::on_event_received(std::string item, ctx::json option, ct
 	std::string e_inst = get_instance_name(item, option);
 	std::string query = QUERY_CONDITION_TEMPLATES_OF_INVOKED_EVENT_STATEMENT;
 	query += e_inst;
-	query += "' AND zone = '";
-	query += zone;
 	query += "'))";
 	std::vector<json> conds;
 	ret = db_manager::execute_sync(query.c_str(), &conds);
@@ -774,9 +800,9 @@ void ctx::rule_manager::on_event_received(std::string item, ctx::json option, ct
 
 		// TODO: Check permission of a condition(cname), if permission granted, read condition data. (or, condition data should be empty json)
 
-		//	Get Context Data and Set the proper zone.
+		//	Get Context Data
 		ctx::json condition_data;
-		err = c_monitor.read(cname, coption, zone.c_str(), &condition_data);
+		err = c_monitor.read(cname, coption, &condition_data);
 		if (err != ERR_NONE)
 			return;
 		_D(YELLOW("Condition(%s(%s) - %s)."), cname.c_str(), coption.str().c_str(), condition_data.str().c_str());
@@ -784,24 +810,24 @@ void ctx::rule_manager::on_event_received(std::string item, ctx::json option, ct
 		// Generate ModifyInstance script
 		std::string modifyinst_script = script_generator::generate_modifyinstance(ciname, ctemplate, condition_data);
 
-		err = clips_h.route_string_command(modifyinst_script);
+		err = clips_h->route_string_command(modifyinst_script);
 		IF_FAIL_VOID_TAG(err == ERR_NONE, _E, "Modify condition instance failed");
 	}
 
 	// Add fact and Run environment
-	err = clips_h.add_fact(eventfact_str);
+	err = clips_h->add_fact(eventfact_str);
 	IF_FAIL_VOID_TAG(err == ERR_NONE, _E, "Assert event fact failed");
 
-	err = clips_h.run_environment();
+	err = clips_h->run_environment();
 	IF_FAIL_VOID_TAG(err == ERR_NONE, _E, "Run environment failed");
 
 	// Retract event fact
 	std::string retract_command = "(retract *)";
-	err = clips_h.route_string_command(retract_command);
+	err = clips_h->route_string_command(retract_command);
 	IF_FAIL_VOID_TAG(err == ERR_NONE, _E, "Retract event fact failed");
 }
 
-static void trigger_action_app_control(ctx::json& action, std::string zone)
+static void trigger_action_app_control(ctx::json& action)
 {
 	int error;
 	std::string appctl_str;
@@ -820,16 +846,6 @@ static void trigger_action_app_control(ctx::json& action, std::string zone)
 	app_control_create(&app);
 	app_control_import_from_bundle(app, appctl_bundle);
 
-#if _ZONE_ENABLED_
-	char* op;
-	app_control_get_operation(app, &op);
-	app_control_set_operation(app, APP_SVC_OPERATION_JUMP);
-	app_control_add_extra_data(app, APP_SVC_K_JUMP_ZONE_NAME, zone.c_str());
-	if (op != NULL) {
-		app_control_add_extra_data(app, APP_SVC_K_JUMP_ORIGIN_OPERATION, op);
-	}
-#endif
-
 	error = app_control_send_launch_request(app, NULL, NULL);
 	if (error != APP_CONTROL_ERROR_NONE) {
 		_E("Launch request failed(%d)", error);
@@ -841,7 +857,7 @@ static void trigger_action_app_control(ctx::json& action, std::string zone)
 	app_control_destroy(app);
 }
 
-static void trigger_action_notification(ctx::json& action, std::string creator, std::string zone)
+static void trigger_action_notification(ctx::json& action, std::string creator)
 {
 	int error;
 	notification_h notification = notification_create(NOTIFICATION_TYPE_NOTI);
@@ -899,8 +915,6 @@ static void trigger_action_notification(ctx::json& action, std::string creator, 
 		_E("Set pkgname(%s) failed(%d)", creator.c_str(), error);
 	}
 
-	ctx::scope_zone_joiner sz(zone.c_str());
-
 	error = notification_post(notification);
 	if (error != NOTIFICATION_ERROR_NONE) {
 		_E("Post notification failed(%d)", error);
@@ -920,7 +934,7 @@ void ctx::rule_manager::on_rule_triggered(int rule_id)
 {
 	_D(YELLOW("Rule%d is triggered"), rule_id);
 
-	std::string q = "SELECT details, creator, zone FROM context_trigger_rule WHERE row_id =";
+	std::string q = "SELECT details, creator FROM context_trigger_rule WHERE row_id =";
 	q += int_to_string(rule_id);
 
 	std::vector<json> record;
@@ -931,17 +945,15 @@ void ctx::rule_manager::on_rule_triggered(int rule_id)
 	ctx::json details = details_str;
 	ctx::json action;
 	details.get(NULL, CT_RULE_ACTION, &action);
-	std::string zone;
-	record[0].get(NULL, "zone", &zone);
 
 	std::string type;
 	if (action.get(NULL, CT_RULE_ACTION_TYPE, &type)) {
 		if (type.compare(CT_RULE_ACTION_TYPE_APP_CONTROL) == 0) {
-			trigger_action_app_control(action, zone);
+			trigger_action_app_control(action);
 		} else if (type.compare(CT_RULE_ACTION_TYPE_NOTIFICATION) == 0) {
 			std::string creator;
 			record[0].get(NULL, "creator", &creator);
-			trigger_action_notification(action, creator, zone);
+			trigger_action_notification(action, creator);
 		}
 	}
 }
@@ -990,7 +1002,6 @@ bool ctx::rule_manager::is_rule_enabled(int rule_id)
 
 int ctx::rule_manager::get_rule_by_id(std::string creator, int rule_id, ctx::json* request_result)
 {
-//	std::string q = "SELECT description, details FROM context_trigger_rule WHERE (creator = '";
 	std::string q = "SELECT description FROM context_trigger_rule WHERE (creator = '";
 	q += creator;
 	q += "') and (row_id = ";
@@ -1008,13 +1019,10 @@ int ctx::rule_manager::get_rule_by_id(std::string creator, int rule_id, ctx::jso
 	}
 
 	std::string description;
-//	std::string details;
 	record[0].get(NULL, "description", &description);
-//	record[0].get(NULL, "details", &details);
 
 	(*request_result).set(NULL, CT_RULE_ID, rule_id);
 	(*request_result).set(NULL, CT_RULE_DESCRIPTION, description);
-//	(*request_result).set(NULL, CT_RULE_DETAILS, details);
 
 	return ERR_NONE;
 }

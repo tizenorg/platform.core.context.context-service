@@ -38,12 +38,12 @@ namespace ctx {
 		void release();
 
 		void assign_request(ctx::request_info *request);
-		bool is_supported(const char *subject, const char *zone);
+		bool is_supported(const char *subject);
 
 		/* From the interface class */
 		bool register_provider(const char *subject, ctx::context_provider_iface *cp);
-		bool publish(const char *subject, ctx::json& option, int error, ctx::json& data_updated, const char *zone);
-		bool reply_to_read(const char *subject, ctx::json& option, int error, ctx::json& data_read, const char *zone);
+		bool publish(const char *subject, ctx::json& option, int error, ctx::json& data_updated);
+		bool reply_to_read(const char *subject, ctx::json& option, int error, ctx::json& data_read);
 
 	private:
 		typedef std::vector<context_provider_iface*> provider_list_t;
@@ -66,12 +66,12 @@ namespace ctx {
 		bool check_permission(request_info *request);
 
 		static gboolean thread_switcher(gpointer data);
-		bool _publish(const char *subject, ctx::json option, int error, ctx::json data_updated, const char *zone);
-		bool _reply_to_read(const char *subject, ctx::json option, int error, ctx::json data_read, const char *zone);
+		bool _publish(const char *subject, ctx::json option, int error, ctx::json data_updated);
+		bool _reply_to_read(const char *subject, ctx::json option, int error, ctx::json data_read);
 
-		request_list_t::iterator find_request(request_list_t& r_list, std::string subject, json& option, const char *zone);
+		request_list_t::iterator find_request(request_list_t& r_list, std::string subject, json& option);
 		request_list_t::iterator find_request(request_list_t& r_list, std::string client, int req_id);
-		request_list_t::iterator find_request(request_list_t::iterator begin, request_list_t::iterator end, std::string subject, json& option, const char *zone);
+		request_list_t::iterator find_request(request_list_t::iterator begin, request_list_t::iterator end, std::string subject, json& option);
 
 	};	/* class context_manager_impl */
 

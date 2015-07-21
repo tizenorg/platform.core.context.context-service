@@ -59,7 +59,7 @@ ctx::fact_reader::~fact_reader()
 	subscr_list.clear();
 }
 
-int ctx::fact_reader::find_sub(const char* subject, json* option, const char* zone)
+int ctx::fact_reader::find_sub(const char* subject, json* option)
 {
 	json opt_j;
 	if (option) {
@@ -67,7 +67,7 @@ int ctx::fact_reader::find_sub(const char* subject, json* option, const char* zo
 	}
 
 	for (subscr_list_t::iterator it = subscr_list.begin(); it != subscr_list.end(); ++it) {
-		if ((*it)->subject == subject && (*it)->option == opt_j && (*it)->zone_name == zone) {
+		if ((*it)->subject == subject && (*it)->option == opt_j) {
 			return (*it)->sid;
 		}
 	}
@@ -75,16 +75,16 @@ int ctx::fact_reader::find_sub(const char* subject, json* option, const char* zo
 	return -1;
 }
 
-bool ctx::fact_reader::add_sub(int sid, const char* subject, json* option, const char* zone)
+bool ctx::fact_reader::add_sub(int sid, const char* subject, json* option)
 {
-	subscr_info_s *info = new(std::nothrow) subscr_info_s(sid, subject, option, zone);
+	subscr_info_s *info = new(std::nothrow) subscr_info_s(sid, subject, option);
 	IF_FAIL_RETURN_TAG(info, false, _E, "Memory allocation failed");
 
 	subscr_list.push_back(info);
 	return true;
 }
 
-void ctx::fact_reader::remove_sub(const char* subject, json* option, const char* zone)
+void ctx::fact_reader::remove_sub(const char* subject, json* option)
 {
 	json opt_j;
 	if (option) {
@@ -92,7 +92,7 @@ void ctx::fact_reader::remove_sub(const char* subject, json* option, const char*
 	}
 
 	for (subscr_list_t::iterator it = subscr_list.begin(); it != subscr_list.end(); ++it) {
-		if ((*it)->subject == subject && (*it)->option == opt_j && (*it)->zone_name == zone) {
+		if ((*it)->subject == subject && (*it)->option == opt_j) {
 			delete *it;
 			subscr_list.erase(it);
 			return;
@@ -118,20 +118,18 @@ gboolean ctx::fact_reader::send_request(gpointer data)
 	return FALSE;
 }
 
-bool ctx::fact_reader::is_supported(const char* subject, const char* zone)
+bool ctx::fact_reader::is_supported(const char* subject)
 {
-	IF_FAIL_RETURN_TAG(zone, false, _E, "'zone' cannot be NULL");
-	return _context_mgr->is_supported(subject, zone);
+	return _context_mgr->is_supported(subject);
 }
 
-int ctx::fact_reader::subscribe(const char* subject, json* option, const char* zone, bool wait_response)
+int ctx::fact_reader::subscribe(const char* subject, json* option, bool wait_response)
 {
-	IF_FAIL_RETURN_TAG(zone, ERR_INVALID_PARAMETER, _E, "'zone' cannot be NULL");
 	IF_FAIL_RETURN(subject, ERR_INVALID_PARAMETER);
 
 	ctx::scope_mutex sm(&request_mutex);
 
-	int rid = find_sub(subject, option, zone);
+	int rid = find_sub(subject, option);
 	if (rid > 0) {
 		_D("Duplicated request for %s", subject);
 		return rid;
@@ -140,11 +138,11 @@ int ctx::fact_reader::subscribe(const char* subject, json* option, const char* z
 	rid = generate_req_id();
 
 	fact_request *req = new(std::nothrow) fact_request(REQ_SUBSCRIBE, CLIENT_NAME,
-			rid, subject, option ? option->str().c_str() : NULL, zone, wait_response ? this : NULL);
+			rid, subject, option ? option->str().c_str() : NULL, wait_response ? this : NULL);
 	IF_FAIL_RETURN_TAG(req, -1, _E, "Memory allocation failed");
 
 	g_idle_add(send_request, req);
-	add_sub(rid, subject, option, zone);
+	add_sub(rid, subject, option);
 
 	IF_FAIL_RETURN_TAG(wait_response, rid, _D, "Ignoring response for %s", subject);
 
@@ -166,14 +164,13 @@ int ctx::fact_reader::subscribe(const char* subject, json* option, const char* z
 	return rid;
 }
 
-void ctx::fact_reader::unsubscribe(const char* subject, json* option, const char* zone)
+void ctx::fact_reader::unsubscribe(const char* subject, json* option)
 {
-	IF_FAIL_VOID_TAG(zone, _E, "'zone' cannot be NULL");
 	IF_FAIL_VOID(subject);
 
 	ctx::scope_mutex sm(&request_mutex);
 
-	int rid = find_sub(subject, option, zone);
+	int rid = find_sub(subject, option);
 	IF_FAIL_VOID_TAG(rid > 0, _W, "Unknown subscription for %s", subject);
 
 	unsubscribe(rid);
@@ -181,16 +178,15 @@ void ctx::fact_reader::unsubscribe(const char* subject, json* option, const char
 
 void ctx::fact_reader::unsubscribe(int subscription_id)
 {
-	fact_request *req = new(std::nothrow) fact_request(REQ_UNSUBSCRIBE, CLIENT_NAME, subscription_id, "", NULL, NULL, NULL);
+	fact_request *req = new(std::nothrow) fact_request(REQ_UNSUBSCRIBE, CLIENT_NAME, subscription_id, "", NULL, NULL);
 	IF_FAIL_VOID_TAG(req, _E, "Memory allocation failed");
 
 	g_idle_add(send_request, req);
 	remove_sub(subscription_id);
 }
 
-bool ctx::fact_reader::read(const char* subject, json* option, const char* zone, context_fact& fact)
+bool ctx::fact_reader::read(const char* subject, json* option, context_fact& fact)
 {
-	IF_FAIL_RETURN_TAG(zone, false, _E, "'zone' cannot be NULL");
 	IF_FAIL_RETURN(subject, false);
 
 	ctx::scope_mutex sm(&request_mutex);
@@ -198,7 +194,7 @@ bool ctx::fact_reader::read(const char* subject, json* option, const char* zone,
 	int rid = generate_req_id();
 
 	fact_request *req = new(std::nothrow) fact_request(REQ_READ_SYNC, CLIENT_NAME,
-			rid, subject, option ? option->str().c_str() : NULL, zone, this);
+			rid, subject, option ? option->str().c_str() : NULL, this);
 	IF_FAIL_RETURN_TAG(req, false, _E, "Memory allocation failed");
 
 	g_idle_add(send_request, req);
@@ -219,16 +215,12 @@ bool ctx::fact_reader::read(const char* subject, json* option, const char* zone,
 	fact.set_req_id(rid);
 	fact.set_subject(subject);
 	fact.set_data(last_data_read);
-	if (zone) {
-		fact.set_zone_name(zone);
-	}
-
 	last_data_read = EMPTY_JSON_OBJECT;
 
 	return true;
 }
 
-void ctx::fact_reader::reply_result(int req_id, int error, const char* zone, json* request_result, json* fact)
+void ctx::fact_reader::reply_result(int req_id, int error, json* request_result, json* fact)
 {
 	ctx::scope_mutex sm(&request_mutex);
 
@@ -239,7 +231,7 @@ void ctx::fact_reader::reply_result(int req_id, int error, const char* zone, jso
 	g_cond_signal(&request_cond);
 }
 
-void ctx::fact_reader::publish_fact(int req_id, int error, const char* zone, const char* subject, json* option, json* fact)
+void ctx::fact_reader::publish_fact(int req_id, int error, const char* subject, json* option, json* fact)
 {
-	_trigger->push_fact(req_id, error, subject, *option, *fact, zone);
+	_trigger->push_fact(req_id, error, subject, *option, *fact);
 }

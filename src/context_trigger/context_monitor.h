@@ -27,28 +27,28 @@ namespace ctx {
 	class context_fact;
 
 	class context_monitor {
-	   public:
-			context_monitor();
-			~context_monitor();
-			bool init(ctx::fact_reader* fr, ctx::context_trigger* tr);
+	public:
+		context_monitor();
+		~context_monitor();
+		bool init(ctx::fact_reader* fr, ctx::context_trigger* tr);
 
-			int subscribe(int rule_id, std::string subject, ctx::json event, const char* zone);
-			int unsubscribe(int rule_id, std::string subject, ctx::json option, const char* zone);
-			int read(std::string subject, json option, const char* zone, ctx::json* result);
-			bool is_supported(std::string subject, const char* zone);
+		int subscribe(int rule_id, std::string subject, ctx::json event);
+		int unsubscribe(int rule_id, std::string subject, ctx::json option);
+		int read(std::string subject, json option, ctx::json* result);
+		bool is_supported(std::string subject);
 
-		private:
-			std::map<std::string, ctx::trigger_timer>::iterator get_zone_timer(std::string zone);
-			int subscribe_timer(ctx::json option, const char* zone);
-			int unsubscribe_timer(ctx::json option, const char* zone);
-			int read_day_of_month(ctx::json* result, const char* zone);
-			int read_day_of_week(ctx::json* result, const char* zone);
-			int read_time(ctx::json* result, const char* zone);
-			std::map<int, int> request_map;	// <rule_id, fact_read_req_id>
-			std::map<int, int> read_req_cnt_map;	// <fact_read_req_id, count>
-			ctx::context_trigger* trigger;
+	private:
+		int subscribe_timer(ctx::json option);
+		int unsubscribe_timer(ctx::json option);
+		int read_day_of_month(ctx::json* result);
+		int read_day_of_week(ctx::json* result);
+		int read_time(ctx::json* result);
+		std::map<int, int> request_map;	// <rule_id, fact_read_req_id>
+		std::map<int, int> read_req_cnt_map;	// <fact_read_req_id, count>
+		ctx::context_trigger* trigger;
+		ctx::trigger_timer* timer;
 
-   };	/* class context_monitor */
+	};	/* class context_monitor */
 
 }	/* namespace ctx */
 

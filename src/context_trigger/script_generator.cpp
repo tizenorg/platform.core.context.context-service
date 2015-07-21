@@ -46,7 +46,7 @@ static std::string convert_condition_weekday_weekend(std::string inst_name, std:
 	std::string buf = (day.compare(TIMER_WEEKDAY) == 0)? CONDITION_WEEKDAY : CONDITION_WEEKEND;
 
 	size_t pos = 0;
-	while((pos = buf.find("%s", pos)) != std::string::npos) {
+	while ((pos = buf.find("%s", pos)) != std::string::npos) {
 		buf.replace(pos, 2, inst_name);
 		pos += inst_name.length();
 	}
@@ -83,10 +83,7 @@ std::string ctx::script_generator::generate_deftemplate(ctx::json* item)
 		script += *it;
 		script += " (default null))";
 	}
-	script += ")";
-
-//	_D("Deftemplate script is generated: %s", script.c_str());
-	script += "\n";
+	script += ")\n";
 
 	return script;
 }
@@ -109,10 +106,7 @@ std::string ctx::script_generator::generate_defclass(ctx::json* item)
 		script += attr_name;
 		script += " (create-accessor read-write))";
 	}
-	script += ")";
-
-//	_D("Defclass script is generated: %s", script.c_str());
-	script += "\n";
+	script += ")\n";
 
 	return script;
 }
@@ -141,10 +135,7 @@ std::string ctx::script_generator::generate_makeinstance(ctx::json* item)
 		script += attr_name;
 		script += " 0)";
 	}
-	script += ")";
-
-//	_D("Makeinstance script is generated: %s", script.c_str());
-	script += "\n";
+	script += ")\n";
 
 	return script;
 }
@@ -159,16 +150,13 @@ std::string ctx::script_generator::generate_undefrule(std::string rule_id)
 	return script;
 }
 
-std::string ctx::script_generator::generate_defrule(std::string rule_id, ctx::json event_template, ctx::json rule, ctx::json* inst_names, std::string zone)
+std::string ctx::script_generator::generate_defrule(std::string rule_id, ctx::json event_template, ctx::json rule, ctx::json* inst_names)
 {
 	std::string script;
 	ctx::json option = NULL;
 	rule.get(CT_RULE_EVENT, CT_RULE_EVENT_OPTION, &option);
 
-	script = "(defrule rule";
-	script += rule_id;
-	script += " ";
-
+	script = "(defrule rule" + rule_id + " ";
 	script += generate_initial_fact(event_template, option);
 	script += " => ";
 
@@ -177,13 +165,12 @@ std::string ctx::script_generator::generate_defrule(std::string rule_id, ctx::js
 
 	if (condition_num > 0) {
 		// case1: condition exists
-		script += "(if (and (eq ?*zone* \"";
-		script += zone;
-		script += "\") ";
+		script += "(if ";
 
 		if (eventdata_num > 0) {
 			ctx::json event;
 			rule.get(NULL, CT_RULE_EVENT, &event);
+			script += "(and ";
 			script += generate_event_data(event);
 		}
 
@@ -194,31 +181,21 @@ std::string ctx::script_generator::generate_defrule(std::string rule_id, ctx::js
 		rule.get(NULL, CT_RULE_OPERATOR, &rule_op);
 		script += generate_condition_data(rule_id, conditions, rule_op, inst_names);
 
-		script += ")";
-		script += " then ";
-		script += " (execute_action rule";
-		script += rule_id;
-		script += "))";
+		if (eventdata_num > 0)
+			script += ")";
+
+		script = script + " then (execute_action rule" + rule_id + "))";
 	} else if (eventdata_num > 0) {
 		// case2: no conditions, but event data
 		ctx::json event;
 		rule.get(NULL, CT_RULE_EVENT, &event);
 
-		script += "(if (and (eq ?*zone* \"";
-		script += zone;
-		script += "\") ";
+		script += "(if ";
 		script += generate_event_data(event);
-		script += ") then ";
-		script += " (execute_action rule";
-		script += rule_id;
-		script += "))";
+		script = script + " then (execute_action rule" + rule_id + "))";
 	} else {
 		// case3: only action
-		script += "if (eq ?*zone* \"";
-		script += zone;
-		script += "\") then (execute_action rule";
-		script += rule_id;
-		script += ")";
+		script = script + " (execute_action rule" + rule_id + ")";
 	}
 
 	script += ")";
@@ -267,7 +244,6 @@ std::string generate_initial_fact(ctx::json event_template, ctx::json option)
 	}
 	script += ")";
 
-//	_D("Initial event fact is %s", script.c_str());
 	return script;
 }
 
@@ -505,7 +481,6 @@ std::string ctx::script_generator::generate_modifyinstance(std::string instance_
 		} else 	if (data.get(NULL, key.c_str(), &value)) {	// integer type data
 			script += "(" + key + " " + int_to_string(value) + ")";
 		}
-		// else continue;
 	}
 	script += ")";
 

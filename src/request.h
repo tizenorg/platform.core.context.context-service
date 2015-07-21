@@ -29,7 +29,6 @@ namespace ctx {
 
 			int get_type();
 			int get_id();
-			const char* get_zone_name();
 			const char* get_client();
 			const char* get_subject();
 			ctx::json& get_description();
@@ -43,7 +42,6 @@ namespace ctx {
 		protected:
 			int _type;
 			int _req_id;
-			std::string _zone_name;
 			std::string _client;
 			std::string _subject;
 			ctx::json _description;

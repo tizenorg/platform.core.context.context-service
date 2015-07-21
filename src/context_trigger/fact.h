@@ -29,24 +29,21 @@ namespace ctx {
 			std::string subject;
 			ctx::json option;
 			ctx::json data;
-			std::string zone_name;
 
 		public:
 			context_fact();
-			context_fact(int id, int err, const char* s, ctx::json& o, ctx::json& d, const char* z);
+			context_fact(int id, int err, const char* s, ctx::json& o, ctx::json& d);
 			~context_fact();
 
 			void set_req_id(int id);
 			void set_error(int err);
 			void set_subject(const char* s);
 			void set_option(ctx::json& o);
-			void set_zone_name(const char* z);
 			void set_data(ctx::json& d);
 
 			int get_req_id();
 			int get_error();
 			const char* get_subject();
-			const char* get_zone_name();
 			ctx::json& get_option();
 			ctx::json& get_data();
 	};

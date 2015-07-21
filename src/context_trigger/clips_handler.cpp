@@ -31,34 +31,32 @@ static void* env = NULL;
 static ctx::rule_manager* rule_mgr = NULL;
 static int string_to_int(std::string str);
 
-ctx::clips_handler::clips_handler()
+ctx::clips_handler::clips_handler(ctx::rule_manager* rm)
 {
+	rule_mgr = rm;
+	init_environment();
+	_D(YELLOW("Clips handler initialized"));
 }
 
 ctx::clips_handler::~clips_handler()
 {
 	if (env) {
 		DestroyEnvironment(env);
+		env = NULL;
 	}
+
+	_D(YELLOW("Clips handler destroyed"));
 }
 
-bool ctx::clips_handler::init(ctx::rule_manager* rm)
+int ctx::clips_handler::init_environment(void)
 {
-	rule_mgr = rm;
+	if (env) {
+		_D("Clips environment already created");
+		return ERR_NONE;
+	}
 
-	int error = init_environment(env);
-	IF_FAIL_RETURN(error == ERR_NONE, false);
-
-	bool ret = define_global_variable_string("zone", "");
-	IF_FAIL_RETURN(ret, false);
-
-	return true;
-}
-
-int ctx::clips_handler::init_environment(void* &environment)
-{
-	environment = CreateEnvironment();
-	if (!environment) {
+	env = CreateEnvironment();
+	if (!env) {
 		_E("Create environment failed");
 		return ERR_OPERATION_FAILED;
 	}
@@ -73,8 +71,7 @@ int ctx::clips_handler::init_environment(void* &environment)
 		return ERR_OUT_OF_MEMORY;
 	}
 
-	EnvDefineFunction2(environment, func_name, 'i', PTIEF execute_action, func_name, restrictions);
-
+	EnvDefineFunction2(env, func_name, 'i', PTIEF execute_action, func_name, restrictions);
 	free(func_name);
 	free(restrictions);
 
@@ -190,12 +187,9 @@ int ctx::clips_handler::unmake_instance(std::string& instance_name)
 	return ERR_NONE;
 }
 
-int ctx::clips_handler::execute_action()
+int ctx::clips_handler::execute_action(void)
 {
-	if (!env) {
-		_E("Environment not created");
-		return ERR_OPERATION_FAILED;
-	}
+	ASSERT_NOT_NULL(env);
 
 	const char* result = EnvRtnLexeme(env, 1);
 	if (!result) {
@@ -214,6 +208,7 @@ int ctx::clips_handler::execute_action()
 bool ctx::clips_handler::find_instance(std::string& instance_name)
 {
 	ASSERT_NOT_NULL(env);
+
 	if (find_instance_internal(instance_name)) {
 		_D("[%s] already exists", instance_name.c_str());
 		return true;

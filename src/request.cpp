@@ -41,11 +41,6 @@ int ctx::request_info::get_id()
 	return _req_id;
 }
 
-const char* ctx::request_info::get_zone_name()
-{
-	return _zone_name.c_str();
-}
-
 const char* ctx::request_info::get_client()
 {
 	return _client.c_str();

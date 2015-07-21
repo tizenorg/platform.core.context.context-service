@@ -19,7 +19,6 @@
 #include <app_manager.h>
 #include <types_internal.h>
 #include <dbus_server.h>
-#include "zone_util_impl.h"
 #include "dbus_server_impl.h"
 #include "client_request.h"
 
@@ -35,11 +34,10 @@ ctx::client_request::~client_request()
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 }
 
-bool ctx::client_request::set_peer_creds(const char *smack_label, const char *zone)
+bool ctx::client_request::set_peer_creds(const char *smack_label)
 {
-	IF_FAIL_RETURN_TAG(smack_label && zone, false, _E, "Invalid parameter");
+	IF_FAIL_RETURN_TAG(smack_label, false, _E, "Invalid parameter");
 	client_app_id = smack_label;
-	_zone_name = zone;
 	return true;
 }
 

@@ -34,9 +34,8 @@ ctx::trigger_timer::ref_count_array_s::ref_count_array_s()
 	memset(count, 0, sizeof(int) * MAX_DAY);
 }
 
-ctx::trigger_timer::trigger_timer(ctx::context_trigger* tr, std::string z)
+ctx::trigger_timer::trigger_timer(ctx::context_trigger* tr)
 	: trigger(tr)
-	, zone(z)
 {
 }
 
@@ -167,14 +166,14 @@ bool ctx::trigger_timer::on_timer_expired(int timer_id, void* user_data)
 
 void ctx::trigger_timer::on_timer_expired(int hour, int min, int day_of_week)
 {
-	_I("[Timer-%s] Time: %02d:%02d, Day of Week: %#x", zone.c_str(), hour, min, day_of_week);
+	_I("Time: %02d:%02d, Day of Week: %#x", hour, min, day_of_week);
 
 	ctx::json result;
 	result.set(NULL, TIMER_RESPONSE_KEY_TIME_OF_DAY, hour * 60 + min);
 	result.set(NULL, TIMER_RESPONSE_KEY_DAY_OF_WEEK, convert_day_of_week_to_string(day_of_week));
 
 	ctx::json dummy = NULL;
-	trigger->push_fact(TIMER_EVENT_REQ_ID, ERR_NONE, TIMER_EVENT_SUBJECT, dummy, result, zone.c_str());
+	trigger->push_fact(TIMER_EVENT_REQ_ID, ERR_NONE, TIMER_EVENT_SUBJECT, dummy, result);
 }
 
 int ctx::trigger_timer::get_day_of_month()

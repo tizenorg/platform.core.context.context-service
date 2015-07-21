@@ -31,15 +31,15 @@ namespace ctx {
 			fact_reader(context_manager_impl* mgr, context_trigger* trigger);
 			~fact_reader();
 
-			bool is_supported(const char* subject, const char* zone);
+			bool is_supported(const char* subject);
 
-			int subscribe(const char* subject, json* option, const char* zone, bool wait_response = false);
-			void unsubscribe(const char* subject, json* option, const char* zone);
+			int subscribe(const char* subject, json* option, bool wait_response = false);
+			void unsubscribe(const char* subject, json* option);
 			void unsubscribe(int subscription_id);
-			bool read(const char* subject, json* option, const char* zone, context_fact& fact);
+			bool read(const char* subject, json* option, context_fact& fact);
 
-			void reply_result(int req_id, int error, const char* zone, json* request_result = NULL, json* fact = NULL);
-			void publish_fact(int req_id, int error, const char* zone, const char* subject, json* option, json* fact);
+			void reply_result(int req_id, int error, json* request_result = NULL, json* fact = NULL);
+			void publish_fact(int req_id, int error, const char* subject, json* option, json* fact);
 
 		private:
 			static context_manager_impl* _context_mgr;
@@ -49,24 +49,20 @@ namespace ctx {
 				int sid;
 				std::string subject;
 				ctx::json option;
-				std::string zone_name;
-				subscr_info_s(int id, const char* subj, ctx::json* opt, const char* zone)
+				subscr_info_s(int id, const char* subj, ctx::json* opt)
 					: sid(id), subject(subj)
 				{
 					if (opt)
 						option = *opt;
-
-					if (zone)
-						zone_name = zone;
 				}
 			};
 
 			typedef std::list<subscr_info_s*> subscr_list_t;
 			subscr_list_t subscr_list;
 
-			int find_sub(const char* subject, json* option, const char* zone);
-			bool add_sub(int sid, const char* subject, json* option, const char* zone);
-			void remove_sub(const char* subject, json* option, const char* zone);
+			int find_sub(const char* subject, json* option);
+			bool add_sub(int sid, const char* subject, json* option);
+			void remove_sub(const char* subject, json* option);
 			void remove_sub(int sid);
 
 			static gboolean send_request(gpointer data);

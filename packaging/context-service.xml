@@ -2,6 +2,7 @@
 <manifest xmlns="http://tizen.org/ns/packages"
 	package="context-service"
 	version="0.0.0"
+	api-version="3.0"
 	install-location="internal-only"
 	type="rpm">
 	<label>Context Service</label>
@@ -17,6 +18,5 @@
 	</service-application>
 	<privileges>
 		<privilege>http://tizen.org/privilege/location</privilege>
-		<privilege>http://tizen.org/privilege/packagemanager.info</privilege>
 	</privileges>
 </manifest>

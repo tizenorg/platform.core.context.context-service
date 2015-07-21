@@ -22,8 +22,6 @@
 #include "timer_types.h"
 
 static ctx::fact_reader *reader = NULL;
-typedef std::map<std::string, ctx::trigger_timer> timer_map_t;
-static timer_map_t timer_map;	// <zone_name, timer>
 
 ctx::context_monitor::context_monitor()
 {
@@ -31,27 +29,30 @@ ctx::context_monitor::context_monitor()
 
 ctx::context_monitor::~context_monitor()
 {
+	delete timer;
 }
 
 bool ctx::context_monitor::init(ctx::fact_reader* fr, ctx::context_trigger* tr)
 {
 	reader = fr;
 	trigger = tr;
+	timer = new(std::nothrow) trigger_timer(trigger);
+	IF_FAIL_RETURN_TAG(timer, false, _E, "Memory allocation failed");
 
 	return true;
 }
 
-int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json event, const char* zone)
+int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json event)
 {
 	if (subject.compare(TIMER_EVENT_SUBJECT) == 0) {
 		// option is event json in case of ON_TIME
-		return subscribe_timer(event, zone);
+		return subscribe_timer(event);
 	}
 
 	ctx::json eoption = NULL;
 	event.get(NULL, CT_RULE_EVENT_OPTION, &eoption);
 
-	int req_id = reader->subscribe(subject.c_str(), &eoption, zone, true);
+	int req_id = reader->subscribe(subject.c_str(), &eoption, true);
 	IF_FAIL_RETURN_TAG(req_id > 0, ERR_OPERATION_FAILED, _E, "Subscribe event failed");
 	_D(YELLOW("Subscribe event(rule%d). req%d"), rule_id, req_id);
 	request_map[rule_id] = req_id;
@@ -60,10 +61,10 @@ int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json 
 	return ERR_NONE;
 }
 
-int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::json option, const char* zone)
+int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::json option)
 {
 	if (subject.compare(TIMER_EVENT_SUBJECT) == 0) {
-		return unsubscribe_timer(option, zone);
+		return unsubscribe_timer(option);
 	}
 
 	_D(YELLOW("Unsubscribe event(rule%d). req%d"), rule_id, request_map[rule_id]);
@@ -79,7 +80,7 @@ int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::jso
 	return ERR_NONE;
 }
 
-int ctx::context_monitor::read_time(ctx::json* result, const char* zone)
+int ctx::context_monitor::read_time(ctx::json* result)
 {
 	int dom = ctx::trigger_timer::get_day_of_month();
 	(*result).set(NULL, TIMER_RESPONSE_KEY_DAY_OF_MONTH, dom);
@@ -93,15 +94,15 @@ int ctx::context_monitor::read_time(ctx::json* result, const char* zone)
 	return ERR_NONE;
 }
 
-int ctx::context_monitor::read(std::string subject, json option, const char* zone, ctx::json* result)
+int ctx::context_monitor::read(std::string subject, json option, ctx::json* result)
 {
 	bool ret;
 	if (subject.compare(TIMER_CONDITION_SUBJECT) == 0) {
-		return read_time(result, zone);
+		return read_time(result);
 	}
 
 	context_fact fact;
-	ret = reader->read(subject.c_str(), &option, zone, fact);
+	ret = reader->read(subject.c_str(), &option, fact);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Read fact failed");
 
 	*result = fact.get_data();
@@ -144,18 +145,7 @@ static int arrange_day_of_week(ctx::json day_info)
 	return result;
 }
 
-timer_map_t::iterator ctx::context_monitor::get_zone_timer(std::string zone)
-{
-	timer_map_t::iterator it = timer_map.find(zone);
-
-	if (it == timer_map.end()) {
-		timer_map.insert(std::pair<std::string, ctx::trigger_timer>(zone, ctx::trigger_timer(trigger, zone)));
-	}
-
-	return timer_map.find(zone);
-}
-
-int ctx::context_monitor::subscribe_timer(ctx::json option, const char* zone)
+int ctx::context_monitor::subscribe_timer(ctx::json option)
 {
 	ctx::json day_info;
 	ctx::json time_info;
@@ -177,15 +167,14 @@ int ctx::context_monitor::subscribe_timer(ctx::json option, const char* zone)
 
 	// Time option processing
 	int time; // minute
-	timer_map_t::iterator timer = get_zone_timer(zone);
 	for (int i = 0; time_info.get_array_elem(NULL, CT_RULE_DATA_VALUE_ARR, i, &time); i++) {
-		(timer->second).add(time, dow);
+		timer->add(time, dow);
 	}
 
 	return ERR_NONE;
 }
 
-int ctx::context_monitor::unsubscribe_timer(ctx::json option, const char* zone)
+int ctx::context_monitor::unsubscribe_timer(ctx::json option)
 {
 	ctx::json day_info;
 	ctx::json time_info;
@@ -207,24 +196,19 @@ int ctx::context_monitor::unsubscribe_timer(ctx::json option, const char* zone)
 
 	// Time option processing
 	int time; // minute
-	timer_map_t::iterator timer = get_zone_timer(zone);
 	for (int i = 0; time_info.get_array_elem(NULL, CT_RULE_DATA_VALUE_ARR, i, &time); i++) {
-		(timer->second).remove(time, dow);
-	}
-
-	if ((timer->second).empty()) {
-		timer_map.erase(timer);
+		timer->remove(time, dow);
 	}
 
 	return ERR_NONE;
 }
 
-bool ctx::context_monitor::is_supported(std::string subject, const char* zone)
+bool ctx::context_monitor::is_supported(std::string subject)
 {
 	if (subject.compare(TIMER_EVENT_SUBJECT) == 0
 			|| subject.compare(TIMER_CONDITION_SUBJECT) == 0) {
 		return true;
 	}
 
-	return reader->is_supported(subject.c_str(), zone);
+	return reader->is_supported(subject.c_str());
 }
