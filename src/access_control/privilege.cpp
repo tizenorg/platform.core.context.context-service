@@ -15,63 +15,22 @@
  */
 
 #include <string>
-#include <map>
 #include <types_internal.h>
-#include "config_loader.h"
 #include "privilege.h"
 
-typedef std::map<std::string, std::string> string_map_t;
-
-static string_map_t *privilege_map = NULL;
-
-bool ctx::privilege_manager::init()
-{
-	IF_FAIL_RETURN(privilege_map == NULL, true);
-
-	privilege_map = new(std::nothrow) string_map_t;
-
-	if (!ctx::access_config_loader::load()) {
-		_E("Loading failed");
-		delete privilege_map;
-		return false;
-	}
-
-	return true;
-}
-
-void ctx::privilege_manager::release()
-{
-	delete privilege_map;
-	privilege_map = NULL;
-}
-
-void ctx::privilege_manager::set(const char* subject, const char* priv)
-{
-	(*privilege_map)[subject] = priv;
-}
-
-bool ctx::privilege_manager::is_allowed(const char* pkg_id, const char* subject)
+bool ctx::privilege_manager::is_allowed(const char *client, const char *privilege)
 {
 	/* TODO: need to be implemented using Cynara */
 #if 0
-	IF_FAIL_RETURN_TAG(pkg_id && subject, true, _E, "Invalid parameter");
-	IF_FAIL_RETURN_TAG(pkg_id[0]!='\0' && subject[0]!='\0', true, _E, "Invalid parameter");
+	IF_FAIL_RETURN(privilege, true);
 
-	string_map_t::iterator it = privilege_map->find(subject);
-	if (it == privilege_map->end()) {
-		// Non-Privileged Subject
-		return true;
-	}
+	std::string priv = "privilege::tizen::";
+	priv += privilege;
 
-	std::string priv = "org.tizen.privilege.";
-	priv += (it->second).c_str();
-	int result = 0;
-	int err = security_server_app_has_privilege(pkg_id, PERM_APP_TYPE_EFL, priv.c_str(), &result);
+	int ret = smack_have_access(client, priv.c_str(), "rw");
+	_D("Client: %s, Priv: %s, Enabled: %d", client, privilege, ret);
 
-	_D("PkgId: %s, PrivName: %s, Enabled: %d", pkg_id, (it->second).c_str(), result);
-	IF_FAIL_RETURN_TAG(err == SECURITY_SERVER_API_SUCCESS, false, _E, "Privilege checking failed");
-
-	return (result == 1);
+	return (ret == 1);
 #endif
 	return true;
 }

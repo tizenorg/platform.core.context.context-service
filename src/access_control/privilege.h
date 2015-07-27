@@ -19,15 +19,11 @@
 
 #include <string>
 
+#define PRIV_ALARM_SET "alarm.set"
+
 namespace ctx {
 	namespace privilege_manager {
-
-		bool init();
-		void release();
-
-		void set(const char* subject, const char* priv);
-		bool is_allowed(const char* pkg_id, const char* subject);
-
+		bool is_allowed(const char *client, const char *privilege);
 	}	/* namespace ctx::privilege_manager */
 }	/* namespace ctx */
 

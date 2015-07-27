@@ -77,28 +77,26 @@ static void handle_request(const char *sender, GVariant *param, GDBusMethodInvoc
 	g_variant_get(param, "(i&si&s&s)", &req_type, &cookie, &req_id, &subject, &input);
 	IF_FAIL_VOID_TAG(req_type > 0 && req_id > 0 && cookie && subject && input, _E, "Invalid request");
 
-	_SD("Cookie: %s", cookie);
 	_I("[%s] ReqId: %d, Subject: %s", req_type_to_str(req_type), req_id, subject);
 	_SI("Input: %s", input);
 
-	ctx::client_request *request = NULL;
-	try {
-		request = new ctx::client_request(req_type, sender, req_id, subject, input, invocation);
-	} catch (std::bad_alloc& ba) {
+	std::string smack_label;
+	pid_t pid;
+
+	if (!ctx::peer_creds::get(dbus_connection, sender, smack_label, pid)) {
+		_E("Peer credential failed");
+		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
+		return;
+	}
+
+	ctx::client_request *request = new(std::nothrow) ctx::client_request(req_type, smack_label.c_str(), req_id, subject, input, sender, invocation);
+	if (!request) {
 		_E("Memory allocation failed");
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 		return;
 	}
 
-	std::string smack_label;
-	pid_t pid;
-
-	if (ctx::peer_creds::get(dbus_connection, sender, smack_label, pid) && request->set_peer_creds(smack_label.c_str())) {
-		ctx::server::send_request(request);
-		return;
-	}
-
-	delete request;
+	ctx::server::send_request(request);
 }
 
 static void handle_method_call(GDBusConnection *conn, const gchar *sender,

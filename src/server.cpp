@@ -24,7 +24,6 @@
 #include "db_mgr_impl.h"
 #include "timer_mgr_impl.h"
 #include "context_mgr_impl.h"
-#include "access_control/privilege.h"
 #include "context_trigger/trigger.h"
 #include "server.h"
 
@@ -73,10 +72,6 @@ void ctx::server::activate()
 	IF_FAIL_VOID(!started);
 
 	bool result = false;
-
-	_I("Init access control configuration");
-	result = ctx::privilege_manager::init();
-	IF_FAIL_CATCH_TAG(result, _E, "Access controller initialization failed");
 
 	_I("Init Timer Manager");
 	timer_mgr = new(std::nothrow) ctx::timer_manager_impl();
@@ -142,9 +137,6 @@ void ctx::server::release()
 	_I("Release Timer Manager");
 	if (timer_mgr)
 		timer_mgr->release();
-
-	_I("Release Access control configuration");
-	ctx::privilege_manager::release();
 
 #ifdef _USE_ECORE_MAIN_LOOP_
 	ecore_shutdown();

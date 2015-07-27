@@ -39,22 +39,19 @@ namespace ctx {
 
 		void assign_request(ctx::request_info *request);
 		bool is_supported(const char *subject);
+		bool is_allowed(const char *client, const char *subject);
 
 		/* From the interface class */
-		bool register_provider(const char *subject, ctx::context_provider_iface *cp);
-		bool publish(const char *subject, ctx::json& option, int error, ctx::json& data_updated);
-		bool reply_to_read(const char *subject, ctx::json& option, int error, ctx::json& data_read);
+		bool register_provider(const char *subject, context_provider_info &provider_info);
+		bool publish(const char *subject, ctx::json &option, int error, ctx::json &data_updated);
+		bool reply_to_read(const char *subject, ctx::json &option, int error, ctx::json &data_read);
 
 	private:
-		typedef std::vector<context_provider_iface*> provider_list_t;
-		typedef std::map<std::string, context_provider_iface*> subject_provider_map_t;
+		typedef std::map<std::string, context_provider_info> provider_map_t;
 
-		provider_list_t provider_list;
 		request_list_t subscribe_request_list;
 		request_list_t read_request_list;
-		subject_provider_map_t subject_provider_map;
-
-		void load_provider(ctx::context_provider_iface *provider);
+		provider_map_t provider_map;
 
 		void subscribe(request_info *request);
 		void unsubscribe(request_info *request);
@@ -63,7 +60,6 @@ namespace ctx {
 		void is_supported(request_info *request);
 
 		context_provider_iface *get_provider(request_info *request);
-		bool check_permission(request_info *request);
 
 		static gboolean thread_switcher(gpointer data);
 		bool _publish(const char *subject, ctx::json option, int error, ctx::json data_updated);

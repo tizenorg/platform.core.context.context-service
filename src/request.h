@@ -23,28 +23,27 @@
 namespace ctx {
 
 	class request_info {
-		public:
-			request_info(int type, const char* client, int req_id, const char* subj, const char* desc);
-			virtual ~request_info();
+	public:
+		request_info(int type, const char *client, int req_id, const char *subj, const char *desc);
+		virtual ~request_info();
 
-			int get_type();
-			int get_id();
-			const char* get_client();
-			const char* get_subject();
-			ctx::json& get_description();
-			virtual const char* get_app_id();
+		int get_type();
+		int get_id();
+		const char *get_client();
+		const char *get_subject();
+		ctx::json& get_description();
 
-			virtual bool reply(int error) = 0;
-			virtual bool reply(int error, ctx::json& request_result) = 0;
-			virtual bool reply(int error, ctx::json& request_result, ctx::json& data_read) = 0;
-			virtual bool publish(int error, ctx::json& data) = 0;
+		virtual bool reply(int error) = 0;
+		virtual bool reply(int error, ctx::json &request_result) = 0;
+		virtual bool reply(int error, ctx::json &request_result, ctx::json &data_read) = 0;
+		virtual bool publish(int error, ctx::json &data) = 0;
 
-		protected:
-			int _type;
-			int _req_id;
-			std::string _client;
-			std::string _subject;
-			ctx::json _description;
+	protected:
+		int _type;
+		int _req_id;
+		std::string _client;
+		std::string _subject;
+		ctx::json _description;
 	};
 
 }	/* namespace ctx */

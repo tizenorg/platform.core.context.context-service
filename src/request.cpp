@@ -51,11 +51,6 @@ const char* ctx::request_info::get_subject()
 	return _subject.c_str();
 }
 
-const char* ctx::request_info::get_app_id()
-{
-	return get_client();
-}
-
 ctx::json& ctx::request_info::get_description()
 {
 	return _description;

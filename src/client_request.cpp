@@ -22,47 +22,35 @@
 #include "dbus_server_impl.h"
 #include "client_request.h"
 
-ctx::client_request::client_request(int type, const char* client, int req_id, const char* subj, const char* desc, GDBusMethodInvocation *inv)
+ctx::client_request::client_request(int type,
+		const char *client, int req_id, const char *subj, const char *desc,
+		const char *sender, GDBusMethodInvocation *inv)
 	: request_info(type, client, req_id, subj, desc)
-	, invocation(inv)
+	, __sender(sender)
+	, __invocation(inv)
 {
 }
 
 ctx::client_request::~client_request()
 {
-	if (invocation)
-		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
-}
-
-bool ctx::client_request::set_peer_creds(const char *smack_label)
-{
-	IF_FAIL_RETURN_TAG(smack_label, false, _E, "Invalid parameter");
-	client_app_id = smack_label;
-	return true;
-}
-
-const char* ctx::client_request::get_app_id()
-{
-	if (!client_app_id.empty())
-		return client_app_id.c_str();
-
-	return NULL;
+	if (__invocation)
+		g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 }
 
 bool ctx::client_request::reply(int error)
 {
-	IF_FAIL_RETURN(invocation, true);
+	IF_FAIL_RETURN(__invocation, true);
 
 	_I("Reply %#x", error);
 
-	g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", error, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
-	invocation = NULL;
+	g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", error, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
+	__invocation = NULL;
 	return true;
 }
 
 bool ctx::client_request::reply(int error, ctx::json& request_result)
 {
-	IF_FAIL_RETURN(invocation, true);
+	IF_FAIL_RETURN(__invocation, true);
 	IF_FAIL_RETURN(_type != REQ_READ_SYNC, true);
 
 	char *result = request_result.dup_cstr();
@@ -71,8 +59,8 @@ bool ctx::client_request::reply(int error, ctx::json& request_result)
 	_I("Reply %#x", error);
 	_SD("Result: %s", result);
 
-	g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", error, result, EMPTY_JSON_OBJECT));
-	invocation = NULL;
+	g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", error, result, EMPTY_JSON_OBJECT));
+	__invocation = NULL;
 
 	g_free(result);
 	return true;
@@ -80,7 +68,7 @@ bool ctx::client_request::reply(int error, ctx::json& request_result)
 
 bool ctx::client_request::reply(int error, ctx::json& request_result, ctx::json& data_read)
 {
-	if (invocation == NULL) {
+	if (__invocation == NULL) {
 		return publish(error, data_read);
 	}
 
@@ -97,8 +85,8 @@ bool ctx::client_request::reply(int error, ctx::json& request_result, ctx::json&
 	_SD("Result: %s", result);
 	_SD("Data: %s", data);
 
-	g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", error, result, data));
-	invocation = NULL;
+	g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", error, result, data));
+	__invocation = NULL;
 
 	g_free(result);
 	g_free(data);
@@ -115,7 +103,7 @@ bool ctx::client_request::publish(int error, ctx::json& data)
 	char *data_str = data.dup_cstr();
 	IF_FAIL_RETURN_TAG(data_str, false, _E, "Memory allocation failed");
 
-	dbus_server::publish(_client.c_str(), _req_id, _subject.c_str(), error, data_str);
+	dbus_server::publish(__sender.c_str(), _req_id, _subject.c_str(), error, data_str);
 	g_free(data_str);
 
 	return true;

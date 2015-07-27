@@ -123,6 +123,11 @@ bool ctx::fact_reader::is_supported(const char* subject)
 	return _context_mgr->is_supported(subject);
 }
 
+bool ctx::fact_reader::is_allowed(const char *client, const char *subject)
+{
+	return _context_mgr->is_allowed(client, subject);
+}
+
 int ctx::fact_reader::subscribe(const char* subject, json* option, bool wait_response)
 {
 	IF_FAIL_RETURN(subject, ERR_INVALID_PARAMETER);

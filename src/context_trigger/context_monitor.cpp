@@ -17,6 +17,7 @@
 #include <types_internal.h>
 #include <json.h>
 #include <context_trigger_types_internal.h>
+#include "../access_control/privilege.h"
 #include "context_monitor.h"
 #include "fact_reader.h"
 #include "timer_types.h"
@@ -211,4 +212,15 @@ bool ctx::context_monitor::is_supported(std::string subject)
 	}
 
 	return reader->is_supported(subject.c_str());
+}
+
+bool ctx::context_monitor::is_allowed(const char *client, const char *subject)
+{
+	if (STR_EQ(subject, TIMER_EVENT_SUBJECT))
+		return privilege_manager::is_allowed(client, PRIV_ALARM_SET);
+
+	if (STR_EQ(subject, TIMER_CONDITION_SUBJECT))
+		return true;
+
+	return reader->is_allowed(client, subject);
 }

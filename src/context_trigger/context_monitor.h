@@ -36,6 +36,7 @@ namespace ctx {
 		int unsubscribe(int rule_id, std::string subject, ctx::json option);
 		int read(std::string subject, json option, ctx::json* result);
 		bool is_supported(std::string subject);
+		bool is_allowed(const char *client, const char *subject);
 
 	private:
 		int subscribe_timer(ctx::json option);

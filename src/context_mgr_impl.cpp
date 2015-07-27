@@ -24,11 +24,9 @@
 #include "context_mgr_impl.h"
 #include "access_control/privilege.h"
 
-/* Analyzer Headers */
+/* Context Providers */
 #include <internal/device_context_provider.h>
-#include <internal/app_statistics_provider.h>
-#include <internal/social_statistics_provider.h>
-#include <internal/media_statistics_provider.h>
+#include <internal/statistics_context_provider.h>
 #include <internal/place_context_provider.h>
 
 ctx::context_manager_impl::context_manager_impl()
@@ -42,35 +40,26 @@ ctx::context_manager_impl::~context_manager_impl()
 
 bool ctx::context_manager_impl::init()
 {
-	IF_FAIL_RETURN_TAG(provider_list.size()==0, false, _W, "Re-initialization");
+	bool ret;
 
-	try {
-		/* List of all providers */
-		load_provider(new ctx::device_context_provider());
-		load_provider(new ctx::app_statistics_provider());
-		load_provider(new ctx::social_statistics_provider());
-		load_provider(new ctx::media_statistics_provider());
-		load_provider(new ctx::place_context_provider());
+	ret = init_device_context_provider();
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: device-context-provider");
 
-	} catch (std::bad_alloc& ba) {
-		_E("Analyzer loading failed (bad alloc)");
-		return false;
-	} catch (int e) {
-		_E("Analyzer loading failed (%#x)", e);
-		return false;
-	}
+	ret = init_statistics_context_provider();
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: statistics-context-provider");
+
+	ret = init_place_context_provider();
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: place-context-provider");
 
 	return true;
 }
 
 void ctx::context_manager_impl::release()
 {
-	subject_provider_map.clear();
-
-	for (provider_list_t::iterator it = provider_list.begin(); it != provider_list.end(); ++it) {
-		delete *it;
+	for (provider_map_t::iterator it = provider_map.begin(); it != provider_map.end(); ++it) {
+		it->second.destroy(it->second.data);
 	}
-	provider_list.clear();
+	provider_map.clear();
 
 	for (request_list_t::iterator it = subscribe_request_list.begin(); it != subscribe_request_list.end(); ++it) {
 		delete *it;
@@ -83,32 +72,15 @@ void ctx::context_manager_impl::release()
 	read_request_list.clear();
 }
 
-void ctx::context_manager_impl::load_provider(context_provider_iface* provider)
+bool ctx::context_manager_impl::register_provider(const char *subject, ctx::context_provider_info &provider_info)
 {
-	if (!provider) {
-		_E("Analyzer NULL");
-		throw static_cast<int>(ERR_INVALID_PARAMETER);
-	}
-
-	provider_list.push_back(provider);
-
-	if (!provider->init()) {
-		_E("Analyzer initialization failed");
-		throw ERR_OPERATION_FAILED;
-	}
-}
-
-bool ctx::context_manager_impl::register_provider(const char* subject, ctx::context_provider_iface* cp)
-{
-	IF_FAIL_RETURN_TAG(subject && cp, false, _E, "Invalid parameter");
-
-	if (subject_provider_map.find(subject) != subject_provider_map.end()) {
+	if (provider_map.find(subject) != provider_map.end()) {
 		_E("The provider for the subject '%s' is already registered.", subject);
 		return false;
 	}
 
-	_I("Registering provider for '%s'", subject);
-	subject_provider_map[subject] = cp;
+	_SI("Subj: %s, Priv: %s", subject, provider_info.privilege);
+	provider_map[subject] = provider_info;
 
 	return true;
 }
@@ -138,12 +110,10 @@ void ctx::context_manager_impl::assign_request(ctx::request_info* request)
 	}
 }
 
-bool ctx::context_manager_impl::is_supported(const char* subject)
+bool ctx::context_manager_impl::is_supported(const char *subject)
 {
-	subject_provider_map_t::iterator it = subject_provider_map.find(subject);
-	IF_FAIL_RETURN(it != subject_provider_map.end(), false);
-
-	return it->second->is_supported(subject);
+	provider_map_t::iterator it = provider_map.find(subject);
+	return (it != provider_map.end());
 }
 
 void ctx::context_manager_impl::is_supported(request_info *request)
@@ -154,6 +124,14 @@ void ctx::context_manager_impl::is_supported(request_info *request)
 		request->reply(ERR_NOT_SUPPORTED);
 
 	delete request;
+}
+
+bool ctx::context_manager_impl::is_allowed(const char *client, const char *subject)
+{
+	provider_map_t::iterator it = provider_map.find(subject);
+	IF_FAIL_RETURN(it != provider_map.end(), false);
+	IF_FAIL_RETURN(ctx::privilege_manager::is_allowed(client, it->second.privilege), false);
+	return true;
 }
 
 ctx::context_manager_impl::request_list_t::iterator
@@ -187,47 +165,30 @@ ctx::context_manager_impl::find_request(request_list_t::iterator begin, request_
 	return it;
 }
 
-ctx::context_provider_iface* ctx::context_manager_impl::get_provider(ctx::request_info *request)
+ctx::context_provider_iface *ctx::context_manager_impl::get_provider(ctx::request_info *request)
 {
-	subject_provider_map_t::iterator it = subject_provider_map.find(request->get_subject());
-	if (it == subject_provider_map.end()) {
-		_E("Unknown subject '%s'", request->get_subject());
+	provider_map_t::iterator it = provider_map.find(request->get_subject());
+
+	if (it == provider_map.end()) {
+		_W("Unsupported subject");
 		request->reply(ERR_NOT_SUPPORTED);
 		delete request;
 		return NULL;
 	}
-	return it->second;
-}
 
-bool ctx::context_manager_impl::check_permission(ctx::request_info* request)
-{
-	const char* app_id = request->get_app_id();
-	_D("Peer AppID: %s", app_id);
-
-	if (app_id == NULL) {
-		_E("AppID NULL");
-		request->reply(ERR_PERMISSION_DENIED);
-		delete request;
-		return false;
-	}
-
-	IF_FAIL_RETURN_TAG(!STR_EQ(app_id, TRIGGER_CLIENT_NAME), true, _D, "Skipping permission check for Trigger");
-
-	bool allowed = ctx::privilege_manager::is_allowed(app_id, request->get_subject());
-	if (!allowed) {
+	if (!ctx::privilege_manager::is_allowed(request->get_client(), it->second.privilege)) {
 		_W("Permission denied");
 		request->reply(ERR_PERMISSION_DENIED);
 		delete request;
-		return false;
+		return NULL;
 	}
 
-	return true;
+	return it->second.create(it->second.data);
 }
 
 void ctx::context_manager_impl::subscribe(ctx::request_info *request)
 {
 	_I(CYAN("'%s' subscribes '%s' (RID-%d)"), request->get_client(), request->get_subject(), request->get_id());
-	IF_FAIL_VOID(check_permission(request));
 
 	context_provider_iface *provider = get_provider(request);
 	IF_FAIL_VOID(provider);
@@ -274,8 +235,8 @@ void ctx::context_manager_impl::unsubscribe(ctx::request_info *request)
 	}
 
 	// Find the proper provider
-	subject_provider_map_t::iterator ca = subject_provider_map.find(req_found->get_subject());
-	if (ca == subject_provider_map.end()) {
+	provider_map_t::iterator ca = provider_map.find(req_found->get_subject());
+	if (ca == provider_map.end()) {
 		_E("Invalid subject '%s'", req_found->get_subject());
 		delete request;
 		delete req_found;
@@ -283,7 +244,7 @@ void ctx::context_manager_impl::unsubscribe(ctx::request_info *request)
 	}
 
 	// Stop detecting the subject
-	int error = ca->second->unsubscribe(req_found->get_subject(), req_found->get_description());
+	int error = ca->second.create(ca->second.data)->unsubscribe(req_found->get_subject(), req_found->get_description());
 	request->reply(error);
 	delete request;
 	delete req_found;
@@ -292,7 +253,6 @@ void ctx::context_manager_impl::unsubscribe(ctx::request_info *request)
 void ctx::context_manager_impl::read(ctx::request_info *request)
 {
 	_I(CYAN("'%s' reads '%s' (RID-%d)"), request->get_client(), request->get_subject(), request->get_id());
-	IF_FAIL_VOID(check_permission(request));
 
 	context_provider_iface *provider = get_provider(request);
 	IF_FAIL_VOID(provider);
@@ -313,7 +273,6 @@ void ctx::context_manager_impl::read(ctx::request_info *request)
 void ctx::context_manager_impl::write(ctx::request_info *request)
 {
 	_I(CYAN("'%s' writes '%s' (RID-%d)"), request->get_client(), request->get_subject(), request->get_id());
-	IF_FAIL_VOID(check_permission(request));
 
 	context_provider_iface *provider = get_provider(request);
 	IF_FAIL_VOID(provider);

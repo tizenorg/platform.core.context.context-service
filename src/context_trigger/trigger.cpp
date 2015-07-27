@@ -171,7 +171,7 @@ void ctx::context_trigger::add_rule(ctx::request_info* request)
 {
 	ctx::json rule_id;
 
-	const char* app_id = request->get_app_id();
+	const char* app_id = request->get_client();
 	if (app_id == NULL) {
 		request->reply(ERR_OPERATION_FAILED);
 		return;
@@ -188,7 +188,7 @@ void ctx::context_trigger::remove_rule(ctx::request_info* request)
 	int id;
 	int error;
 
-	const char* app_id = request->get_app_id();
+	const char* app_id = request->get_client();
 	if (app_id == NULL) {
 		request->reply(ERR_OPERATION_FAILED);
 		return;
@@ -219,7 +219,7 @@ void ctx::context_trigger::enable_rule(ctx::request_info* request)
 	int id;
 	int error;
 
-	const char* app_id = request->get_app_id();
+	const char* app_id = request->get_client();
 	if (app_id == NULL) {
 		request->reply(ERR_OPERATION_FAILED);
 		return;
@@ -250,7 +250,7 @@ void ctx::context_trigger::disable_rule(ctx::request_info* request)
 	int id;
 	int error;
 
-	const char* app_id = request->get_app_id();
+	const char* app_id = request->get_client();
 	if (app_id == NULL) {
 		request->reply(ERR_OPERATION_FAILED);
 		return;
@@ -284,7 +284,7 @@ void ctx::context_trigger::get_rule_by_id(ctx::request_info* request)
 	int id;
 	option.get(NULL, CT_RULE_ID, &id);
 
-	const char* app_id = request->get_app_id();
+	const char* app_id = request->get_client();
 	if (app_id == NULL) {
 		request->reply(ERR_OPERATION_FAILED);
 		return;
@@ -301,7 +301,7 @@ void ctx::context_trigger::get_rule_ids(ctx::request_info* request)
 {
 	int error;
 
-	const char* app_id = request->get_app_id();
+	const char* app_id = request->get_client();
 	if (app_id == NULL) {
 		request->reply(ERR_OPERATION_FAILED);
 		return;

@@ -81,7 +81,7 @@ std::string ctx::script_generator::generate_deftemplate(ctx::json* item)
 	for (std::set<std::string>::iterator it = slot.begin(); it != slot.end(); ++it){
 		script += "(slot ";
 		script += *it;
-		script += " (default null))";
+		script += " (default nil))";
 	}
 	script += ")\n";
 
@@ -104,7 +104,7 @@ std::string ctx::script_generator::generate_defclass(ctx::json* item)
 	for (int i = 0; item->get_array_elem(NULL, "attributes", i, &attr_name); i++) {
 		script += "(slot ";
 		script += attr_name;
-		script += " (create-accessor read-write))";
+		script += " (default nil)(create-accessor read-write))";
 	}
 	script += ")\n";
 
@@ -449,9 +449,7 @@ std::string ctx::script_generator::generate_fact(std::string item_name, ctx::jso
 	}
 
 	for (int i = 0; event_template.get_array_elem(NULL, "attributes", i, &key); i++) {
-		script += "(";
-		script += key;
-		script += " ";
+		script += "(" + key + " ";
 		if (data.get(NULL, key.c_str(), &val_str)) {	// string type data
 			script += "\"" + val_str + "\"";
 		} else if (data.get(NULL, key.c_str(), &value)) {	// integer type data
@@ -476,11 +474,15 @@ std::string ctx::script_generator::generate_modifyinstance(std::string instance_
 	std::string val_str;
 	int value;
 	for (int i = 0; condition_template.get_array_elem(NULL, "attributes", i, &key); i++) {
+		script += "(" + key + " ";
 		if (data.get(NULL, key.c_str(), &val_str)) {	// string type data
-			script += "(" + key + " \"" + val_str + "\")";
+			script += "\"" + val_str + "\"";
 		} else 	if (data.get(NULL, key.c_str(), &value)) {	// integer type data
-			script += "(" + key + " " + int_to_string(value) + ")";
+			script += int_to_string(value);
+		} else {
+			script += "nil";
 		}
+		script += ")";
 	}
 	script += ")";
 

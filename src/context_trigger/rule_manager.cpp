@@ -29,7 +29,6 @@
 #include <context_trigger_types_internal.h>
 #include <context_trigger.h>
 #include <db_mgr.h>
-#include "../access_control/privilege.h"
 #include "rule_manager.h"
 #include "script_generator.h"
 #include "trigger.h"
@@ -389,7 +388,7 @@ int ctx::rule_manager::verify_rule(ctx::json& rule, const char* app_id)
 	IF_FAIL_RETURN_TAG(c_monitor.is_supported(e_name), ERR_NOT_SUPPORTED, _I, "Event(%s) is not supported", e_name.c_str());
 
 	if (app_id) {
-		if (!ctx::privilege_manager::is_allowed(app_id, e_name.c_str())) {
+		if (!c_monitor.is_allowed(app_id, e_name.c_str())) {
 			_W("Permission denied for '%s'", e_name.c_str());
 			return ERR_PERMISSION_DENIED;
 		}
@@ -402,7 +401,7 @@ int ctx::rule_manager::verify_rule(ctx::json& rule, const char* app_id)
 
 		IF_FAIL_RETURN_TAG(c_monitor.is_supported(c_name), ERR_NOT_SUPPORTED, _I, "Condition(%s) is not supported", c_name.c_str());
 
-		if (!ctx::privilege_manager::is_allowed(app_id, c_name.c_str())) {
+		if (!c_monitor.is_allowed(app_id, c_name.c_str())) {
 			_W("Permission denied for '%s'", c_name.c_str());
 			return ERR_PERMISSION_DENIED;
 		}
