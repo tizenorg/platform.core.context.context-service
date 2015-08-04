@@ -23,21 +23,23 @@
 
 namespace ctx {
 	class dbus_server_impl : public dbus_server_iface {
-		public:
-			dbus_server_impl();
-			~dbus_server_impl();
+	public:
+		dbus_server_impl();
+		~dbus_server_impl();
 
-			bool init();
-			void release();
+		bool init();
+		void release();
 
-			void publish(const char* dest, int req_id, const char* subject, int error, const char* data);
-			int64_t signal_subscribe(const char* sender, const char* path, const char* iface, const char* name, dbus_listener_iface* listener);
-			void signal_unsubscribe(int64_t subscription_id);
+		void publish(const char *dest, int req_id, const char *subject, int error, const char *data);
+		void call(const char *dest, const char *obj, const char *iface, const char *method, const char *data);
+		int64_t signal_subscribe(const char *sender, const char *path, const char *iface, const char *name, dbus_listener_iface *listener);
+		void signal_unsubscribe(int64_t subscription_id);
 
 	};	/* class ctx::dbus_server */
 
 	namespace dbus_server {
-		void publish(const char* dest, int req_id, const char* subject, int error, const char* data);
+		void publish(const char *dest, int req_id, const char *subject, int error, const char *data);
+		void call(const char *dest, const char *obj, const char *iface, const char *method, const char *data);
 	}
 }	/* namespace ctx */
 

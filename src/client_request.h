@@ -26,15 +26,17 @@ namespace ctx {
 	public:
 		client_request(int type,
 				const char *client, int req_id, const char *subj, const char *desc,
-				const char *sender, GDBusMethodInvocation *inv);
+				const char *sender, char *app_id, GDBusMethodInvocation *inv);
 		~client_request();
 
+		const char *get_app_id();
 		bool reply(int error);
 		bool reply(int error, ctx::json &request_result);
 		bool reply(int error, ctx::json &request_result, ctx::json &data_read);
 		bool publish(int error, ctx::json &data);
 
 	private:
+		char *__app_id;
 		std::string __sender;
 		GDBusMethodInvocation *__invocation;
 	};

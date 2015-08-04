@@ -152,13 +152,16 @@ bool ctx::db_manager_impl::insert(unsigned int query_id, const char* table_name,
 	std::ostringstream colstream;
 	std::ostringstream valstream;
 
-
 	for (std::list<std::string>::iterator it = keys.begin(); it != keys.end(); ++it) {
 		std::string s;
 		int64_t i;
 		if (record.get(NULL, (*it).c_str(), &s)) {
 			colstream << *it << ",";
-			valstream << "'" << s << "',";
+
+			char* buf = sqlite3_mprintf("%Q", s.c_str());
+			IF_FAIL_RETURN_TAG(buf, false, _E, "Memory allocation failed");
+			valstream << buf << ",";
+			sqlite3_free(buf);
 		} else if (record.get(NULL, (*it).c_str(), &i)) {
 			colstream << *it << ",";
 			valstream << i << ",";

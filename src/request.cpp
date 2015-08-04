@@ -55,3 +55,8 @@ ctx::json& ctx::request_info::get_description()
 {
 	return _description;
 }
+
+const char* ctx::request_info::get_app_id()
+{
+	return NULL;
+}

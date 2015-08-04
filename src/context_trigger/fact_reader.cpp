@@ -178,12 +178,12 @@ void ctx::fact_reader::unsubscribe(const char* subject, json* option)
 	int rid = find_sub(subject, option);
 	IF_FAIL_VOID_TAG(rid > 0, _W, "Unknown subscription for %s", subject);
 
-	unsubscribe(rid);
+	unsubscribe(subject, rid);
 }
 
-void ctx::fact_reader::unsubscribe(int subscription_id)
+void ctx::fact_reader::unsubscribe(const char *subject, int subscription_id)
 {
-	fact_request *req = new(std::nothrow) fact_request(REQ_UNSUBSCRIBE, CLIENT_NAME, subscription_id, "", NULL, NULL);
+	fact_request *req = new(std::nothrow) fact_request(REQ_UNSUBSCRIBE, CLIENT_NAME, subscription_id, subject, NULL, NULL);
 	IF_FAIL_VOID_TAG(req, _E, "Memory allocation failed");
 
 	g_idle_add(send_request, req);

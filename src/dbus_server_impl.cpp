@@ -17,6 +17,7 @@
 #include <signal.h>
 #include <glib.h>
 #include <gio/gio.h>
+#include <app_manager.h>
 
 #include <types_internal.h>
 #include <dbus_listener_iface.h>
@@ -89,7 +90,11 @@ static void handle_request(const char *sender, GVariant *param, GDBusMethodInvoc
 		return;
 	}
 
-	ctx::client_request *request = new(std::nothrow) ctx::client_request(req_type, smack_label.c_str(), req_id, subject, input, sender, invocation);
+	char *app_id = NULL;
+	app_manager_get_app_id(pid, &app_id);
+	_D("AppId: %s", app_id);
+
+	ctx::client_request *request = new(std::nothrow) ctx::client_request(req_type, smack_label.c_str(), req_id, subject, input, sender, app_id, invocation);
 	if (!request) {
 		_E("Memory allocation failed");
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
@@ -207,10 +212,34 @@ void ctx::dbus_server_impl::publish(const char* dest, int req_id, const char* su
 	GVariant *param = g_variant_new("(isis)", req_id, subject, error, data);
 	IF_FAIL_VOID_TAG(param, _E, "Memory allocation failed");
 
-	GError *err = NULL;
 	g_dbus_connection_call(dbus_connection, dest, DBUS_PATH, DBUS_IFACE,
-			METHOD_RESPOND, param, NULL, G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, NULL, NULL, &err);
-	HANDLE_GERROR(err);
+			METHOD_RESPOND, param, NULL, G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, NULL, NULL, NULL);
+}
+
+static void handle_call_result(GObject *source, GAsyncResult *res, gpointer user_data)
+{
+	_I("Call %u done", *static_cast<unsigned int*>(user_data));
+
+	GDBusConnection *conn = G_DBUS_CONNECTION(source);
+	GError *error = NULL;
+	g_dbus_connection_call_finish(conn, res, &error);
+	HANDLE_GERROR(error);
+}
+
+void ctx::dbus_server_impl::call(const char *dest, const char *obj, const char *iface, const char *method, const char *data)
+{
+	IF_FAIL_VOID_TAG(dest && obj && iface && method && data, _E, "Parameter null");
+
+	static unsigned int call_count = 0;
+	++call_count;
+
+	_SI("Call %u: %s, %s, %s.%s, %s", call_count, dest, obj, iface, method, data);
+
+	GVariant *param = g_variant_new("(s)", data);
+	IF_FAIL_VOID_TAG(param, _E, "Memory allocation failed");
+
+	g_dbus_connection_call(dbus_connection, dest, obj, iface, method, param, NULL,
+			G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, NULL, handle_call_result, &call_count);
 }
 
 static void handle_signal_received(GDBusConnection *conn, const gchar *sender,
@@ -241,4 +270,9 @@ void ctx::dbus_server_impl::signal_unsubscribe(int64_t subscription_id)
 void ctx::dbus_server::publish(const char* dest, int req_id, const char* subject, int error, const char* data)
 {
 	_instance->publish(dest, req_id, subject, error, data);
+}
+
+void ctx::dbus_server::call(const char *dest, const char *obj, const char *iface, const char *method, const char *data)
+{
+	_instance->call(dest, obj, iface, method, data);
 }

@@ -176,7 +176,8 @@ ctx::context_provider_iface *ctx::context_manager_impl::get_provider(ctx::reques
 		return NULL;
 	}
 
-	if (!ctx::privilege_manager::is_allowed(request->get_client(), it->second.privilege)) {
+	if (!STR_EQ(TRIGGER_CLIENT_NAME, request->get_client()) &&
+			!ctx::privilege_manager::is_allowed(request->get_client(), it->second.privilege)) {
 		_W("Permission denied");
 		request->reply(ERR_PERMISSION_DENIED);
 		delete request;
@@ -208,7 +209,7 @@ void ctx::context_manager_impl::subscribe(ctx::request_info *request)
 
 void ctx::context_manager_impl::unsubscribe(ctx::request_info *request)
 {
-	_I(CYAN("'%s' unsubscribes RID-%d"), request->get_client(), request->get_id());
+	_I(CYAN("'%s' unsubscribes '%s' (RID-%d)"), request->get_client(), request->get_subject(), request->get_id());
 
 	// Search the subscribe request to be removed
 	request_list_t::iterator target = find_request(subscribe_request_list, request->get_client(), request->get_id());

@@ -29,6 +29,7 @@
 #include <context_trigger_types_internal.h>
 #include <context_trigger.h>
 #include <db_mgr.h>
+#include "../dbus_server_impl.h"
 #include "rule_manager.h"
 #include "script_generator.h"
 #include "trigger.h"
@@ -929,6 +930,30 @@ static void trigger_action_notification(ctx::json& action, std::string creator)
 	}
 }
 
+static void trigger_action_dbus_call(ctx::json& action)
+{
+	std::string bus_name, object, iface, method, user_data;
+
+	action.get(NULL, CT_RULE_ACTION_DBUS_NAME, &bus_name);
+	IF_FAIL_VOID_TAG(!bus_name.empty(), _E, "No target bus name");
+
+	action.get(NULL, CT_RULE_ACTION_DBUS_OBJECT, &object);
+	IF_FAIL_VOID_TAG(!object.empty(), _E, "No object path");
+
+	action.get(NULL, CT_RULE_ACTION_DBUS_INTERFACE, &iface);
+	IF_FAIL_VOID_TAG(!iface.empty(), _E, "No interface name");
+
+	action.get(NULL, CT_RULE_ACTION_DBUS_METHOD, &method);
+	IF_FAIL_VOID_TAG(!method.empty(), _E, "No method name");
+
+	if (!action.get(NULL, CT_RULE_ACTION_DBUS_USER_DATA, &user_data)) {
+		_E("No user data");
+		return;
+	}
+
+	ctx::dbus_server::call(bus_name.c_str(), object.c_str(), iface.c_str(), method.c_str(), user_data.c_str());
+}
+
 void ctx::rule_manager::on_rule_triggered(int rule_id)
 {
 	_D(YELLOW("Rule%d is triggered"), rule_id);
@@ -953,6 +978,8 @@ void ctx::rule_manager::on_rule_triggered(int rule_id)
 			std::string creator;
 			record[0].get(NULL, "creator", &creator);
 			trigger_action_notification(action, creator);
+		} else if (type.compare(CT_RULE_ACTION_TYPE_DBUS_CALL) == 0) {
+			trigger_action_dbus_call(action);
 		}
 	}
 }

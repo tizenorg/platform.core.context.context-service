@@ -33,6 +33,7 @@ namespace ctx {
 		const char *get_subject();
 		ctx::json& get_description();
 
+		virtual const char *get_app_id();
 		virtual bool reply(int error) = 0;
 		virtual bool reply(int error, ctx::json &request_result) = 0;
 		virtual bool reply(int error, ctx::json &request_result, ctx::json &data_read) = 0;

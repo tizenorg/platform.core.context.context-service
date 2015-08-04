@@ -36,7 +36,7 @@ namespace ctx {
 
 		int subscribe(const char *subject, json *option, bool wait_response = false);
 		void unsubscribe(const char *subject, json *option);
-		void unsubscribe(int subscription_id);
+		void unsubscribe(const char *subject, int subscription_id);
 		bool read(const char *subject, json *option, context_fact& fact);
 
 		void reply_result(int req_id, int error, json *request_result = NULL, json *fact = NULL);

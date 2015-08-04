@@ -24,8 +24,9 @@
 
 ctx::client_request::client_request(int type,
 		const char *client, int req_id, const char *subj, const char *desc,
-		const char *sender, GDBusMethodInvocation *inv)
+		const char *sender, char *app_id, GDBusMethodInvocation *inv)
 	: request_info(type, client, req_id, subj, desc)
+	, __app_id(app_id)
 	, __sender(sender)
 	, __invocation(inv)
 {
@@ -35,6 +36,13 @@ ctx::client_request::~client_request()
 {
 	if (__invocation)
 		g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
+
+	g_free(__app_id);
+}
+
+const char* ctx::client_request::get_app_id()
+{
+	return __app_id;
 }
 
 bool ctx::client_request::reply(int error)

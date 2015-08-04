@@ -74,7 +74,7 @@ int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::jso
 
 	read_req_cnt_map[req_id]--;
 	if (read_req_cnt_map[req_id] == 0) {
-		reader->unsubscribe(req_id);
+		reader->unsubscribe(subject.c_str(), req_id);
 		read_req_cnt_map.erase(req_id);
 	}
 
