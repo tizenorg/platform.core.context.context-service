@@ -19,12 +19,12 @@
 #include <string>
 #include <sstream>
 #include <list>
+#include <tzplatform_config.h>
 #include <scope_mutex.h>
 #include "server.h"
 #include "db_mgr_impl.h"
 
-//TODO: conf file for this kind of env. params.
-#define CONTEXT_DB_PATH "/opt/dbspace/.context-service.db"
+#define CONTEXT_DB_PATH tzplatform_mkpath(TZ_USER_DB, ".context-service.db")
 
 static bool initialized = false;
 static GThread *mainthread = NULL;
@@ -71,7 +71,7 @@ bool ctx::db_manager_impl::open()
 	sqlite3 *db = NULL;
 	int r = sqlite3_open(CONTEXT_DB_PATH, &db);
 
-	IF_FAIL_RETURN_TAG(r == SQLITE_OK, false, _E, "DB Error: %s", sqlite3_errmsg(db));
+	IF_FAIL_RETURN_TAG(r == SQLITE_OK, false, _E, "Path: %s / Error: %s", CONTEXT_DB_PATH, sqlite3_errmsg(db));
 
 	db_handle = db;
 	return true;

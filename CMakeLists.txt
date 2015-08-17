@@ -11,6 +11,7 @@ MESSAGE("Sources: ${SRCS}")
 
 # Dependencies
 SET(DEPS
+	libtzplatform-config
 	vconf
 	libxml-2.0
 	sqlite3
