@@ -173,7 +173,7 @@ bool ctx::dbus_server_impl::init()
 	dbus_node_info = g_dbus_node_info_new_for_xml(introspection_xml, NULL);
 	IF_FAIL_RETURN_TAG(dbus_node_info != NULL, false, _E, "Initialization failed");
 
-	dbus_owner_id = g_bus_own_name(G_BUS_TYPE_SYSTEM, DBUS_DEST, G_BUS_NAME_OWNER_FLAGS_NONE,
+	dbus_owner_id = g_bus_own_name(G_BUS_TYPE_SESSION, DBUS_DEST, G_BUS_NAME_OWNER_FLAGS_NONE,
 			on_bus_acquired, on_name_acquired, on_name_lost, NULL, NULL);
 
 	_instance = this;
