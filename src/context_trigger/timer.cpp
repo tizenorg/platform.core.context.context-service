@@ -22,6 +22,7 @@
 #include "timer.h"
 #include "trigger.h"
 #include "timer_types.h"
+#include <context_mgr.h>
 
 #define MAX_HOUR	24
 #define MAX_DAY		7
@@ -37,11 +38,31 @@ ctx::trigger_timer::ref_count_array_s::ref_count_array_s()
 ctx::trigger_timer::trigger_timer(ctx::context_trigger* tr)
 	: trigger(tr)
 {
+	submit_trigger_item();
 }
 
 ctx::trigger_timer::~trigger_timer()
 {
 	clear();
+}
+
+void ctx::trigger_timer::submit_trigger_item()
+{
+	context_manager::register_trigger_item(TIMER_EVENT_SUBJECT, OPS_SUBSCRIBE,
+			"{"
+				"\"TimeOfDay\":{\"type\":\"integer\",\"min\":0,\"max\":1439},"
+				"\"DayOfWeek\":{\"type\":\"string\",\"values\":[\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\",\"Sat\",\"Sun\",\"Weekday\",\"Weekend\"]}"
+			"}",
+			NULL);
+
+	context_manager::register_trigger_item(TIMER_CONDITION_SUBJECT, OPS_READ,
+			"{"
+				"\"TimeOfDay\":{\"type\":\"integer\",\"min\":0,\"max\":1439},"
+				"\"DayOfWeek\":{\"type\":\"string\",\"values\":[\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\",\"Sat\",\"Sun\",\"Weekday\",\"Weekend\"]},"
+				"\"DayOfMonth\":{\"type\":\"integer\",\"min\":1,\"max\":31}"
+			"}",
+			NULL);
+
 }
 
 int ctx::trigger_timer::merge_day_of_week(int* ref_cnt)

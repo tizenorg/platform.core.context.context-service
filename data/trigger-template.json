@@ -1,103 +1,91 @@
 {
 	"templates": [
 		{
-			"name": "timer/event",
+			"name": "time/alarm",
 			"attributes": ["TimeOfDay", "DayOfWeek"]
 		},
 		{
-			"name": "timer/state",
+			"name": "time/now",
 			"attributes": ["TimeOfDay", "DayOfWeek", "DayOfMonth"]
 		},
 		{
-			"name": "system/state/battery",
+			"name": "system/battery",
 			"attributes": ["Level", "IsCharging"]
 		},
 		{
-			"name": "system/state/charger",
+			"name": "system/charger",
 			"attributes": ["IsConnected"]
 		},
 		{
-			"name": "system/state/flight_mode",
-			"attributes": ["IsEnabled"]
-		},
-		{
-			"name": "system/state/gps",
+			"name": "system/gps",
 			"attributes": ["State"]
 		},
 		{
-			"name": "system/state/headphone",
+			"name": "system/headphone",
 			"attributes": ["IsConnected", "Type"]
 		},
 		{
-			"name": "system/state/ps_mode",
+			"name": "system/psmode",
 			"attributes": ["IsEnabled"]
 		},
 		{
-			"name": "system/state/silent_mode",
-			"attributes": ["IsEnabled"]
-		},
-		{
-			"name": "system/state/vibration_mode",
-			"attributes": ["IsEnabled"]
-		},
-		{
-			"name": "system/state/usb",
+			"name": "system/usb",
 			"attributes": ["IsConnected"]
 		},
 		{
-			"name": "system/state/wifi",
+			"name": "system/wifi",
 			"attributes": ["State", "BSSID"]
 		},
 		{
-			"name": "social/state/call",
+			"name": "social/call",
 			"attributes": ["Medium", "State", "Address"]
 		},
 		{
-			"name": "social/event/email",
+			"name": "social/email",
 			"attributes": ["Event"]
 		},
 		{
-			"name": "social/event/message",
+			"name": "social/message",
 			"attributes": ["Event", "Type", "Address"]
 		},
 		{
-			"name": "activity/event/stationary",
+			"name": "activity/stationary",
 			"attributes": ["Event", "Accuracy"]
 		},
 		{
-			"name": "activity/event/walking",
+			"name": "activity/walking",
 			"attributes": ["Event", "Accuracy"]
 		},
 		{
-			"name": "activity/event/running",
+			"name": "activity/running",
 			"attributes": ["Event", "Accuracy"]
 		},
 		{
-			"name": "activity/event/in_vehicle",
+			"name": "activity/in_vehicle",
 			"attributes": ["Event", "Accuracy"]
 		},
 		{
-			"name": "place/event/geofence",
+			"name": "place/geofence",
 			"attributes": ["Event"],
 			"option": ["PlaceId"]
 		},
 		{
-			"name": "app/history/use_freq",
+			"name": "stats/app/frequency",
 			"attributes": ["Rank", "TotalCount"],
 			"option": ["AppId", "TimeOfDay", "DayOfWeek"]
 		},
 		{
-			"name": "contact/history/comm_freq",
+			"name": "stats/contact/frequency",
 			"attributes": ["Rank", "TotalCount"],
 			"option": ["Address", "TimeOfDay", "DayOfWeek"]
 		},
 		{
-			"name": "music/history/play_freq",
+			"name": "stats/music/frequency",
 			"attributes": ["TotalCount"],
 			"option": ["TimeOfDay", "DayOfWeek"]
 		},
 		{
-			"name": "video/history/play_freq",
+			"name": "stats/video/frequency",
 			"attributes": ["TotalCount"],
 			"option": ["TimeOfDay", "DayOfWeek"]
 		}

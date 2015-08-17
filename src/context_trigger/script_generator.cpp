@@ -29,9 +29,9 @@
 #define CONDITION_WEEKDAY "(or (eq (send [%s] get-DayOfWeek) \"Mon\") (eq (send [%s] get-DayOfWeek) \"Tue\") (eq (send [%s] get-DayOfWeek) \"Wed\") (eq (send [%s] get-DayOfWeek) \"Thu\") (eq (send [%s] get-DayOfWeek) \"Fri\"))"
 #define CONDITION_WEEKEND "(or (eq (send [%s] get-DayOfWeek) \"Sat\") (eq (send [%s] get-DayOfWeek) \"Sun\"))"
 
-static std::string generate_initial_fact(ctx::json event_template, ctx::json option);
-static std::string generate_event_data(ctx::json event);
-static std::string generate_condition_data(std::string rule_id, ctx::json conditions, std::string rule_op, ctx::json* inst_names);
+static std::string generate_initial_fact(ctx::json& event_tmpl, ctx::json& option);
+static std::string generate_event_data(ctx::json& event);
+static std::string generate_condition_data(std::string rule_id, ctx::json& conditions, std::string rule_op, ctx::json& inst_names);
 
 static std::string int_to_string(int i)
 {
@@ -54,23 +54,29 @@ static std::string convert_condition_weekday_weekend(std::string inst_name, std:
 	return buf;
 }
 
-std::string ctx::script_generator::generate_deftemplate(ctx::json* item)
+std::string ctx::script_generator::generate_deftemplate(ctx::json& tmpl)
 {
 	std::string script;
-
 	std::string name;
-	item->get(NULL, "name", &name);
-
+	ctx::json attrs;
+	ctx::json options;
+	std::list<std::string> attr_keys;
+	std::list<std::string> option_keys;
 	std::set<std::string> slot;
 
-	std::string opt_name;
-	for (int i = 0; item->get_array_elem(NULL, "option", i, &opt_name); i++) {
-		slot.insert(opt_name);
+	tmpl.get(NULL, "name", &name);
+	tmpl.get(NULL, "attributes", &attrs);
+	tmpl.get(NULL, "options", &options);
+
+	attrs.get_keys(&attr_keys);
+	options.get_keys(&option_keys);
+
+	for (std::list<std::string>::iterator it = attr_keys.begin(); it != attr_keys.end(); ++it) {
+		slot.insert(*it);
 	}
 
-	std::string attr_name;
-	for (int i = 0; item->get_array_elem(NULL, "attributes", i, &attr_name); i++) {
-		slot.insert(attr_name);
+	for (std::list<std::string>::iterator it = option_keys.begin(); it != option_keys.end(); ++it) {
+		slot.insert(*it);
 	}
 
 	//template name is "itemname"
@@ -88,52 +94,54 @@ std::string ctx::script_generator::generate_deftemplate(ctx::json* item)
 	return script;
 }
 
-std::string ctx::script_generator::generate_defclass(ctx::json* item)
+std::string ctx::script_generator::generate_defclass(ctx::json& tmpl)
 {
 	std::string script;
-
 	std::string name;
-	item->get(NULL, "name", &name);
+	ctx::json attrs;
+	std::list<std::string> attr_keys;
+
+	tmpl.get(NULL, "name", &name);
+	tmpl.get(NULL, "attributes", &attrs);
+
+	attrs.get_keys(&attr_keys);
 
 	//class name is "C.itemname"
 	script = "(defclass C.";
 	script += name;
 	script += " (is-a USER) (role concrete) ";
 
-	std::string attr_name;
-	for (int i = 0; item->get_array_elem(NULL, "attributes", i, &attr_name); i++) {
-		script += "(slot ";
-		script += attr_name;
-		script += " (default nil)(create-accessor read-write))";
+	for (std::list<std::string>::iterator it = attr_keys.begin(); it != attr_keys.end(); ++it) {
+		script += "(slot " + (*it) + " (default nil)(create-accessor read-write))";
 	}
 	script += ")\n";
 
 	return script;
 }
 
-std::string ctx::script_generator::generate_makeinstance(ctx::json* item)
+std::string ctx::script_generator::generate_makeinstance(ctx::json& tmpl)
 {
 	std::string script;
-
 	std::string name;
-	item->get(NULL, "name", &name);
+	ctx::json attrs;
+	std::list<std::string> attr_keys;
+
+	tmpl.get(NULL, "name", &name);
+	tmpl.get(NULL, "attributes", &attrs);
+
+	attrs.get_keys(&attr_keys);
 
 	std::string instance_name;
-	if (!item->get(NULL, "instance_name", &instance_name)) {
+	if (!tmpl.get(NULL, "instance_name", &instance_name)) {
+		// For default instance w/o option
 		instance_name = name;
 	}
 
 	//instance name is "[itemname]"
-	script = "([";
-	script += instance_name;
-	script += "] of C.";
-	script += name;
+	script = "([" + instance_name + "] of C." + name;
 
-	std::string attr_name;
-	for (int i = 0; item->get_array_elem(NULL, "attributes", i, &attr_name); i++) {
-		script += " (";
-		script += attr_name;
-		script += " 0)";
+	for (std::list<std::string>::iterator it = attr_keys.begin(); it != attr_keys.end(); ++it) {
+		script += " (" + (*it) + " 0)";
 	}
 	script += ")\n";
 
@@ -150,14 +158,14 @@ std::string ctx::script_generator::generate_undefrule(std::string rule_id)
 	return script;
 }
 
-std::string ctx::script_generator::generate_defrule(std::string rule_id, ctx::json event_template, ctx::json rule, ctx::json* inst_names)
+std::string ctx::script_generator::generate_defrule(std::string rule_id, ctx::json& event_tmpl, ctx::json& rule, ctx::json& inst_names)
 {
 	std::string script;
 	ctx::json option = NULL;
 	rule.get(CT_RULE_EVENT, CT_RULE_EVENT_OPTION, &option);
 
 	script = "(defrule rule" + rule_id + " ";
-	script += generate_initial_fact(event_template, option);
+	script += generate_initial_fact(event_tmpl, option);
 	script += " => ";
 
 	int eventdata_num = rule.array_get_size(CT_RULE_EVENT, CT_RULE_DATA_ARR);
@@ -203,21 +211,27 @@ std::string ctx::script_generator::generate_defrule(std::string rule_id, ctx::js
 	return script;
 }
 
-std::string generate_initial_fact(ctx::json event_template, ctx::json option)
+std::string generate_initial_fact(ctx::json& event_tmpl, ctx::json& option)
 {
-	std::string script = "(";
+	std::string script;
 	std::string e_name;
-	event_template.get(NULL, "name", &e_name);
+	ctx::json attrs;
+	ctx::json options;
+	std::list<std::string> attr_keys;
+	std::list<std::string> option_keys;
 
-	script += e_name;
-	script += " ";
+	event_tmpl.get(NULL, "name", &e_name);
+	event_tmpl.get(NULL, "attributes", &attrs);
+	event_tmpl.get(NULL, "options", &options);
 
+	attrs.get_keys(&attr_keys);
+	options.get_keys(&option_keys);
+
+	script += "(" + e_name + " ";
 	// options
-	std::string opt_key;
-	for (int i = 0; event_template.get_array_elem(NULL, "option", i, &opt_key); i++) {
-		script += "(";
-		script += opt_key;
-		script += " ";
+	for (std::list<std::string>::iterator it = option_keys.begin(); it != option_keys.end(); ++it) {
+		std::string opt_key = (*it);
+		script += "(" + opt_key + " ";
 
 		std::string val_str;
 		int val;
@@ -226,28 +240,22 @@ std::string generate_initial_fact(ctx::json event_template, ctx::json option)
 		} else if (option.get(NULL, opt_key.c_str(), &val)) {
 			script += int_to_string(val);
 		} else {
-			script += "?";
-			script += opt_key;
+			script += "?" + opt_key;
 		}
-
 		script += ")";
 	}
 
 	// attributes
-	std::string attr;
-	for (int i = 0; event_template.get_array_elem(NULL, "attributes", i, &attr); i++) {
-		script += "(";
-		script += attr;
-		script += " ?";
-		script += attr;
-		script += ")";
+	for (std::list<std::string>::iterator it = attr_keys.begin(); it != attr_keys.end(); ++it) {
+		std::string attr_key = (*it);
+		script += "(" + attr_key + " ?" + attr_key + ")";
 	}
 	script += ")";
 
 	return script;
 }
 
-std::string generate_event_data(ctx::json event)
+std::string generate_event_data(ctx::json& event)
 {
 	std::string ename;
 	event.get(NULL, CT_RULE_EVENT_ITEM, &ename);
@@ -326,7 +334,7 @@ std::string generate_event_data(ctx::json event)
 	return script;
 }
 
-std::string generate_condition_data(std::string rule_id, ctx::json conditions, std::string rule_op, ctx::json* inst_names)
+std::string generate_condition_data(std::string rule_id, ctx::json& conditions, std::string rule_op, ctx::json& inst_names)
 {
 	std::string script;
 
@@ -346,7 +354,7 @@ std::string generate_condition_data(std::string rule_id, ctx::json conditions, s
 		it.get(NULL, CT_RULE_CONDITION_ITEM, &cond_name);
 
 		std::string inst_name;
-		(inst_names)->get(NULL, cond_name.c_str(), &inst_name);
+		inst_names.get(NULL, cond_name.c_str(), &inst_name);
 
 		int data_count = it.array_get_size(NULL, CT_RULE_DATA_ARR);
 
@@ -422,22 +430,28 @@ std::string generate_condition_data(std::string rule_id, ctx::json conditions, s
 	return script;
 }
 
-std::string ctx::script_generator::generate_fact(std::string item_name, ctx::json event_template, ctx::json option, ctx::json data)
+std::string ctx::script_generator::generate_fact(std::string item_name, ctx::json& event_tmpl, ctx::json& option, ctx::json& data)
 {
 	// Generate Fact script for invoked event
-	std::string script = "(";
-	script += item_name;
-	script += " ";
+	std::string script = "(" + item_name + " ";
+	ctx::json attrs;
+	ctx::json options;
+	std::list<std::string> attr_keys;
+	std::list<std::string> option_keys;
 
-	std::string opt_key;
-	std::string key;
-	std::string val_str;
-	int value;
+	event_tmpl.get(NULL, "attributes", &attrs);
+	event_tmpl.get(NULL, "options", &options);
 
-	for (int i = 0; event_template.get_array_elem(NULL, "option", i, &opt_key); i++) {
-		script += "(";
-		script += opt_key;
-		script += " ";
+	attrs.get_keys(&attr_keys);
+	options.get_keys(&option_keys);
+
+	for (std::list<std::string>::iterator it = option_keys.begin(); it != option_keys.end(); ++it) {
+		std::string opt_key = (*it);
+		std::string val_str;
+		int value;
+
+		script += "(" + opt_key + " ";
+
 		if (option.get(NULL, opt_key.c_str(), &val_str)) {	// string type data
 			script += val_str;
 		} else if (option.get(NULL, opt_key.c_str(), &value)) {	// integer type data
@@ -448,11 +462,15 @@ std::string ctx::script_generator::generate_fact(std::string item_name, ctx::jso
 		script += ")";
 	}
 
-	for (int i = 0; event_template.get_array_elem(NULL, "attributes", i, &key); i++) {
-		script += "(" + key + " ";
-		if (data.get(NULL, key.c_str(), &val_str)) {	// string type data
+	for (std::list<std::string>::iterator it = attr_keys.begin(); it != attr_keys.end(); ++it) {
+		std::string attr_key = (*it);
+		std::string val_str;
+		int value;
+
+		script += "(" + attr_key + " ";
+		if (data.get(NULL, attr_key.c_str(), &val_str)) {	// string type data
 			script += "\"" + val_str + "\"";
-		} else if (data.get(NULL, key.c_str(), &value)) {	// integer type data
+		} else if (data.get(NULL, attr_key.c_str(), &value)) {	// integer type data
 			script += int_to_string(value);
 		} else {
 			script += "nil";
@@ -464,20 +482,25 @@ std::string ctx::script_generator::generate_fact(std::string item_name, ctx::jso
 	return script;
 }
 
-std::string ctx::script_generator::generate_modifyinstance(std::string instance_name, ctx::json condition_template, ctx::json data)
+std::string ctx::script_generator::generate_modifyinstance(std::string instance_name, ctx::json& cond_tmpl, ctx::json& data)
 {
-	std::string script = "(modify-instance [";
-	script += instance_name;
-	script += "] ";
+	std::string script = "(modify-instance [" + instance_name + "] ";
+	ctx::json attrs;
+	std::list<std::string> attr_keys;
 
-	std::string key;
-	std::string val_str;
-	int value;
-	for (int i = 0; condition_template.get_array_elem(NULL, "attributes", i, &key); i++) {
-		script += "(" + key + " ";
-		if (data.get(NULL, key.c_str(), &val_str)) {	// string type data
+	cond_tmpl.get(NULL, "attributes", &attrs);
+	attrs.get_keys(&attr_keys);
+
+	// attributes
+	for (std::list<std::string>::iterator it = attr_keys.begin(); it != attr_keys.end(); ++it) {
+		std::string attr_key = (*it);
+		std::string val_str;
+		int value;
+
+		script += "(" + attr_key + " ";
+		if (data.get(NULL, attr_key.c_str(), &val_str)) {	// string type data
 			script += "\"" + val_str + "\"";
-		} else 	if (data.get(NULL, key.c_str(), &value)) {	// integer type data
+		} else 	if (data.get(NULL, attr_key.c_str(), &value)) {	// integer type data
 			script += int_to_string(value);
 		} else {
 			script += "nil";

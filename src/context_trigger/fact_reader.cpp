@@ -128,6 +128,11 @@ bool ctx::fact_reader::is_allowed(const char *client, const char *subject)
 	return _context_mgr->is_allowed(client, subject);
 }
 
+bool ctx::fact_reader::get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options)
+{
+	return _context_mgr->pop_trigger_item(subject, operation, attributes, options);
+}
+
 int ctx::fact_reader::subscribe(const char* subject, json* option, bool wait_response)
 {
 	IF_FAIL_RETURN(subject, ERR_INVALID_PARAMETER);

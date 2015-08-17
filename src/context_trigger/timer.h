@@ -56,6 +56,7 @@ namespace ctx {
 	public:
 		trigger_timer(ctx::context_trigger *tr);
 		~trigger_timer();
+		static void submit_trigger_item();
 
 		bool add(int minute, int day_of_week);
 		bool remove(int minute, int day_of_week);

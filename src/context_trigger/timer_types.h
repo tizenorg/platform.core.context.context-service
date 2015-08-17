@@ -17,8 +17,8 @@
 #ifndef __CONTEXT_TIMER_TYPES_H__
 #define __CONTEXT_TIMER_TYPES_H__
 
-#define TIMER_EVENT_SUBJECT "timer/event"
-#define TIMER_CONDITION_SUBJECT "timer/state"
+#define TIMER_EVENT_SUBJECT "time/alarm"
+#define TIMER_CONDITION_SUBJECT "time/now"
 
 #define TIMER_RESPONSE_KEY_TIME_OF_DAY "TimeOfDay"
 #define TIMER_RESPONSE_KEY_DAY_OF_WEEK "DayOfWeek"

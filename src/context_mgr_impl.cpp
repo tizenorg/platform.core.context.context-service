@@ -16,6 +16,7 @@
 
 #include <glib.h>
 #include <string>
+#include <list>
 
 #include <types_internal.h>
 #include <json.h>
@@ -28,6 +29,17 @@
 #include <internal/device_context_provider.h>
 #include <internal/statistics_context_provider.h>
 #include <internal/place_context_provider.h>
+
+struct trigger_item_format_s {
+	std::string subject;
+	int operation;
+	ctx::json attributes;
+	ctx::json options;
+	trigger_item_format_s(std::string subj, int ops, ctx::json attr, ctx::json opt)
+		: subject(subj), operation(ops), attributes(attr), options(opt) {}
+};
+
+static std::list<trigger_item_format_s> __trigger_item_list;
 
 ctx::context_manager_impl::context_manager_impl()
 {
@@ -81,6 +93,28 @@ bool ctx::context_manager_impl::register_provider(const char *subject, ctx::cont
 
 	_SI("Subj: %s, Priv: %s", subject, provider_info.privilege);
 	provider_map[subject] = provider_info;
+
+	return true;
+}
+
+bool ctx::context_manager_impl::register_trigger_item(const char *subject, int operation, ctx::json attributes, ctx::json options)
+{
+	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
+	__trigger_item_list.push_back(trigger_item_format_s(subject, operation, attributes, options));
+	return true;
+}
+
+bool ctx::context_manager_impl::pop_trigger_item(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options)
+{
+	IF_FAIL_RETURN(!__trigger_item_list.empty(), false);
+
+	trigger_item_format_s format = __trigger_item_list.front();
+	__trigger_item_list.pop_front();
+
+	subject = format.subject;
+	operation = format.operation;
+	attributes = format.attributes;
+	options = format.options;
 
 	return true;
 }

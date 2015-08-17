@@ -171,13 +171,15 @@ void ctx::context_trigger::add_rule(ctx::request_info* request)
 {
 	ctx::json rule_id;
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
+	const char* client = request->get_client();
+	if (client == NULL) {
 		request->reply(ERR_OPERATION_FAILED);
 		return;
 	}
 
-	int error = rule_mgr->add_rule(app_id, request->get_description(), &rule_id);
+	const char* app_id = request->get_app_id();
+
+	int error = rule_mgr->add_rule(client, app_id, request->get_description(), &rule_id);
 	_I("'%s' adds a rule (Error: %#x)", request->get_client(), error);
 
 	request->reply(error, rule_id);

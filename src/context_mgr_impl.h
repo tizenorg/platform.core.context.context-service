@@ -20,6 +20,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <context_mgr.h>
 #include <context_mgr_iface.h>
 #include "request.h"
 
@@ -40,9 +41,11 @@ namespace ctx {
 		void assign_request(ctx::request_info *request);
 		bool is_supported(const char *subject);
 		bool is_allowed(const char *client, const char *subject);
+		bool pop_trigger_item(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
 
 		/* From the interface class */
 		bool register_provider(const char *subject, context_provider_info &provider_info);
+		bool register_trigger_item(const char *subject, int operation, ctx::json attributes, ctx::json options);
 		bool publish(const char *subject, ctx::json &option, int error, ctx::json &data_updated);
 		bool reply_to_read(const char *subject, ctx::json &option, int error, ctx::json &data_read);
 

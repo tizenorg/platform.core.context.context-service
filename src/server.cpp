@@ -180,6 +180,7 @@ int main(int argc, char* argv[])
 	sigaction(SIGHUP, &signal_action, NULL);
 	sigaction(SIGTERM, &signal_action, NULL);
 	sigaction(SIGQUIT, &signal_action, NULL);
+	sigaction(SIGABRT, &signal_action, NULL);
 
 #if !defined(GLIB_VERSION_2_36)
 	g_type_init();

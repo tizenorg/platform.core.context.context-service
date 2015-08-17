@@ -33,6 +33,7 @@ namespace ctx {
 
 		bool is_supported(const char *subject);
 		bool is_allowed(const char *client, const char *subject);
+		bool get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
 
 		int subscribe(const char *subject, json *option, bool wait_response = false);
 		void unsubscribe(const char *subject, json *option);
