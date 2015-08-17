@@ -13,6 +13,7 @@ Source2:	org.tizen.context.conf
 
 BuildRequires: cmake
 BuildRequires: sed
+BuildRequires: pkgconfig(libtzplatform-config)
 BuildRequires: pkgconfig(vconf)
 BuildRequires: pkgconfig(libxml-2.0)
 BuildRequires: pkgconfig(sqlite3)
@@ -39,7 +40,6 @@ BuildRequires: pkgconfig(place-context-provider)
 Requires(preun): /usr/bin/systemctl
 Requires(post): sys-assert
 Requires(post): /usr/bin/systemctl
-Requires(post): /usr/bin/sqlite3
 Requires(postun): /usr/bin/systemctl
 
 %description
@@ -72,48 +72,38 @@ make %{?jobs:-j%jobs}
 rm -rf %{buildroot}
 %make_install
 
-mkdir -p %{buildroot}%{_unitdir}
+mkdir -p %{buildroot}%{_unitdir_user}
 mkdir -p %{buildroot}%{_datadir}/license
 mkdir -p %{buildroot}%{_datadir}/packages
-mkdir -p %{buildroot}/opt/dbspace
 mkdir -p %{buildroot}/opt/data/context-service
-sqlite3 %{buildroot}/opt/dbspace/.context-service.db "PRAGMA journal_mode = PERSIST;"
-sqlite3 %{buildroot}/opt/dbspace/.context-service.db "CREATE TABLE VERSION (VERSION TEXT);"
-sqlite3 %{buildroot}/opt/dbspace/.context-service.db "INSERT INTO VERSION VALUES ('%{version}');"
-install -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}
+install -m 0644 %{SOURCE1} %{buildroot}%{_unitdir_user}
 cp LICENSE %{buildroot}%{_datadir}/license/%{name}
 #sed -i "s/^\tversion=\".*\"/\tversion=\"%{version}\"/g" packaging/context-service.xml
 #cp packaging/context-service.xml %{buildroot}%{_datadir}/packages/
-cp data/trigger-template.json %{buildroot}/opt/data/context-service/
-sh data/template-json-to-sql.sh data/trigger-template.json > %{buildroot}/opt/data/context-service/trigger-template.sql
 
-mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/system.d
-install -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/dbus-1/system.d/
+mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/session.d
+install -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/dbus-1/session.d/
 
 %post
-sqlite3 -echo /opt/dbspace/.context-service.db < /opt/data/context-service/trigger-template.sql
-mkdir -p %{_unitdir}/graphical.target.wants
-ln -s ../context-service.service %{_unitdir}/graphical.target.wants/
+mkdir -p %{_unitdir_user}/default.target.wants
+ln -s ../context-service.service %{_unitdir_user}/default.target.wants/
 /sbin/ldconfig
-systemctl daemon-reload
+#systemctl daemon-reload
 
 %preun
-if [ $1 == 0 ]; then
-    systemctl stop context-service
-fi
+#if [ $1 == 0 ]; then
+#    systemctl stop context-service
+#fi
 
 %postun
-rm -f %{_unitdir}/graphical.target.wants/context-service.service
-systemctl daemon-reload
+rm -f %{_unitdir_user}/default.target.wants/context-service.service
+#systemctl daemon-reload
 /sbin/ldconfig
 
 %files
 %manifest packaging/%{name}.manifest
-%config %{_sysconfdir}/dbus-1/system.d/*
+%config %{_sysconfdir}/dbus-1/session.d/*
 %{_bindir}/*
-%{_unitdir}/context-service.service
+%{_unitdir_user}/context-service.service
 %{_datadir}/license/%{name}
 #%{_datadir}/packages/*.xml
-%defattr(0600,system,system,-)
-/opt/data/context-service/*
-%config(noreplace) /opt/dbspace/.context-service.db*
