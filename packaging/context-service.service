@@ -3,8 +3,6 @@ Description=Contextual Service Framework Daemon
 
 [Service]
 Type=dbus
-User=system
-Group=system
 BusName=org.tizen.context
 ExecStart=/usr/bin/contextd
 Restart=always
