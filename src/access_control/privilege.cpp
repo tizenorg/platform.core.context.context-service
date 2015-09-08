@@ -28,7 +28,7 @@ bool ctx::privilege_manager::is_allowed(const char *client, const char *privileg
 	priv += privilege;
 
 	int ret = smack_have_access(client, priv.c_str(), "rw");
-	_D("Client: %s, Priv: %s, Enabled: %d", client, privilege, ret);
+	_SD("Client: %s, Priv: %s, Enabled: %d", client, privilege, ret);
 
 	return (ret == 1);
 #endif

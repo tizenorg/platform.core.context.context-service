@@ -176,9 +176,6 @@ bool ctx::db_manager_impl::insert(unsigned int query_id, const char* table_name,
 	cols.erase(cols.size() - 1);
 	vals.erase(vals.size() - 1);
 
-	_D("Columns: %s", cols.c_str());
-	_D("Values : %s", vals.c_str());
-
 	query_info_s *info = new(std::nothrow) query_info_s;
 	IF_FAIL_RETURN_TAG(info, false, _E, "Memory allocation failed");
 
@@ -248,8 +245,6 @@ int ctx::db_manager_impl::execution_result_cb(void *user_data, int dim, char **v
 	bool column_null = false;
 
 	for (int i=0; i<dim; ++i) {
-		_D("[%d] '%s': '%s'", i, column[i], value[i]);
-
 		if (value[i]) {
 			row.set(NULL, column[i], value[i]);
 		} else {
