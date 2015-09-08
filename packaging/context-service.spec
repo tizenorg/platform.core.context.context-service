@@ -1,6 +1,6 @@
 Name:       context-service
 Summary:    Context-Service
-Version:    0.6.0
+Version:    0.6.2
 Release:    1
 Group:      System/Service
 License:    Apache-2.0
