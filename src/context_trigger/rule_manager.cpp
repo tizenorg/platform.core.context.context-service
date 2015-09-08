@@ -1177,7 +1177,8 @@ static void trigger_action_notification(ctx::json& action, std::string app_id)
 
 static void trigger_action_dbus_call(ctx::json& action)
 {
-	std::string bus_name, object, iface, method, user_data;
+	std::string bus_name, object, iface, method;
+	GVariant *param = NULL;
 
 	action.get(NULL, CT_RULE_ACTION_DBUS_NAME, &bus_name);
 	IF_FAIL_VOID_TAG(!bus_name.empty(), _E, "No target bus name");
@@ -1191,12 +1192,9 @@ static void trigger_action_dbus_call(ctx::json& action)
 	action.get(NULL, CT_RULE_ACTION_DBUS_METHOD, &method);
 	IF_FAIL_VOID_TAG(!method.empty(), _E, "No method name");
 
-	if (!action.get(NULL, CT_RULE_ACTION_DBUS_USER_DATA, &user_data)) {
-		_E("No user data");
-		return;
-	}
+	action.get(NULL, CT_RULE_ACTION_DBUS_PARAMETER, &param);
 
-	ctx::dbus_server::call(bus_name.c_str(), object.c_str(), iface.c_str(), method.c_str(), user_data.c_str());
+	ctx::dbus_server::call(bus_name.c_str(), object.c_str(), iface.c_str(), method.c_str(), param);
 }
 
 void ctx::rule_manager::on_rule_triggered(int rule_id)
