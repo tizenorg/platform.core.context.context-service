@@ -20,6 +20,7 @@ SET(DEPS
 	appsvc
 	alarm-service
 	notification
+	capi-system-system-settings
 	cynara-creds-gdbus
 	clips
 	context-common

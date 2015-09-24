@@ -1,6 +1,6 @@
 Name:       context-service
 Summary:    Context-Service
-Version:    0.6.2
+Version:    0.6.3
 Release:    1
 Group:      System/Service
 License:    Apache-2.0
@@ -22,6 +22,7 @@ BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(appsvc)
 BuildRequires: pkgconfig(alarm-service)
 BuildRequires: pkgconfig(notification)
+BuildRequires: pkgconfig(capi-system-system-settings)
 
 %if "%{MAINLOOP}" == "ecore"
 BuildRequires: pkgconfig(ecore)

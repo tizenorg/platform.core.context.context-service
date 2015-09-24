@@ -24,8 +24,11 @@
 #include <app_control.h>
 #include <appsvc.h>
 #include <app_control_internal.h>
+#include <device/display.h>
 #include <notification.h>
 #include <notification_internal.h>
+#include <runtime_info.h>
+#include <system_settings.h>
 #include <context_trigger_types_internal.h>
 #include <context_trigger.h>
 #include <db_mgr.h>
@@ -1098,6 +1101,11 @@ static void trigger_action_app_control(ctx::json& action)
 	bundle_free(appctl_bundle);
 	free(str);
 	app_control_destroy(app);
+
+	error = device_display_change_state(DISPLAY_STATE_NORMAL);
+	if (error != DEVICE_ERROR_NONE) {
+		_E("Change display state failed(%d)", error);
+	}
 }
 
 static void trigger_action_notification(ctx::json& action, std::string app_id)
@@ -1160,6 +1168,32 @@ static void trigger_action_notification(ctx::json& action, std::string app_id)
 		}
 	}
 
+	bool silent = true;
+	error = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, &silent);
+	if (error != SYSTEM_SETTINGS_ERROR_NONE) {
+		_E("Get system setting(silent mode) failed(%d)", error);
+	}
+
+	bool vibration = true;
+	error = runtime_info_get_value_bool(RUNTIME_INFO_KEY_VIBRATION_ENABLED, &vibration);
+	if (error != RUNTIME_INFO_ERROR_NONE) {
+		_E("Get runtime info(vibration) failed(%d)", error);
+	}
+
+	if (!silent) {
+	    error = notification_set_sound(notification, NOTIFICATION_SOUND_TYPE_DEFAULT, NULL);
+		if (error != NOTIFICATION_ERROR_NONE) {
+			_E("Set notification sound failed(%d)", error);
+		}
+
+		if (vibration) {
+			error = notification_set_vibration(notification, NOTIFICATION_VIBRATION_TYPE_DEFAULT, NULL);
+			if (error != NOTIFICATION_ERROR_NONE) {
+				_E("Set notification vibration failed(%d)", error);
+			}
+		}
+	}
+
 	error = notification_post(notification);
 	if (error != NOTIFICATION_ERROR_NONE) {
 		_E("Post notification failed(%d)", error);
@@ -1172,6 +1206,11 @@ static void trigger_action_notification(ctx::json& action, std::string app_id)
 	notification_free(notification);
 	if (app) {
 		app_control_destroy(app);
+	}
+
+	error = device_display_change_state(DISPLAY_STATE_NORMAL);
+	if (error != DEVICE_ERROR_NONE) {
+		_E("Change display state failed(%d)", error);
 	}
 }
 
