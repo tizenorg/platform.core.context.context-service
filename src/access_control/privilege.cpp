@@ -15,23 +15,54 @@
  */
 
 #include <string>
+#include <cynara-client.h>
 #include <types_internal.h>
 #include "peer_creds.h"
 #include "privilege.h"
 
+class permission_checker {
+private:
+	cynara *__cynara;
+
+	permission_checker()
+	{
+		if (cynara_initialize(&__cynara, NULL) != CYNARA_API_SUCCESS) {
+			_E("Cynara initialization failed");
+			__cynara = NULL;
+			return;
+		}
+		_I("Cynara initialized");
+	}
+
+	~permission_checker()
+	{
+		if (__cynara)
+			cynara_finish(__cynara);
+
+		_I("Cynara deinitialized");
+	}
+
+public:
+	static permission_checker& get_instance()
+	{
+		static permission_checker instance;
+		return instance;
+	}
+
+	bool has_permission(const ctx::credentials *creds, const char *privilege)
+	{
+		IF_FAIL_RETURN_TAG(__cynara, false, _E, "Cynara not initialized");
+		int ret = cynara_check(__cynara, creds->client, creds->session, creds->user, privilege);
+		return (ret == CYNARA_API_ACCESS_ALLOWED);
+	}
+};
+
 bool ctx::privilege_manager::is_allowed(const ctx::credentials *creds, const char *privilege)
 {
-	/* TODO: need to be implemented using Cynara */
-#if 0
-	IF_FAIL_RETURN(privilege, true);
+	IF_FAIL_RETURN(creds && privilege, true);
 
-	std::string priv = "privilege::tizen::";
+	std::string priv = "http://tizen.org/privilege/";
 	priv += privilege;
 
-	int ret = smack_have_access(client, priv.c_str(), "rw");
-	_SD("Client: %s, Priv: %s, Enabled: %d", client, privilege, ret);
-
-	return (ret == 1);
-#endif
-	return true;
+	return permission_checker::get_instance().has_permission(creds, priv.c_str());
 }

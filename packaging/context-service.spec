@@ -29,6 +29,8 @@ BuildRequires: pkgconfig(ecore)
 %endif
 
 BuildRequires: pkgconfig(cynara-creds-gdbus)
+BuildRequires: pkgconfig(cynara-client)
+BuildRequires: pkgconfig(cynara-session)
 
 BuildRequires: pkgconfig(clips)
 BuildRequires: pkgconfig(context-common)

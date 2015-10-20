@@ -26,8 +26,10 @@ namespace ctx {
 	class credentials {
 	public:
 		char *app_id;
-		char *client;	/* smack label */
-		credentials(char *_app_id, char *_client);
+		char *client;	/* default: smack label */
+		char *session;
+		char *user;		/* default: UID */
+		credentials(char *_app_id, char *_client, char *_session, char *_user);
 		~credentials();
 	};
 

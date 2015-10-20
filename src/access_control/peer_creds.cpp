@@ -15,13 +15,16 @@
  */
 
 #include <cynara-creds-gdbus.h>
+#include <cynara-session.h>
 #include <app_manager.h>
 #include <types_internal.h>
 #include "peer_creds.h"
 
-ctx::credentials::credentials(char *_app_id, char *_client) :
+ctx::credentials::credentials(char *_app_id, char *_client, char *_session, char *_user) :
 	app_id(_app_id),
-	client(_client)
+	client(_client),
+	session(_session),
+	user(_user)
 {
 }
 
@@ -29,6 +32,8 @@ ctx::credentials::~credentials()
 {
 	g_free(app_id);
 	g_free(client);
+	g_free(session);
+	g_free(user);
 }
 
 bool ctx::peer_creds::get(GDBusConnection *connection, const char *unique_name, ctx::credentials **creds)
@@ -36,20 +41,26 @@ bool ctx::peer_creds::get(GDBusConnection *connection, const char *unique_name, 
 	pid_t pid = 0;
 	char *app_id = NULL;
 	gchar *client = NULL;
+	char *session = NULL;
+	gchar *user = NULL;
 	int err;
 
 	err = cynara_creds_gdbus_get_pid(connection, unique_name, &pid);
 	IF_FAIL_RETURN_TAG(err == CYNARA_API_SUCCESS, false, _E, "Peer credentialing failed");
 
-	err = cynara_creds_gdbus_get_client(connection, unique_name, CLIENT_METHOD_DEFAULT, &client);
-	IF_FAIL_CATCH_TAG(err == CYNARA_API_SUCCESS, _E, "Peer credentialing failed");
-
-	/* TODO: session & user */
-
 	app_manager_get_app_id(pid, &app_id);
 	_D("AppId: %s", app_id);
 
-	*creds = new(std::nothrow) credentials(app_id, client);
+	err = cynara_creds_gdbus_get_client(connection, unique_name, CLIENT_METHOD_DEFAULT, &client);
+	IF_FAIL_CATCH_TAG(err == CYNARA_API_SUCCESS, _E, "Peer credentialing failed");
+
+	session = cynara_session_from_pid(pid);
+	IF_FAIL_CATCH_TAG(session, _E, "Peer credentialing failed");
+
+	err = cynara_creds_gdbus_get_user(connection, unique_name, USER_METHOD_DEFAULT, &user);
+	IF_FAIL_CATCH_TAG(err == CYNARA_API_SUCCESS, _E, "Peer credentialing failed");
+
+	*creds = new(std::nothrow) credentials(app_id, client, session, user);
 	IF_FAIL_CATCH_TAG(*creds, _E, "Memory allocation failed");
 
 	return true;
@@ -57,5 +68,7 @@ bool ctx::peer_creds::get(GDBusConnection *connection, const char *unique_name, 
 CATCH:
 	g_free(app_id);
 	g_free(client);
+	g_free(session);
+	g_free(user);
 	return false;
 }

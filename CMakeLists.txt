@@ -22,6 +22,8 @@ SET(DEPS
 	notification
 	capi-system-system-settings
 	cynara-creds-gdbus
+	cynara-client
+	cynara-session
 	clips
 	context-common
 	device-context-provider
