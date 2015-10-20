@@ -15,20 +15,47 @@
  */
 
 #include <cynara-creds-gdbus.h>
+#include <app_manager.h>
 #include <types_internal.h>
 #include "peer_creds.h"
 
-bool ctx::peer_creds::get(GDBusConnection *connection, const char *unique_name, std::string &smack_label, pid_t &pid)
+ctx::credentials::credentials(char *_app_id, char *_client) :
+	app_id(_app_id),
+	client(_client)
 {
-	gchar *client = NULL;
-	int err = cynara_creds_gdbus_get_client(connection, unique_name, CLIENT_METHOD_SMACK, &client);
-	IF_FAIL_RETURN_TAG(err == CYNARA_API_SUCCESS, false, _E, "cynara_creds_gdbus_get_client() failed");
+}
 
-	smack_label = client;
+ctx::credentials::~credentials()
+{
+	g_free(app_id);
 	g_free(client);
+}
+
+bool ctx::peer_creds::get(GDBusConnection *connection, const char *unique_name, ctx::credentials **creds)
+{
+	pid_t pid = 0;
+	char *app_id = NULL;
+	gchar *client = NULL;
+	int err;
 
 	err = cynara_creds_gdbus_get_pid(connection, unique_name, &pid);
-	IF_FAIL_RETURN_TAG(err == CYNARA_API_SUCCESS, false, _E, "cynara_creds_gdbus_get_pid() failed");
+	IF_FAIL_RETURN_TAG(err == CYNARA_API_SUCCESS, false, _E, "Peer credentialing failed");
+
+	err = cynara_creds_gdbus_get_client(connection, unique_name, CLIENT_METHOD_DEFAULT, &client);
+	IF_FAIL_CATCH_TAG(err == CYNARA_API_SUCCESS, _E, "Peer credentialing failed");
+
+	/* TODO: session & user */
+
+	app_manager_get_app_id(pid, &app_id);
+	_D("AppId: %s", app_id);
+
+	*creds = new(std::nothrow) credentials(app_id, client);
+	IF_FAIL_CATCH_TAG(*creds, _E, "Memory allocation failed");
 
 	return true;
+
+CATCH:
+	g_free(app_id);
+	g_free(client);
+	return false;
 }

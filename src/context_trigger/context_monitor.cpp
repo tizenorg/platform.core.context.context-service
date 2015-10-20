@@ -110,7 +110,9 @@ bool ctx::context_monitor::is_supported(std::string subject)
 bool ctx::context_monitor::is_allowed(const char *client, const char *subject)
 {
 	if (STR_EQ(subject, TIMER_EVENT_SUBJECT))
-		return privilege_manager::is_allowed(client, PRIV_ALARM_SET);
+		return true;
+	//TODO: re-implement above in the proper 3.0 style
+	//	return privilege_manager::is_allowed(client, PRIV_ALARM_SET);
 
 	if (STR_EQ(subject, TIMER_CONDITION_SUBJECT))
 		return true;

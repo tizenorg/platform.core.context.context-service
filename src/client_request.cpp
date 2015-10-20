@@ -20,14 +20,14 @@
 #include <types_internal.h>
 #include <dbus_server.h>
 #include "dbus_server_impl.h"
+#include "access_control/peer_creds.h"
 #include "client_request.h"
 
-ctx::client_request::client_request(int type,
-		const char *client, int req_id, const char *subj, const char *desc,
-		const char *sender, char *app_id, GDBusMethodInvocation *inv)
-	: request_info(type, client, req_id, subj, desc)
-	, __app_id(app_id)
-	, __sender(sender)
+ctx::client_request::client_request(int type, int req_id, const char *subj, const char *desc,
+		ctx::credentials *creds, const char *sender, GDBusMethodInvocation *inv)
+	: request_info(type, req_id, subj, desc)
+	, __credentials(creds)
+	, __dbus_sender(sender)
 	, __invocation(inv)
 {
 }
@@ -37,12 +37,28 @@ ctx::client_request::~client_request()
 	if (__invocation)
 		g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 
-	g_free(__app_id);
+	delete __credentials;
+}
+
+const ctx::credentials* ctx::client_request::get_credentials()
+{
+	return __credentials;
 }
 
 const char* ctx::client_request::get_app_id()
 {
-	return __app_id;
+	if (__credentials)
+		return __credentials->app_id;
+
+	return NULL;
+}
+
+const char* ctx::client_request::get_client()
+{
+	if (__credentials)
+		return __credentials->client;
+
+	return NULL;
 }
 
 bool ctx::client_request::reply(int error)
@@ -111,7 +127,7 @@ bool ctx::client_request::publish(int error, ctx::json& data)
 	char *data_str = data.dup_cstr();
 	IF_FAIL_RETURN_TAG(data_str, false, _E, "Memory allocation failed");
 
-	dbus_server::publish(__sender.c_str(), _req_id, _subject.c_str(), error, data_str);
+	dbus_server::publish(__dbus_sender.c_str(), _req_id, _subject.c_str(), error, data_str);
 	g_free(data_str);
 
 	return true;

@@ -18,10 +18,9 @@
 #include <types_internal.h>
 #include "request.h"
 
-ctx::request_info::request_info(int type, const char* client, int req_id, const char* subj, const char* desc)
+ctx::request_info::request_info(int type, int req_id, const char* subj, const char* desc)
 	: _type(type)
 	, _req_id(req_id)
-	, _client(client)
 	, _subject(subj)
 	, _description(desc)
 {
@@ -41,9 +40,19 @@ int ctx::request_info::get_id()
 	return _req_id;
 }
 
+const ctx::credentials* ctx::request_info::get_credentials()
+{
+	return NULL;
+}
+
+const char* ctx::request_info::get_app_id()
+{
+	return NULL;
+}
+
 const char* ctx::request_info::get_client()
 {
-	return _client.c_str();
+	return NULL;
 }
 
 const char* ctx::request_info::get_subject()
@@ -54,9 +63,4 @@ const char* ctx::request_info::get_subject()
 ctx::json& ctx::request_info::get_description()
 {
 	return _description;
-}
-
-const char* ctx::request_info::get_app_id()
-{
-	return NULL;
 }

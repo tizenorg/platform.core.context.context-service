@@ -24,20 +24,21 @@ namespace ctx {
 
 	class client_request : public request_info {
 	public:
-		client_request(int type,
-				const char *client, int req_id, const char *subj, const char *desc,
-				const char *sender, char *app_id, GDBusMethodInvocation *inv);
+		client_request(int type, int req_id, const char *subj, const char *desc,
+				credentials *creds, const char *sender, GDBusMethodInvocation *inv);
 		~client_request();
 
-		const char *get_app_id();
+		const credentials* get_credentials();
+		const char* get_app_id();
+		const char* get_client();
 		bool reply(int error);
 		bool reply(int error, ctx::json &request_result);
 		bool reply(int error, ctx::json &request_result, ctx::json &data_read);
 		bool publish(int error, ctx::json &data);
 
 	private:
-		char *__app_id;
-		std::string __sender;
+		credentials *__credentials;
+		std::string __dbus_sender;
 		GDBusMethodInvocation *__invocation;
 	};
 

@@ -23,18 +23,19 @@
 namespace ctx {
 
 	class fact_request : public request_info {
-		public:
-			fact_request(int type, const char* client, int req_id, const char* subj, const char* desc, fact_reader* reader);
-			~fact_request();
+	public:
+		fact_request(int type, int req_id, const char* subj, const char* desc, fact_reader* reader);
+		~fact_request();
 
-			bool reply(int error);
-			bool reply(int error, ctx::json& request_result);
-			bool reply(int error, ctx::json& request_result, ctx::json& data_read);
-			bool publish(int error, ctx::json& data);
+		const char* get_client();
+		bool reply(int error);
+		bool reply(int error, ctx::json& request_result);
+		bool reply(int error, ctx::json& request_result, ctx::json& data_read);
+		bool publish(int error, ctx::json& data);
 
-		private:
-			fact_reader *_reader;
-			bool replied;
+	private:
+		fact_reader *_reader;
+		bool replied;
 	};
 
 }	/* namespace ctx */

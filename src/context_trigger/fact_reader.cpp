@@ -19,7 +19,6 @@
 #include "fact_request.h"
 #include "fact_reader.h"
 
-#define CLIENT_NAME			TRIGGER_CLIENT_NAME
 #define COND_END_TIME(T)	(g_get_monotonic_time() + (T) * G_TIME_SPAN_SECOND)
 #define SUBSCRIBE_TIMEOUT	3
 #define READ_TIMEOUT		10
@@ -125,7 +124,9 @@ bool ctx::fact_reader::is_supported(const char* subject)
 
 bool ctx::fact_reader::is_allowed(const char *client, const char *subject)
 {
-	return _context_mgr->is_allowed(client, subject);
+	//TODO: re-implement this in the proper 3.0 style
+	//return _context_mgr->is_allowed(client, subject);
+	return true;
 }
 
 bool ctx::fact_reader::get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options)
@@ -147,7 +148,7 @@ int ctx::fact_reader::subscribe(const char* subject, json* option, bool wait_res
 
 	rid = generate_req_id();
 
-	fact_request *req = new(std::nothrow) fact_request(REQ_SUBSCRIBE, CLIENT_NAME,
+	fact_request *req = new(std::nothrow) fact_request(REQ_SUBSCRIBE,
 			rid, subject, option ? option->str().c_str() : NULL, wait_response ? this : NULL);
 	IF_FAIL_RETURN_TAG(req, -1, _E, "Memory allocation failed");
 
@@ -188,7 +189,7 @@ void ctx::fact_reader::unsubscribe(const char* subject, json* option)
 
 void ctx::fact_reader::unsubscribe(const char *subject, int subscription_id)
 {
-	fact_request *req = new(std::nothrow) fact_request(REQ_UNSUBSCRIBE, CLIENT_NAME, subscription_id, subject, NULL, NULL);
+	fact_request *req = new(std::nothrow) fact_request(REQ_UNSUBSCRIBE, subscription_id, subject, NULL, NULL);
 	IF_FAIL_VOID_TAG(req, _E, "Memory allocation failed");
 
 	g_idle_add(send_request, req);
@@ -203,7 +204,7 @@ bool ctx::fact_reader::read(const char* subject, json* option, context_fact& fac
 
 	int rid = generate_req_id();
 
-	fact_request *req = new(std::nothrow) fact_request(REQ_READ_SYNC, CLIENT_NAME,
+	fact_request *req = new(std::nothrow) fact_request(REQ_READ_SYNC,
 			rid, subject, option ? option->str().c_str() : NULL, this);
 	IF_FAIL_RETURN_TAG(req, false, _E, "Memory allocation failed");
 

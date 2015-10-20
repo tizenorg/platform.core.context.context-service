@@ -17,8 +17,8 @@
 #include <types_internal.h>
 #include "fact_request.h"
 
-ctx::fact_request::fact_request(int type, const char* client, int req_id, const char* subj, const char* desc, fact_reader* reader)
-	: request_info(type, client, req_id, subj, desc)
+ctx::fact_request::fact_request(int type, int req_id, const char* subj, const char* desc, fact_reader* reader)
+	: request_info(type, req_id, subj, desc)
 	, _reader(reader)
 	, replied(false)
 {
@@ -27,6 +27,11 @@ ctx::fact_request::fact_request(int type, const char* client, int req_id, const 
 ctx::fact_request::~fact_request()
 {
 	reply(ERR_OPERATION_FAILED);
+}
+
+const char* ctx::fact_request::get_client()
+{
+	return "TRIGGER";
 }
 
 bool ctx::fact_request::reply(int error)

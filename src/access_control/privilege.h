@@ -22,8 +22,14 @@
 #define PRIV_ALARM_SET "alarm.set"
 
 namespace ctx {
+
+	/* Forward declaration */
+	class credentials;
+
 	namespace privilege_manager {
-		bool is_allowed(const char *client, const char *privilege);
+
+		bool is_allowed(const credentials *creds, const char *privilege);
+
 	}	/* namespace ctx::privilege_manager */
 }	/* namespace ctx */
 

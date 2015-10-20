@@ -160,11 +160,12 @@ void ctx::context_manager_impl::is_supported(request_info *request)
 	delete request;
 }
 
-bool ctx::context_manager_impl::is_allowed(const char *client, const char *subject)
+bool ctx::context_manager_impl::is_allowed(const ctx::credentials *creds, const char *subject)
 {
+	IF_FAIL_RETURN(creds, true);	/* In case internal requests */
 	provider_map_t::iterator it = provider_map.find(subject);
 	IF_FAIL_RETURN(it != provider_map.end(), false);
-	IF_FAIL_RETURN(ctx::privilege_manager::is_allowed(client, it->second.privilege), false);
+	IF_FAIL_RETURN(ctx::privilege_manager::is_allowed(creds, it->second.privilege), false);
 	return true;
 }
 
@@ -210,8 +211,7 @@ ctx::context_provider_iface *ctx::context_manager_impl::get_provider(ctx::reques
 		return NULL;
 	}
 
-	if (!STR_EQ(TRIGGER_CLIENT_NAME, request->get_client()) &&
-			!ctx::privilege_manager::is_allowed(request->get_client(), it->second.privilege)) {
+	if (!ctx::privilege_manager::is_allowed(request->get_credentials(), it->second.privilege)) {
 		_W("Permission denied");
 		request->reply(ERR_PERMISSION_DENIED);
 		delete request;

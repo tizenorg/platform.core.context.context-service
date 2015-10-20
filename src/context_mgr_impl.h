@@ -24,9 +24,10 @@
 #include <context_mgr_iface.h>
 #include "request.h"
 
-#define TRIGGER_CLIENT_NAME "TRIGGER"
-
 namespace ctx {
+
+	/* Forward declaration */
+	class credentials;
 
 	class context_manager_impl : public context_manager_iface {
 	public:
@@ -40,7 +41,7 @@ namespace ctx {
 
 		void assign_request(ctx::request_info *request);
 		bool is_supported(const char *subject);
-		bool is_allowed(const char *client, const char *subject);
+		bool is_allowed(const credentials *creds, const char *subject);
 		bool pop_trigger_item(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
 
 		/* From the interface class */

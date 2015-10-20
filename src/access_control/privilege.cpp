@@ -16,9 +16,10 @@
 
 #include <string>
 #include <types_internal.h>
+#include "peer_creds.h"
 #include "privilege.h"
 
-bool ctx::privilege_manager::is_allowed(const char *client, const char *privilege)
+bool ctx::privilege_manager::is_allowed(const ctx::credentials *creds, const char *privilege)
 {
 	/* TODO: need to be implemented using Cynara */
 #if 0

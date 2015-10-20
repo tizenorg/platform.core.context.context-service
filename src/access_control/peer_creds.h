@@ -22,8 +22,17 @@
 #include <string>
 
 namespace ctx {
+
+	class credentials {
+	public:
+		char *app_id;
+		char *client;	/* smack label */
+		credentials(char *_app_id, char *_client);
+		~credentials();
+	};
+
 	namespace peer_creds {
-		bool get(GDBusConnection *connection, const char *unique_name, std::string &smack_label, pid_t &pid);
+		bool get(GDBusConnection *connection, const char *unique_name, credentials **creds);
 	}
 }	/* namespace ctx */
 

@@ -22,18 +22,23 @@
 
 namespace ctx {
 
+	/* Forward declaration */
+	class credentials;
+
 	class request_info {
 	public:
-		request_info(int type, const char *client, int req_id, const char *subj, const char *desc);
+		request_info(int type, int req_id, const char *subj, const char *desc);
 		virtual ~request_info();
 
 		int get_type();
 		int get_id();
-		const char *get_client();
-		const char *get_subject();
+		const char* get_subject();
 		ctx::json& get_description();
 
-		virtual const char *get_app_id();
+		virtual const credentials* get_credentials();
+		virtual const char* get_app_id();
+		/* TODO: remove this get_client() */
+		virtual const char* get_client();
 		virtual bool reply(int error) = 0;
 		virtual bool reply(int error, ctx::json &request_result) = 0;
 		virtual bool reply(int error, ctx::json &request_result, ctx::json &data_read) = 0;
@@ -42,7 +47,6 @@ namespace ctx {
 	protected:
 		int _type;
 		int _req_id;
-		std::string _client;
 		std::string _subject;
 		ctx::json _description;
 	};
