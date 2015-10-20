@@ -364,7 +364,7 @@ bool ctx::db_manager_impl::insert_sync(const char* table_name, json& record, int
 
 	*row_id = -1;
 	query_result.at(0).get(NULL, "seq", row_id);
-	_D("RowId: %d", *row_id);
+	_D("RowId: %lld", *row_id);
 
 	return true;
 }
