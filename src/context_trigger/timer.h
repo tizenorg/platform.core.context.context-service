@@ -17,10 +17,11 @@
 #ifndef __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
 #define __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
 
-#include <timer_mgr.h>
-#include <timer_listener_iface.h>
 #include <string>
 #include <map>
+#include <timer_mgr.h>
+#include <timer_listener_iface.h>
+#include <json.h>
 
 namespace ctx {
 
@@ -46,6 +47,11 @@ namespace ctx {
 		ref_count_map_t ref_count_map;
 		timer_state_map_t timer_state_map;
 
+		bool add(int minute, int day_of_week);
+		bool remove(int minute, int day_of_week);
+		void clear();
+		bool empty();
+
 		int merge_day_of_week(int *ref_cnt);
 		bool reset_timer(int hour);
 		void on_timer_expired(int hour, int min, int day_of_week);
@@ -58,15 +64,9 @@ namespace ctx {
 		~trigger_timer();
 		static void submit_trigger_item();
 
-		bool add(int minute, int day_of_week);
-		bool remove(int minute, int day_of_week);
-		void clear();
-		static int get_day_of_month();
-		static std::string get_day_of_week();
-		static int get_minute_of_day();
-		static int convert_string_to_day_of_week(std::string d);
-		static std::string convert_day_of_week_to_string(int d);
-		bool empty();
+		int subscribe(ctx::json option);
+		int unsubscribe(ctx::json option);
+		int read(ctx::json* result);
 	};
 
 }	/* namespace ctx */

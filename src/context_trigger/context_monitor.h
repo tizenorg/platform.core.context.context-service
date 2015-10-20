@@ -39,11 +39,6 @@ namespace ctx {
 		bool is_allowed(const char *client, const char *subject);
 
 	private:
-		int subscribe_timer(ctx::json option);
-		int unsubscribe_timer(ctx::json option);
-		int read_day_of_month(ctx::json* result);
-		int read_day_of_week(ctx::json* result);
-		int read_time(ctx::json* result);
 		std::map<int, int> request_map;	// <rule_id, fact_read_req_id>
 		std::map<int, int> read_req_cnt_map;	// <fact_read_req_id, count>
 		ctx::context_trigger* trigger;
