@@ -27,60 +27,59 @@
 
 namespace ctx {
 
-	class db_manager_impl : public event_driven_thread, public db_listener_iface, public db_manager_iface {
-		private:
-			enum query_type_e {
-				QTYPE_CREATE_TABLE = 1,
-				QTYPE_INSERT,
-				QTYPE_EXECUTE,
-			};
+	class db_manager_impl : public event_driven_thread, public db_manager_iface {
+	private:
+		enum query_type_e {
+			QTYPE_CREATE_TABLE = 1,
+			QTYPE_INSERT,
+			QTYPE_EXECUTE,
+		};
 
-			struct query_info_s {
-				unsigned int id;
-				db_listener_iface* listener;
-				std::string query;
-			};
+		struct query_info_s {
+			unsigned int id;
+			db_listener_iface* listener;
+			std::string query;
+		};
 
-			struct query_result_s {
-				int type;
-				unsigned int id;
-				int error;
-				db_listener_iface* listener;
-				std::vector<json>* result;
-			};
+		struct query_result_s {
+			int type;
+			unsigned int id;
+			int error;
+			db_listener_iface* listener;
+			std::vector<json>* result;
+		};
 
-			sqlite3 *db_handle;
+		sqlite3 *db_handle;
 
-			static bool is_main_thread();
+		void on_thread_event_popped(int type, void* data);
+		void delete_thread_event(int type, void* data);
 
-			void on_thread_event_popped(int type, void* data);
-			void delete_thread_event(int type, void* data);
+		bool open();
+		void close();
 
-			bool open();
-			void close();
+		std::string compose_create_query(const char* table_name, const char* columns, const char* option);
+		std::string compose_insert_query(const char* table_name, json& record);
 
-			void _execute(int query_type, unsigned int query_id, const char* query, db_listener_iface* listener);
-			void send_result(int query_type, unsigned int query_id, db_listener_iface* listener, int error, std::vector<json>* result);
+		void _execute(int query_type, unsigned int query_id, const char* query, db_listener_iface* listener);
+		void send_result(int query_type, unsigned int query_id, db_listener_iface* listener, int error, std::vector<json>* result);
 
-			static int execution_result_cb(void *user_data, int dim, char **value, char **column);
-			static gboolean _send_result(gpointer data);
+		static int execution_result_cb(void *user_data, int dim, char **value, char **column);
+		static gboolean _send_result(gpointer data);
 
-			void on_creation_result_received(unsigned int query_id, int error);
-			void on_insertion_result_received(unsigned int query_id, int error, int64_t row_id);
-			void on_query_result_received(unsigned int query_id, int error, std::vector<json>& records);
+	public:
+		db_manager_impl();
+		~db_manager_impl();
 
-		public:
-			db_manager_impl();
-			~db_manager_impl();
+		bool init();
+		void release();
 
-			bool init();
-			void release();
+		bool create_table(unsigned int query_id, const char* table_name, const char* columns, const char* option = NULL, db_listener_iface* listener = NULL);
+		bool insert(unsigned int query_id, const char* table_name, json& record, db_listener_iface* listener = NULL);
+		bool execute(unsigned int query_id, const char* query, db_listener_iface* listener);
 
-			bool create_table(unsigned int query_id, const char* table_name, const char* columns, const char* option = NULL, db_listener_iface* listener = NULL);
-			bool insert(unsigned int query_id, const char* table_name, json& record, db_listener_iface* listener = NULL);
-			bool execute(unsigned int query_id, const char* query, db_listener_iface* listener);
-			bool insert_sync(const char* table_name, json& record, int64_t* row_id);
-			bool execute_sync(const char* query, std::vector<json>* records);
+		bool create_table_sync(const char* table_name, const char* columns, const char* option = NULL);
+		bool insert_sync(const char* table_name, json& record, int64_t* row_id);
+		bool execute_sync(const char* query, std::vector<json>* records);
 
 	};	/* class db_manager */
 }
