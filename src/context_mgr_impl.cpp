@@ -15,15 +15,16 @@
  */
 
 #include <glib.h>
-#include <string>
 #include <list>
 
 #include <types_internal.h>
 #include <json.h>
 #include <provider_iface.h>
 #include "server.h"
-#include "context_mgr_impl.h"
 #include "access_control/privilege.h"
+#include "request.h"
+#include "provider.h"
+#include "context_mgr_impl.h"
 
 /* Context Providers */
 #include <internal/device_context_provider.h>
@@ -68,32 +69,32 @@ bool ctx::context_manager_impl::init()
 
 void ctx::context_manager_impl::release()
 {
-	for (provider_map_t::iterator it = provider_map.begin(); it != provider_map.end(); ++it) {
-		it->second.destroy(it->second.data);
+	for (auto it = provider_handle_map.begin(); it != provider_handle_map.end(); ++it) {
+		delete it->second;
 	}
-	provider_map.clear();
-
-	for (request_list_t::iterator it = subscribe_request_list.begin(); it != subscribe_request_list.end(); ++it) {
-		delete *it;
-	}
-	subscribe_request_list.clear();
-
-	for (request_list_t::iterator it = read_request_list.begin(); it != read_request_list.end(); ++it) {
-		delete *it;
-	}
-	read_request_list.clear();
+	provider_handle_map.clear();
 }
 
 bool ctx::context_manager_impl::register_provider(const char *subject, ctx::context_provider_info &provider_info)
 {
-	if (provider_map.find(subject) != provider_map.end()) {
+	if (provider_handle_map.find(subject) != provider_handle_map.end()) {
 		_E("The provider for the subject '%s' is already registered.", subject);
 		return false;
 	}
 
 	_SI("Subj: %s, Priv: %s", subject, provider_info.privilege);
-	provider_map[subject] = provider_info;
+	provider_handle_map[subject] = NULL;
 
+	auto it = provider_handle_map.find(subject);
+	context_provider_handler *handle = new(std::nothrow) context_provider_handler(it->first.c_str(), provider_info);
+
+	if (!handle) {
+		_E("Memory allocation failed");
+		provider_handle_map.erase(it);
+		return false;
+	}
+
+	it->second = handle;
 	return true;
 }
 
@@ -121,22 +122,38 @@ bool ctx::context_manager_impl::pop_trigger_item(std::string &subject, int &oper
 
 void ctx::context_manager_impl::assign_request(ctx::request_info* request)
 {
+	auto it = provider_handle_map.find(request->get_subject());
+	if (it == provider_handle_map.end()) {
+		_W("Unsupported subject");
+		request->reply(ERR_NOT_SUPPORTED);
+		delete request;
+		return;
+	}
+
+	if (!it->second->is_allowed(request->get_credentials())) {
+		_W("Permission denied");
+		request->reply(ERR_PERMISSION_DENIED);
+		delete request;
+		return;
+	}
+
 	switch (request->get_type()) {
 	case REQ_SUBSCRIBE:
-		subscribe(request);
+		it->second->subscribe(request);
 		break;
 	case REQ_UNSUBSCRIBE:
-		unsubscribe(request);
+		it->second->unsubscribe(request);
 		break;
 	case REQ_READ:
 	case REQ_READ_SYNC:
-		read(request);
+		it->second->read(request);
 		break;
 	case REQ_WRITE:
-		write(request);
+		it->second->write(request);
 		break;
 	case REQ_SUPPORT:
-		is_supported(request);
+		request->reply(ERR_NONE);
+		delete request;
 		break;
 	default:
 		_E("Invalid type of request");
@@ -146,225 +163,39 @@ void ctx::context_manager_impl::assign_request(ctx::request_info* request)
 
 bool ctx::context_manager_impl::is_supported(const char *subject)
 {
-	provider_map_t::iterator it = provider_map.find(subject);
-	return (it != provider_map.end());
-}
-
-void ctx::context_manager_impl::is_supported(request_info *request)
-{
-	if (is_supported(request->get_subject()))
-		request->reply(ERR_NONE);
-	else
-		request->reply(ERR_NOT_SUPPORTED);
-
-	delete request;
+	auto it = provider_handle_map.find(subject);
+	return (it != provider_handle_map.end());
 }
 
 bool ctx::context_manager_impl::is_allowed(const ctx::credentials *creds, const char *subject)
 {
 	IF_FAIL_RETURN(creds, true);	/* In case internal requests */
-	provider_map_t::iterator it = provider_map.find(subject);
-	IF_FAIL_RETURN(it != provider_map.end(), false);
-	IF_FAIL_RETURN(ctx::privilege_manager::is_allowed(creds, it->second.privilege), false);
-	return true;
+	auto it = provider_handle_map.find(subject);
+	IF_FAIL_RETURN(it != provider_handle_map.end(), false);
+	return it->second->is_allowed(creds);
 }
 
-ctx::context_manager_impl::request_list_t::iterator
-ctx::context_manager_impl::find_request(request_list_t& r_list, std::string subject, json& option)
+void ctx::context_manager_impl::_publish(const char* subject, ctx::json &option, int error, ctx::json &data_updated)
 {
-	return find_request(r_list.begin(), r_list.end(), subject, option);
-}
-
-ctx::context_manager_impl::request_list_t::iterator
-ctx::context_manager_impl::find_request(request_list_t& r_list, std::string client, int req_id)
-{
-	request_list_t::iterator it;
-	for (it = r_list.begin(); it != r_list.end(); ++it) {
-		if (client == (*it)->get_client() && req_id == (*it)->get_id()) {
-			break;
-		}
-	}
-	return it;
-}
-
-ctx::context_manager_impl::request_list_t::iterator
-ctx::context_manager_impl::find_request(request_list_t::iterator begin, request_list_t::iterator end, std::string subject, json& option)
-{
-	//TODO: Do we need to consider the case that the inparam option is a subset of the request description?
-	request_list_t::iterator it;
-	for (it = begin; it != end; ++it) {
-		if (subject == (*it)->get_subject() && option == (*it)->get_description()) {
-			break;
-		}
-	}
-	return it;
-}
-
-ctx::context_provider_iface *ctx::context_manager_impl::get_provider(ctx::request_info *request)
-{
-	provider_map_t::iterator it = provider_map.find(request->get_subject());
-
-	if (it == provider_map.end()) {
-		_W("Unsupported subject");
-		request->reply(ERR_NOT_SUPPORTED);
-		delete request;
-		return NULL;
-	}
-
-	if (!ctx::privilege_manager::is_allowed(request->get_credentials(), it->second.privilege)) {
-		_W("Permission denied");
-		request->reply(ERR_PERMISSION_DENIED);
-		delete request;
-		return NULL;
-	}
-
-	return it->second.create(it->second.data);
-}
-
-void ctx::context_manager_impl::subscribe(ctx::request_info *request)
-{
-	_I(CYAN("'%s' subscribes '%s' (RID-%d)"), request->get_client(), request->get_subject(), request->get_id());
-
-	context_provider_iface *provider = get_provider(request);
-	IF_FAIL_VOID(provider);
-
-	ctx::json request_result;
-	int error = provider->subscribe(request->get_subject(), request->get_description().str(), &request_result);
-
-	_D("Analyzer returned %d", error);
-
-	if (!request->reply(error, request_result) || error != ERR_NONE) {
-		delete request;
-		return;
-	}
-
-	subscribe_request_list.push_back(request);
-}
-
-void ctx::context_manager_impl::unsubscribe(ctx::request_info *request)
-{
-	_I(CYAN("'%s' unsubscribes '%s' (RID-%d)"), request->get_client(), request->get_subject(), request->get_id());
-
-	// Search the subscribe request to be removed
-	request_list_t::iterator target = find_request(subscribe_request_list, request->get_client(), request->get_id());
-	if (target == subscribe_request_list.end()) {
-		_W("Unknown request");
-		delete request;
-		return;
-	}
-
-	// Keep the pointer to the request found
-	request_info *req_found = *target;
-
-	// Remove the request from the list
-	subscribe_request_list.erase(target);
-
-	// Check if there exist the same requests
-	if (find_request(subscribe_request_list, req_found->get_subject(), req_found->get_description()) != subscribe_request_list.end()) {
-		// Do not stop detecting the subject
-		_D("A same request from '%s' exists", req_found->get_client());
-		request->reply(ERR_NONE);
-		delete request;
-		delete req_found;
-		return;
-	}
-
-	// Find the proper provider
-	provider_map_t::iterator ca = provider_map.find(req_found->get_subject());
-	if (ca == provider_map.end()) {
-		_E("Invalid subject '%s'", req_found->get_subject());
-		delete request;
-		delete req_found;
-		return;
-	}
-
-	// Stop detecting the subject
-	int error = ca->second.create(ca->second.data)->unsubscribe(req_found->get_subject(), req_found->get_description());
-	request->reply(error);
-	delete request;
-	delete req_found;
-}
-
-void ctx::context_manager_impl::read(ctx::request_info *request)
-{
-	_I(CYAN("'%s' reads '%s' (RID-%d)"), request->get_client(), request->get_subject(), request->get_id());
-
-	context_provider_iface *provider = get_provider(request);
-	IF_FAIL_VOID(provider);
-
-	ctx::json request_result;
-	int error = provider->read(request->get_subject(), request->get_description().str(), &request_result);
-
-	_D("Analyzer returned %d", error);
-
-	if (!request->reply(error, request_result) || error != ERR_NONE) {
-		delete request;
-		return;
-	}
-
-	read_request_list.push_back(request);
-}
-
-void ctx::context_manager_impl::write(ctx::request_info *request)
-{
-	_I(CYAN("'%s' writes '%s' (RID-%d)"), request->get_client(), request->get_subject(), request->get_id());
-
-	context_provider_iface *provider = get_provider(request);
-	IF_FAIL_VOID(provider);
-
-	ctx::json request_result;
-	int error = provider->write(request->get_subject(), request->get_description(), &request_result);
-
-	_D("Analyzer returned %d", error);
-
-	request->reply(error, request_result);
-	delete request;
-}
-
-bool ctx::context_manager_impl::_publish(const char* subject, ctx::json option, int error, ctx::json data_updated)
-{
-	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
-
 	_I("Publishing '%s'", subject);
 	_J("Option", option);
 
-	request_list_t::iterator end = subscribe_request_list.end();
-	request_list_t::iterator target = find_request(subscribe_request_list.begin(), end, subject, option);
+	auto it = provider_handle_map.find(subject);
+	IF_FAIL_VOID(it != provider_handle_map.end());
 
-	while (target != end) {
-		if (!(*target)->publish(error, data_updated)) {
-			return false;
-		}
-		target = find_request(++target, end, subject, option);
-	}
-
-	return true;
+	it->second->publish(option, error, data_updated);
 }
 
-bool ctx::context_manager_impl::_reply_to_read(const char* subject, ctx::json option, int error, ctx::json data_read)
+void ctx::context_manager_impl::_reply_to_read(const char* subject, ctx::json &option, int error, ctx::json &data_read)
 {
-	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
-
 	_I("Sending data of '%s'", subject);
 	_J("Option", option);
 	_J("Data", data_read);
 
-	request_list_t::iterator end = read_request_list.end();
-	request_list_t::iterator target = find_request(read_request_list.begin(), end, subject, option);
-	request_list_t::iterator prev;
+	auto it = provider_handle_map.find(subject);
+	IF_FAIL_VOID(it != provider_handle_map.end());
 
-	ctx::json dummy;
-
-	while (target != end) {
-		(*target)->reply(error, dummy, data_read);
-		prev = target;
-		target = find_request(++target, end, subject, option);
-
-		delete *prev;
-		read_request_list.erase(prev);
-	}
-
-	return true;
+	it->second->reply_to_read(option, error, data_read);
 }
 
 struct published_data_s {
@@ -387,14 +218,14 @@ gboolean ctx::context_manager_impl::thread_switcher(gpointer data)
 	published_data_s *tuple = static_cast<published_data_s*>(data);
 
 	switch (tuple->type) {
-		case REQ_SUBSCRIBE:
-			tuple->mgr->_publish(tuple->subject.c_str(), tuple->option, tuple->error, tuple->data);
-			break;
-		case REQ_READ:
-			tuple->mgr->_reply_to_read(tuple->subject.c_str(), tuple->option, tuple->error, tuple->data);
-			break;
-		default:
-			_W("Invalid type");
+	case REQ_SUBSCRIBE:
+		tuple->mgr->_publish(tuple->subject.c_str(), tuple->option, tuple->error, tuple->data);
+		break;
+	case REQ_READ:
+		tuple->mgr->_reply_to_read(tuple->subject.c_str(), tuple->option, tuple->error, tuple->data);
+		break;
+	default:
+		_W("Invalid type");
 	}
 
 	delete tuple;

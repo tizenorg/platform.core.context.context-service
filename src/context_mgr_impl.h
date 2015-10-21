@@ -17,22 +17,20 @@
 #ifndef __CONTEXT_MANAGER_IMPL_H__
 #define __CONTEXT_MANAGER_IMPL_H__
 
-#include <vector>
-#include <list>
+#include <string>
 #include <map>
 #include <context_mgr.h>
 #include <context_mgr_iface.h>
-#include "request.h"
 
 namespace ctx {
 
 	/* Forward declaration */
 	class credentials;
+	class request_info;
+	class context_provider_handler;
 
 	class context_manager_impl : public context_manager_iface {
 	public:
-		typedef std::list<request_info*> request_list_t;
-
 		context_manager_impl();
 		~context_manager_impl();
 
@@ -51,27 +49,11 @@ namespace ctx {
 		bool reply_to_read(const char *subject, ctx::json &option, int error, ctx::json &data_read);
 
 	private:
-		typedef std::map<std::string, context_provider_info> provider_map_t;
-
-		request_list_t subscribe_request_list;
-		request_list_t read_request_list;
-		provider_map_t provider_map;
-
-		void subscribe(request_info *request);
-		void unsubscribe(request_info *request);
-		void read(request_info *request);
-		void write(request_info *request);
-		void is_supported(request_info *request);
-
-		context_provider_iface *get_provider(request_info *request);
+		std::map<std::string, context_provider_handler*> provider_handle_map;
 
 		static gboolean thread_switcher(gpointer data);
-		bool _publish(const char *subject, ctx::json option, int error, ctx::json data_updated);
-		bool _reply_to_read(const char *subject, ctx::json option, int error, ctx::json data_read);
-
-		request_list_t::iterator find_request(request_list_t& r_list, std::string subject, json& option);
-		request_list_t::iterator find_request(request_list_t& r_list, std::string client, int req_id);
-		request_list_t::iterator find_request(request_list_t::iterator begin, request_list_t::iterator end, std::string subject, json& option);
+		void _publish(const char *subject, ctx::json &option, int error, ctx::json &data_updated);
+		void _reply_to_read(const char *subject, ctx::json &option, int error, ctx::json &data_read);
 
 	};	/* class context_manager_impl */
 

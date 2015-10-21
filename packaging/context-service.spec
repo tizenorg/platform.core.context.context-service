@@ -55,14 +55,14 @@ Context-Service
 MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
 
 export   CFLAGS+=" -Wextra -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wswitch-default"
-export CXXFLAGS+=" -Wextra -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wswitch-default -Wnon-virtual-dtor -Wno-c++0x-compat"
+export CXXFLAGS+=" -Wextra -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wswitch-default -Wnon-virtual-dtor"
 
 export   CFLAGS+=" -Wno-unused-parameter -Wno-empty-body"
 export CXXFLAGS+=" -Wno-unused-parameter -Wno-empty-body"
 
 export   CFLAGS+=" -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-strict-aliasing -fno-unroll-loops -fsigned-char -fstrict-overflow -fno-common"
 export CXXFLAGS+=" -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-strict-aliasing -fno-unroll-loops -fsigned-char -fstrict-overflow"
-#export CXXFLAGS+=" -std=c++0x"
+export CXXFLAGS+=" -std=c++11 -Wno-c++11-compat"
 
 export   CFLAGS+=" -DTIZEN_ENGINEER_MODE"
 export CXXFLAGS+=" -DTIZEN_ENGINEER_MODE"
