@@ -41,7 +41,6 @@ BuildRequires: pkgconfig(statistics-context-provider)
 BuildRequires: pkgconfig(place-context-provider)
 
 Requires(preun): /usr/bin/systemctl
-Requires(post): sys-assert
 Requires(post): /usr/bin/systemctl
 Requires(postun): /usr/bin/systemctl
 
