@@ -16,12 +16,10 @@
 
 #include <types_internal.h>
 #include <context_trigger_types_internal.h>
-#include "fact_reader.h"
 #include "trigger.h"
 #include "rule_manager.h"
 
 ctx::context_trigger::context_trigger()
-	: _reader(NULL)
 {
 }
 
@@ -29,79 +27,24 @@ ctx::context_trigger::~context_trigger()
 {
 }
 
-bool ctx::context_trigger::init(ctx::context_manager_impl* mgr)
+bool ctx::context_trigger::init(ctx::context_manager_impl* ctx_mgr)
 {
 	// Do the necessary initialization process.
 	// This function is called from the main thread during the service launching process.
-	_reader = new(std::nothrow) fact_reader(mgr, this);
-	IF_FAIL_RETURN_TAG(_reader, false, _E, "Memory allocation failed");
-
-	_D("Starting Context Trigger Thread");
-	IF_FAIL_RETURN(start(), false);
-
-	push_thread_event(ETYPE_INITIALIZE, NULL);
+	_D("Context Trigger Init");
+	process_initialize(ctx_mgr);
 
 	return true;
 }
 
 void ctx::context_trigger::release()
 {
-	_D("Stopping Context Trigger Thread");
-	stop();
-
 	// Release the occupied resources.
 	// This function is called from the main thread during the service termination process.
-	delete _reader;
-	_reader = NULL;
+	_D("Context Trigger Release");
 
 	delete rule_mgr;
 	rule_mgr = NULL;
-}
-
-void ctx::context_trigger::on_thread_event_popped(int type, void* data)
-{
-	switch (type) {
-		case ETYPE_REQUEST:
-			IF_FAIL_VOID(data);
-			process_request(static_cast<request_info*>(data));
-			break;
-		case ETYPE_FACT:
-			IF_FAIL_VOID(data);
-			process_fact(static_cast<context_fact*>(data));
-			break;
-		case ETYPE_INITIALIZE:
-			process_initialize();
-			break;
-		default:
-			_W("Unknown event type");
-			return;
-	}
-
-	delete_thread_event(type, data);
-}
-
-void ctx::context_trigger::delete_thread_event(int type, void* data)
-{
-	IF_FAIL_VOID(data);
-
-	switch (type) {
-		case ETYPE_REQUEST:
-			{
-				std::string subject = static_cast<ctx::request_info*>(data)->get_subject();
-				if (subject != CONTEXT_TRIGGER_SUBJECT_ENABLE) {
-					delete (static_cast<request_info*>(data));
-				}
-			}
-			return;
-		case ETYPE_FACT:
-			delete (static_cast<context_fact*>(data));
-			return;
-		case ETYPE_INITIALIZE:
-			return;
-		default:
-			_W("Unknown event type");
-			return;
-	}
 }
 
 bool ctx::context_trigger::assign_request(ctx::request_info* request)
@@ -113,7 +56,7 @@ bool ctx::context_trigger::assign_request(ctx::request_info* request)
 		return false;
 	}
 
-	push_thread_event(ETYPE_REQUEST, request);
+	process_request(request);
 	return true;
 }
 
@@ -141,26 +84,29 @@ void ctx::context_trigger::process_request(ctx::request_info* request)
 	}
 }
 
+// TODO remove
 void ctx::context_trigger::push_fact(int req_id, int error, const char* subject, ctx::json& option, ctx::json& data)
 {
 	context_fact *fact = new(std::nothrow) context_fact(req_id, error, subject, option, data);
 	IF_FAIL_VOID_TAG(fact, _E, "Memory allocation failed");
 
-	push_thread_event(ETYPE_FACT, fact);
+	process_fact(fact);
+
 }
 
+// TODO: remove
 void ctx::context_trigger::process_fact(ctx::context_fact* fact)
 {
 	// Process the context fact.
 	rule_mgr->on_event_received(fact->get_subject(), fact->get_option(), fact->get_data());
 }
 
-void ctx::context_trigger::process_initialize(void)
+void ctx::context_trigger::process_initialize(ctx::context_manager_impl* mgr)
 {
 	rule_mgr = new(std::nothrow) rule_manager();
 	IF_FAIL_VOID_TAG(rule_mgr, _E, "Memory allocation failed");
 
-	bool ret = rule_mgr->init(this, _reader);
+	bool ret = rule_mgr->init(this, mgr);
 	if (!ret) {
 		_E("Context trigger initialization failed.");
 		raise(SIGTERM);

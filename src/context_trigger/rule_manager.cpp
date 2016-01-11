@@ -34,7 +34,6 @@
 #include <db_mgr.h>
 #include "../dbus_server_impl.h"
 #include <app_manager.h>
-#include "fact_reader.h"
 #include "rule_manager.h"
 #include "script_generator.h"
 #include "trigger.h"
@@ -107,14 +106,14 @@ ctx::rule_manager::~rule_manager()
 	destroy_clips();
 }
 
-bool ctx::rule_manager::init(ctx::context_trigger* tr, ctx::fact_reader* fr)
+bool ctx::rule_manager::init(ctx::context_trigger* tr, ctx::context_manager_impl* ctx_mgr)
 {
 	bool ret;
 	int error;
 
 	clips_h = NULL;
 	trigger = tr;
-	ret = c_monitor.init(fr, tr);
+	ret = c_monitor.init(ctx_mgr, tr);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Context monitor initialization failed");
 
 	// Create tables into db (rule, event, condition, action, template)
@@ -135,7 +134,7 @@ bool ctx::rule_manager::init(ctx::context_trigger* tr, ctx::fact_reader* fr)
 	ret = db_manager::execute_sync(FOREIGN_KEYS_ON, &record);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Foreign keys on failed");
 
-	apply_templates(fr);
+	apply_templates();
 
 	if (get_uninstalled_app() > 0) {
 		error = clear_rule_of_uninstalled_app(true);
@@ -146,7 +145,7 @@ bool ctx::rule_manager::init(ctx::context_trigger* tr, ctx::fact_reader* fr)
 	return ret;
 }
 
-void ctx::rule_manager::apply_templates(ctx::fact_reader *fr)
+void ctx::rule_manager::apply_templates(void)
 {
 	std::string subject;
 	int operation;
@@ -155,7 +154,7 @@ void ctx::rule_manager::apply_templates(ctx::fact_reader *fr)
 	std::string q_update;
 	std::string q_insert = "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options) VALUES";
 
-	while (fr->get_fact_definition(subject, operation, attributes, options)) {
+	while (c_monitor.get_fact_definition(subject, operation, attributes, options)) {
 		_D("Subject: %s, Ops: %d", subject.c_str(), operation);
 		_J("Attr", attributes);
 		_J("Opt", options);

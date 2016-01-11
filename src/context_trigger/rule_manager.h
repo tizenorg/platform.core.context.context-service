@@ -25,13 +25,12 @@ namespace ctx {
 
 	class json;
 	class context_trigger;
-	class fact_reader;
 
 	class rule_manager {
 		public:
 			rule_manager();
 			~rule_manager();
-			bool init(ctx::context_trigger* tr, ctx::fact_reader* fr);
+			bool init(ctx::context_trigger* tr, ctx::context_manager_impl* ctx_mgr);
 			int add_rule(std::string creator, const char* app_id, ctx::json rule, ctx::json* rule_id);
 			int remove_rule(int rule_id);
 			int enable_rule(int rule_id);
@@ -48,7 +47,7 @@ namespace ctx {
 			clips_handler* clips_h;
 			context_monitor c_monitor;
 
-			void apply_templates(ctx::fact_reader *fr);
+			void apply_templates(void);
 			bool reenable_rule(void);
 			int verify_rule(ctx::json& rule, const char* app_id);
 			int64_t get_duplicated_rule_id(std::string creator, ctx::json& rule);

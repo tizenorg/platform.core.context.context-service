@@ -17,12 +17,29 @@
 #include <types_internal.h>
 #include <json.h>
 #include <context_trigger_types_internal.h>
+#include "trigger.h"
 #include "../access_control/privilege.h"
 #include "context_monitor.h"
-#include "fact_reader.h"
+#include "fact_request.h"
 #include "timer_types.h"
 
-static ctx::fact_reader *reader = NULL;
+static int last_rid;
+static int last_err;
+static ctx::json last_data_read;
+
+ctx::context_manager_impl *ctx::context_monitor::_context_mgr = NULL;
+
+static int generate_req_id()
+{
+	static int req_id = 0;
+
+	if (++req_id < 0) {
+		// Overflow handling
+		req_id = 1;
+	}
+
+	return req_id;
+}
 
 ctx::context_monitor::context_monitor()
 {
@@ -33,11 +50,12 @@ ctx::context_monitor::~context_monitor()
 	delete timer;
 }
 
-bool ctx::context_monitor::init(ctx::fact_reader* fr, ctx::context_trigger* tr)
+bool ctx::context_monitor::init(ctx::context_manager_impl* ctx_mgr, ctx::context_trigger* tr)
 {
-	reader = fr;
-	trigger = tr;
-	timer = new(std::nothrow) trigger_timer(trigger);
+	_context_mgr = ctx_mgr;
+	_trigger = tr;
+
+	timer = new(std::nothrow) trigger_timer(_trigger);
 	IF_FAIL_RETURN_TAG(timer, false, _E, "Memory allocation failed");
 
 	return true;
@@ -53,13 +71,42 @@ int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json 
 	ctx::json eoption = NULL;
 	event.get(NULL, CT_RULE_EVENT_OPTION, &eoption);
 
-	int req_id = reader->subscribe(subject.c_str(), &eoption, true);
+	int req_id = _subscribe(subject.c_str(), &eoption, true);
 	IF_FAIL_RETURN_TAG(req_id > 0, ERR_OPERATION_FAILED, _E, "Subscribe event failed");
 	_D(YELLOW("Subscribe event(rule%d). req%d"), rule_id, req_id);
-	request_map[rule_id] = req_id;
-	read_req_cnt_map[req_id]++;
 
 	return ERR_NONE;
+}
+
+int ctx::context_monitor::_subscribe(const char* subject, json* option, bool wait_response)
+{
+	IF_FAIL_RETURN(subject, ERR_INVALID_PARAMETER);
+
+	int rid = find_sub(subject, option);
+	if (rid > 0) {
+		increase_sub(rid);
+		_D("Duplicated request for %s", subject);
+		return rid;
+	}
+
+	rid = generate_req_id();
+
+	fact_request *req = new(std::nothrow) fact_request(REQ_SUBSCRIBE,
+			rid, subject, option ? option->str().c_str() : NULL, wait_response ? this : NULL);
+	IF_FAIL_RETURN_TAG(req, -1, _E, "Memory allocation failed");
+
+	send_request(req);	//TODO: what happens if the request actually takes more time than the timeout
+	add_sub(rid, subject, option);
+
+	IF_FAIL_RETURN_TAG(wait_response, rid, _D, "Ignoring response for %s", subject);
+
+	if (last_err != ERR_NONE) {
+		remove_sub(rid);
+		_E("Subscription request failed: %#x", last_err);
+		return -1;
+	}
+
+	return rid;
 }
 
 int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::json option)
@@ -68,17 +115,36 @@ int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::jso
 		return timer->unsubscribe(option);
 	}
 
-	_D(YELLOW("Unsubscribe event(rule%d). req%d"), rule_id, request_map[rule_id]);
-	int req_id = request_map[rule_id];
-	request_map.erase(rule_id);
+	ctx::json eoption = NULL;
+	option.get(NULL, CT_RULE_EVENT_OPTION, &eoption);
 
-	read_req_cnt_map[req_id]--;
-	if (read_req_cnt_map[req_id] == 0) {
-		reader->unsubscribe(subject.c_str(), req_id);
-		read_req_cnt_map.erase(req_id);
+	int rid = find_sub(subject.c_str(), &eoption);
+	if (rid < 0) {
+		_D("Invalid unsubscribe request");
+		return ERR_INVALID_PARAMETER;
 	}
 
+	if (decrease_sub(rid) <= 0) {
+		_unsubscribe(subject.c_str(), rid);
+	}
+	_D(YELLOW("Unsubscribe event(rule%d). req%d"), rule_id, rid);
+
 	return ERR_NONE;
+}
+
+void ctx::context_monitor::_unsubscribe(const char *subject, int subscription_id)
+{
+	fact_request *req = new(std::nothrow) fact_request(REQ_UNSUBSCRIBE, subscription_id, subject, NULL, NULL);
+	IF_FAIL_VOID_TAG(req, _E, "Memory allocation failed");
+
+	send_request(req);
+	remove_sub(subscription_id);
+}
+
+bool ctx::context_monitor::send_request(fact_request* req)
+{
+	_context_mgr->assign_request(req);
+	return false;
 }
 
 int ctx::context_monitor::read(std::string subject, json option, ctx::json* result)
@@ -89,12 +155,37 @@ int ctx::context_monitor::read(std::string subject, json option, ctx::json* resu
 	}
 
 	context_fact fact;
-	ret = reader->read(subject.c_str(), &option, fact);
+	ret = _read(subject.c_str(), &option, fact);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Read fact failed");
 
 	*result = fact.get_data();
 
 	return ERR_NONE;
+}
+
+bool ctx::context_monitor::_read(const char* subject, json* option, context_fact& fact)
+{
+	IF_FAIL_RETURN(subject, false);
+
+	int rid = generate_req_id();
+
+	fact_request *req = new(std::nothrow) fact_request(REQ_READ_SYNC,
+			rid, subject, option ? option->str().c_str() : NULL, this);
+	IF_FAIL_RETURN_TAG(req, false, _E, "Memory allocation failed");
+
+	send_request(req);
+
+	if (last_err != ERR_NONE) {
+		_E("Read request failed: %#x", last_err);
+		return false;
+	}
+
+	fact.set_req_id(rid);
+	fact.set_subject(subject);
+	fact.set_data(last_data_read);
+	last_data_read = EMPTY_JSON_OBJECT;
+
+	return true;
 }
 
 bool ctx::context_monitor::is_supported(std::string subject)
@@ -104,7 +195,7 @@ bool ctx::context_monitor::is_supported(std::string subject)
 		return true;
 	}
 
-	return reader->is_supported(subject.c_str());
+	return _context_mgr->is_supported(subject.c_str());
 }
 
 bool ctx::context_monitor::is_allowed(const char *client, const char *subject)
@@ -117,5 +208,99 @@ bool ctx::context_monitor::is_allowed(const char *client, const char *subject)
 	if (STR_EQ(subject, TIMER_CONDITION_SUBJECT))
 		return true;
 
-	return reader->is_allowed(client, subject);
+	//TODO: re-implement this in the proper 3.0 style
+	//return _context_mgr->is_allowed(client, subject);
+	return true;
+}
+
+bool ctx::context_monitor::get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options)
+{
+	return _context_mgr->pop_trigger_item(subject, operation, attributes, options);
+}
+
+int ctx::context_monitor::find_sub(const char* subject, json* option)
+{
+	json opt_j;
+	if (option) {
+		opt_j = *option;
+	}
+
+	for (subscr_map_t::iterator it = subscr_map.begin(); it != subscr_map.end(); ++it) {
+		if ((*(it->second)).subject == subject && (*(it->second)).option == opt_j) {
+			return it->first;
+		}
+	}
+
+	return -1;
+}
+
+bool ctx::context_monitor::add_sub(int sid, const char* subject, json* option)
+{
+	subscr_info_s *info = new(std::nothrow) subscr_info_s(sid, subject, option);
+	IF_FAIL_RETURN_TAG(info, false, _E, "Memory allocation failed");
+
+	subscr_map[sid] = info;
+
+	return true;
+}
+
+void ctx::context_monitor::remove_sub(const char* subject, json* option)
+{
+	json opt_j;
+	if (option) {
+		opt_j = *option;
+	}
+
+	for (subscr_map_t::iterator it = subscr_map.begin(); it != subscr_map.end(); ++it) {
+		if ((*(it->second)).subject == subject && (*(it->second)).option == opt_j) {
+			delete it->second;
+			subscr_map.erase(it);
+			return;
+		}
+	}
+}
+
+void ctx::context_monitor::remove_sub(int sid)
+{
+	subscr_map.erase(sid);
+
+	return;
+}
+
+int ctx::context_monitor::increase_sub(int sid)
+{
+	subscr_map_t::iterator it = subscr_map.find(sid);
+
+	subscr_info_s* info = it->second;
+	info->cnt++;
+
+	return info->cnt;
+}
+
+int ctx::context_monitor::decrease_sub(int sid)
+{
+	subscr_map_t::iterator it = subscr_map.find(sid);
+
+	subscr_info_s* info = it->second;
+	info->cnt--;
+
+	return info->cnt;
+}
+
+void ctx::context_monitor::reply_result(int req_id, int error, json* request_result, json* fact)
+{
+	_D("Request result received: %d", req_id);
+	last_rid = req_id;
+	last_err = error;
+	last_data_read = (fact ? *fact : EMPTY_JSON_OBJECT);
+}
+
+void ctx::context_monitor::publish_fact(int req_id, int error, const char* subject, json* option, json* fact)
+{
+	_D(YELLOW("Fact received: subject(%s), option(%s), fact(%s)"), subject, option->str().c_str(), fact->str().c_str());
+
+	// TODO: deliver fact to each rule instance
+
+	// TODO Remove
+	_trigger->push_fact(req_id, error, subject, *option, *fact);
 }

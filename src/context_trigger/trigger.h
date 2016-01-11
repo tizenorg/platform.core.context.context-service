@@ -17,42 +17,29 @@
 #ifndef __CONTEXT_CONTEXT_TRIGGER_H__
 #define __CONTEXT_CONTEXT_TRIGGER_H__
 
-#include <event_driven.h>
 #include "../request.h"
 #include "fact.h"
 
 namespace ctx {
 
-	class fact_reader;
 	class rule_manager;
 	class client_request;
 	class context_manager_impl;
-	class context_trigger : public event_driven_thread {
+	class context_trigger {
 		public:
 			context_trigger();
 			~context_trigger();
 
-			bool init(ctx::context_manager_impl* mgr);
+			bool init(ctx::context_manager_impl* ctx_mgr);
 			void release();
 
 			bool assign_request(ctx::request_info* request);
-			void push_fact(int req_id, int error, const char* subject, ctx::json& option, ctx::json& data);
+			void push_fact(int req_id, int error, const char* subject, ctx::json& option, ctx::json& data);	// TODO remove
 
 		private:
-			enum event_type_e {
-				ETYPE_REQUEST = 1,	// A request received from a client
-				ETYPE_FACT,			// A context fact received from a CA
-				ETYPE_INITIALIZE,	// Initialization
-			};
-
-			ctx::fact_reader *_reader;
-
-			void on_thread_event_popped(int type, void* data);
-			void delete_thread_event(int type, void* data);
-
 			void process_request(ctx::request_info* request);
 			void process_fact(ctx::context_fact* fact);
-			void process_initialize(void);
+			void process_initialize(ctx::context_manager_impl* mgr);
 
 			void add_rule(ctx::request_info* request);
 			void remove_rule(ctx::request_info* request);
