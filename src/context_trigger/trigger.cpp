@@ -19,6 +19,7 @@
 #include "trigger.h"
 #include "rule_manager.h"
 #include "context_monitor.h"
+#include "template_manager.h"
 
 ctx::context_trigger::context_trigger()
 {
@@ -46,6 +47,10 @@ void ctx::context_trigger::release()
 	delete rule_mgr;
 	rule_mgr = NULL;
 
+	_D("Template Manager Release");
+	delete tmpl_mgr;
+	tmpl_mgr = NULL;
+
 	ctx::context_monitor::destroy();
 }
 
@@ -54,7 +59,8 @@ bool ctx::context_trigger::assign_request(ctx::request_info* request)
 	std::string subject = request->get_subject();
 	if (subject != CONTEXT_TRIGGER_SUBJECT_ADD && subject != CONTEXT_TRIGGER_SUBJECT_REMOVE &&
 			subject != CONTEXT_TRIGGER_SUBJECT_ENABLE && subject != CONTEXT_TRIGGER_SUBJECT_DISABLE	&&
-			subject != CONTEXT_TRIGGER_SUBJECT_GET && subject != CONTEXT_TRIGGER_SUBJECT_GET_RULE_IDS) {
+			subject != CONTEXT_TRIGGER_SUBJECT_GET && subject != CONTEXT_TRIGGER_SUBJECT_GET_RULE_IDS &&
+			subject != CONTEXT_TRIGGER_SUBJECT_GET_TEMPLATE) {
 		return false;
 	}
 
@@ -81,6 +87,8 @@ void ctx::context_trigger::process_request(ctx::request_info* request)
 		get_rule_by_id(request);
 	} else if (subject == CONTEXT_TRIGGER_SUBJECT_GET_RULE_IDS) {
 		get_rule_ids(request);
+	} else if (subject == CONTEXT_TRIGGER_SUBJECT_GET_TEMPLATE) {
+		get_template(request);
 	} else {
 		_E("Invalid request");
 	}
@@ -90,7 +98,10 @@ void ctx::context_trigger::process_initialize(ctx::context_manager_impl* mgr)
 {
 	ctx::context_monitor::set_context_manager(mgr);
 
-	rule_mgr = new(std::nothrow) rule_manager();
+	tmpl_mgr = new(std::nothrow) template_manager(mgr);
+	IF_FAIL_VOID_TAG(tmpl_mgr, _E, "Memory allocation failed");
+
+	rule_mgr = new(std::nothrow) rule_manager(tmpl_mgr);
 	IF_FAIL_VOID_TAG(rule_mgr, _E, "Memory allocation failed");
 
 	bool ret = rule_mgr->init();
@@ -247,4 +258,19 @@ void ctx::context_trigger::get_rule_ids(ctx::request_info* request)
 
 	ctx::json dummy;
 	request->reply(error, dummy, read_data);
+}
+
+void ctx::context_trigger::get_template(ctx::request_info* request)
+{
+	int error;
+
+	ctx::json option = request->get_description();
+	std::string name;
+	option.get(NULL, SUBJECT_STR, &name);
+
+	ctx::json tmpl;
+	error = tmpl_mgr->get_template(name, &tmpl);
+
+	ctx::json dummy;
+	request->reply(error, dummy, tmpl);
 }

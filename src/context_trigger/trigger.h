@@ -22,6 +22,7 @@
 namespace ctx {
 
 	class rule_manager;
+	class template_manager;
 	class client_request;
 	class context_manager_impl;
 	class context_trigger {
@@ -44,8 +45,10 @@ namespace ctx {
 			void disable_rule(ctx::request_info* request);
 			void get_rule_by_id(ctx::request_info* request);
 			void get_rule_ids(ctx::request_info* request);
+			void get_template(ctx::request_info* request);
 
 			ctx::rule_manager* rule_mgr;
+			ctx::template_manager* tmpl_mgr;
 	};
 
 }	/* namespace ctx */

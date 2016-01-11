@@ -184,11 +184,6 @@ bool ctx::context_monitor::is_allowed(const char *client, const char *subject)
 	return true;
 }
 
-bool ctx::context_monitor::get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options)
-{
-	return _context_mgr->pop_trigger_item(subject, operation, attributes, options);
-}
-
 int ctx::context_monitor::find_sub(request_type type, const char* subject, json* option)
 {
 	// @return	request id

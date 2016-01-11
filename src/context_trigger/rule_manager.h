@@ -24,13 +24,14 @@ namespace ctx {
 
 	class json;
 	class context_trigger;
-	class context_manager_impl;
+	class template_manager;
 	class trigger_rule;
 
 	class rule_manager {
 		public:
-			rule_manager();
+			rule_manager(ctx::template_manager* tmpl_mgr);
 			~rule_manager();
+
 			bool init();
 			int add_rule(std::string creator, const char* app_id, ctx::json rule, ctx::json* rule_id);
 			int remove_rule(int rule_id);
@@ -44,7 +45,8 @@ namespace ctx {
 			static bool is_uninstalled_package(std::string app_id);
 
 		private:
-			void apply_templates(void);
+			ctx::template_manager* _tmpl_mgr;
+
 			bool reenable_rule(void);
 			int verify_rule(ctx::json& rule, const char* app_id);
 			int64_t get_duplicated_rule_id(std::string creator, ctx::json& rule);

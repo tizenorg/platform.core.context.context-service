@@ -21,6 +21,7 @@
 #include <app_manager.h>
 #include "rule_manager.h"
 #include "context_monitor.h"
+#include "template_manager.h"
 #include "rule.h"
 #include "timer.h"
 
@@ -45,7 +46,8 @@ static std::string int_to_string(int i)
 	return str;
 }
 
-ctx::rule_manager::rule_manager()
+ctx::rule_manager::rule_manager(ctx::template_manager* tmpl_mgr)
+: _tmpl_mgr(tmpl_mgr)
 {
 }
 
@@ -58,7 +60,7 @@ bool ctx::rule_manager::init()
 	bool ret;
 	int error;
 
-	// Create tables into db (rule, event, condition, action, template)
+	// Create tables into db (rule, template)
 	std::string q1 = std::string("enabled INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL,")
 			+ "creator_app_id TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '',"
 			+ "details TEXT DEFAULT '' NOT NULL";
@@ -71,7 +73,8 @@ bool ctx::rule_manager::init()
 	ret = db_manager::execute(2, q2.c_str(), NULL);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create template table failed");
 
-	apply_templates();
+	// Apply templates
+	_tmpl_mgr->apply_templates();
 
 	// Before re-enable rules, handle uninstalled app's rules
 	if (get_uninstalled_app() > 0) {
@@ -81,39 +84,6 @@ bool ctx::rule_manager::init()
 	ret = reenable_rule();
 
 	return ret;
-}
-
-void ctx::rule_manager::apply_templates(void)
-{
-	std::string subject;
-	int operation;
-	ctx::json attributes;
-	ctx::json options;
-	std::string q_update;
-	std::string q_insert = "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options) VALUES";
-
-	ctx::context_monitor* ctx_monitor = ctx::context_monitor::get_instance();
-	IF_FAIL_VOID_TAG(ctx_monitor, _E, "Memory allocation failed");
-
-	while (ctx_monitor->get_fact_definition(subject, operation, attributes, options)) {
-		_D("Subject: %s, Ops: %d", subject.c_str(), operation);
-		_J("Attr", attributes);
-		_J("Opt", options);
-
-		q_update += "UPDATE context_trigger_template SET operation=" + int_to_string(operation)
-			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "' WHERE name='" + subject + "';";
-
-		q_insert += " ('" + subject + "', " + int_to_string(operation) + ", '" + attributes.str() + "', '" + options.str() + "'),";
-	}
-
-	q_insert.erase(q_insert.end() - 1, q_insert.end());
-	q_insert += ";";
-
-	bool ret = db_manager::execute(5, q_update.c_str(), NULL);
-	IF_FAIL_VOID_TAG(ret, _E, "Update item definition failed");
-
-	ret = db_manager::execute(6, q_insert.c_str(), NULL);
-	IF_FAIL_VOID_TAG(ret, _E, "Insert item definition failed");
 }
 
 int ctx::rule_manager::get_uninstalled_app(void)

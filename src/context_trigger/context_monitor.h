@@ -43,8 +43,6 @@ namespace ctx {
 		void reply_result(int req_id, int error, const char *subject, ctx::json *option, ctx::json *fact);
 		void publish_fact(int req_id, int error, const char *subject, ctx::json *option, ctx::json *fact);
 
-		bool get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
-
 	private:
 		context_monitor();
 		context_monitor(const context_monitor& other);
