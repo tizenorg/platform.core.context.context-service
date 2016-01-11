@@ -25,17 +25,6 @@
 #include "timer.h"
 
 #define RULE_TABLE "context_trigger_rule"
-#define TEMPLATE_TABLE "context_trigger_template"
-
-#define RULE_TABLE_COLUMNS "enabled INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL, creator_app_id TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '', details TEXT DEFAULT '' NOT NULL"
-#define CREATE_TEMPLATE_TABLE "CREATE TABLE IF NOT EXISTS context_trigger_template (name TEXT DEFAULT '' NOT NULL PRIMARY KEY, operation INTEGER DEFAULT 3 NOT NULL, attributes TEXT DEFAULT '' NOT NULL, options TEXT DEFAULT '' NOT NULL)"
-#define FOREIGN_KEYS_ON "PRAGMA foreign_keys = ON"
-#define DELETE_RULE_STATEMENT "DELETE FROM 'context_trigger_rule' where row_id = "
-#define UPDATE_RULE_ENABLED_STATEMENT "UPDATE context_trigger_rule SET enabled = 1 WHERE row_id = "
-#define UPDATE_RULE_DISABLED_STATEMENT "UPDATE context_trigger_rule SET enabled = 0 WHERE row_id = "
-#define QUERY_RULE_AND_CREATOR_BY_RULE_ID "SELECT details, creator_app_id FROM context_trigger_rule WHERE row_id = "
-
-#define INSTANCE_NAME_DELIMITER "/"
 
 static int string_to_int(std::string str)
 {
@@ -73,16 +62,17 @@ bool ctx::rule_manager::init(ctx::context_manager_impl* ctx_mgr)
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Context monitor initialization failed");
 
 	// Create tables into db (rule, event, condition, action, template)
-	ret = db_manager::create_table(1, RULE_TABLE, RULE_TABLE_COLUMNS, NULL, NULL);
+	std::string q1 = std::string("enabled INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL,")
+			+ "creator_app_id TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '',"
+			+ "details TEXT DEFAULT '' NOT NULL";
+	ret = db_manager::create_table(1, RULE_TABLE, q1.c_str(), NULL, NULL);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create rule table failed");
 
-	ret = db_manager::execute(2, CREATE_TEMPLATE_TABLE, NULL);
+	std::string q2 = std::string("CREATE TABLE IF NOT EXISTS context_trigger_template ")
+			+ "(name TEXT DEFAULT '' NOT NULL PRIMARY KEY, operation INTEGER DEFAULT 3 NOT NULL, "
+			+ "attributes TEXT DEFAULT '' NOT NULL, options TEXT DEFAULT '' NOT NULL)";
+	ret = db_manager::execute(2, q2.c_str(), NULL);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create template table failed");
-
-	// Foreign keys on
-	std::vector<json> record;
-	ret = db_manager::execute_sync(FOREIGN_KEYS_ON, &record);
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Foreign keys on failed");
 
 	apply_templates();
 
@@ -531,8 +521,9 @@ int ctx::rule_manager::remove_rule(int rule_id)
 	bool ret;
 
 	// Delete rule from DB
-	std::string query = DELETE_RULE_STATEMENT;
+	std::string query = "DELETE FROM 'context_trigger_rule' where row_id = ";
 	query += int_to_string(rule_id);
+
 	std::vector<json> record;
 	ret = db_manager::execute_sync(query.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Remove rule from db failed");
@@ -554,7 +545,7 @@ int ctx::rule_manager::enable_rule(int rule_id)
 	trigger_rule* rule;
 
 	// Get rule json by rule id;
-	query = QUERY_RULE_AND_CREATOR_BY_RULE_ID;
+	query = "SELECT details, creator_app_id FROM context_trigger_rule WHERE row_id = ";
 	query += id_str;
 	error = (db_manager::execute_sync(query.c_str(), &rule_record))? ERR_NONE : ERR_OPERATION_FAILED;
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Query rule by rule id failed");
@@ -572,7 +563,7 @@ int ctx::rule_manager::enable_rule(int rule_id)
 	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Failed to start rule%d", rule_id);
 
 	// Update db to set 'enabled'
-	query = UPDATE_RULE_ENABLED_STATEMENT;
+	query = "UPDATE context_trigger_rule SET enabled = 1 WHERE row_id = ";
 	query += id_str;
 	error = (db_manager::execute_sync(query.c_str(), &record))? ERR_NONE : ERR_OPERATION_FAILED;
 	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Update db failed");
@@ -604,7 +595,8 @@ int ctx::rule_manager::disable_rule(int rule_id)
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to stop rule%d", rule_id);
 
 	// Update db to set 'disabled'	// TODO skip while clear uninstalled rule
-	std::string query = UPDATE_RULE_DISABLED_STATEMENT;
+	std::string query = "UPDATE context_trigger_rule SET enabled = 0 WHERE row_id = ";
+
 	query += int_to_string(rule_id);
 	std::vector<json> record;
 	ret = db_manager::execute_sync(query.c_str(), &record);
