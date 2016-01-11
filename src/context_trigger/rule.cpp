@@ -145,8 +145,7 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 		return;
 	}
 
-	// TODO check if event matched first
-
+	IF_FAIL_VOID_TAG(ctx::rule_evaluator::evaluate_rule(statement, result), _E, "Event not matched");
 
 	// Request read conditions
 	for (std::list<context_item_t>::iterator it = condition.begin(); it != condition.end(); ++it) {
@@ -190,7 +189,6 @@ void ctx::trigger_rule::on_context_data_prepared(void)
 	if (ctx::rule_evaluator::evaluate_rule(statement, result)) {
 		ctx::action_manager::trigger_action(action, creator);
 	}
-
 	clear_result();
 }
 
