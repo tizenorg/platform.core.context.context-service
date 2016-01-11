@@ -20,49 +20,49 @@
 #include <list>
 #include <map>
 #include <json.h>
-#include "../context_mgr_impl.h"
-#include "fact.h"
-#include "timer.h"
 
 namespace ctx {
 
-	class json;
-	class context_fact;
 	class fact_request;
+	class context_manager_impl;
+	class context_listener_iface;
+	class trigger_timer;
 
 	class context_monitor {
 	public:
 		context_monitor();
 		~context_monitor();
-		bool init(ctx::context_manager_impl* ctx_mgr, ctx::context_trigger* tr);
+		bool init(ctx::context_manager_impl* ctx_mgr);
 
-		int subscribe(int rule_id, std::string subject, ctx::json event);
-		int unsubscribe(int rule_id, std::string subject, ctx::json option);
+		int subscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener);
+		int unsubscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener);
 		int read(std::string subject, json option, ctx::json* result);
 		bool is_supported(std::string subject);
 		bool is_allowed(const char *client, const char *subject);
 
-		void reply_result(int req_id, int error, json *request_result = NULL, json *fact = NULL);
-		void publish_fact(int req_id, int error, const char *subject, json *option, json *fact);
+		void reply_result(int req_id, int error, json *request_result = NULL, ctx::json *fact = NULL);
+		void publish_fact(int req_id, int error, const char *subject, json *option, ctx::json *fact);
 
 		bool get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
 
 	private:
-		int _subscribe(const char* subject, json* option, bool wait_response);
+		int _subscribe(const char* subject, ctx::json* option, context_listener_iface* listener, bool wait_response);
 		void _unsubscribe(const char *subject, int subscription_id);
-		bool _read(const char *subject, json *option, context_fact& fact);
+//		bool _read(const char *subject, ctx::json *option, context_fact& fact);
 
-		ctx::context_trigger* _trigger;
 		ctx::trigger_timer* timer;
 		static context_manager_impl *_context_mgr;
 
+		typedef std::list<context_listener_iface*> listener_list_t;
+
 		struct subscr_info_s {
 			int sid;
-			int cnt;
 			std::string subject;
 			ctx::json option;
+			listener_list_t listener_list;
+
 			subscr_info_s(int id, const char *subj, ctx::json *opt)
-				: sid(id), cnt(1), subject(subj)
+				: sid(id), subject(subj)
 			{
 				if (opt)
 					option = *opt;
@@ -72,12 +72,12 @@ namespace ctx {
 		typedef std::map<int, subscr_info_s*> subscr_map_t;
 		subscr_map_t subscr_map;
 
-		int find_sub(const char *subject, json *option);
-		bool add_sub(int sid, const char *subject, json *option);
-		void remove_sub(const char *subject, json *option);
+		int find_sub(const char *subject, ctx::json *option);
+		bool add_sub(int sid, const char *subject, ctx::json *option, context_listener_iface* listener);
+		void remove_sub(const char *subject, ctx::json *option);
 		void remove_sub(int sid);
-		int increase_sub(int sid);
-		int decrease_sub(int sid);
+		int add_listener(int sid, context_listener_iface* listener);
+		int remove_listener(int sid, context_listener_iface* listener);
 
 		static bool send_request(fact_request* req);
 	};	/* class context_monitor */

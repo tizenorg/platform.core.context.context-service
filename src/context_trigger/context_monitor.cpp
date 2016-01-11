@@ -15,13 +15,13 @@
  */
 
 #include <types_internal.h>
-#include <json.h>
-#include <context_trigger_types_internal.h>
-#include "trigger.h"
 #include "../access_control/privilege.h"
+#include "../context_mgr_impl.h"
 #include "context_monitor.h"
 #include "fact_request.h"
+#include "timer.h"
 #include "timer_types.h"
+#include "context_listener_iface.h"
 
 static int last_rid;
 static int last_err;
@@ -50,41 +50,38 @@ ctx::context_monitor::~context_monitor()
 	delete timer;
 }
 
-bool ctx::context_monitor::init(ctx::context_manager_impl* ctx_mgr, ctx::context_trigger* tr)
+bool ctx::context_monitor::init(ctx::context_manager_impl* ctx_mgr)
 {
 	_context_mgr = ctx_mgr;
-	_trigger = tr;
 
-	timer = new(std::nothrow) trigger_timer(_trigger);
-	IF_FAIL_RETURN_TAG(timer, false, _E, "Memory allocation failed");
+/*	timer = new(std::nothrow) trigger_timer(_trigger);	TODO
+	IF_FAIL_RETURN_TAG(timer, false, _E, "Memory allocation failed");*/
 
 	return true;
 }
 
-int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json event)
+int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener)
 {
 	if (subject.compare(TIMER_EVENT_SUBJECT) == 0) {
 		// option is event json in case of ON_TIME
-		return timer->subscribe(event);
+//		return timer->subscribe(event);
+		return ERR_NONE;
 	}
 
-	ctx::json eoption = NULL;
-	event.get(NULL, CT_RULE_EVENT_OPTION, &eoption);
-
-	int req_id = _subscribe(subject.c_str(), &eoption, true);
+	int req_id = _subscribe(subject.c_str(), &option, listener, true);
 	IF_FAIL_RETURN_TAG(req_id > 0, ERR_OPERATION_FAILED, _E, "Subscribe event failed");
 	_D(YELLOW("Subscribe event(rule%d). req%d"), rule_id, req_id);
 
 	return ERR_NONE;
 }
 
-int ctx::context_monitor::_subscribe(const char* subject, json* option, bool wait_response)
+int ctx::context_monitor::_subscribe(const char* subject, json* option, context_listener_iface* listener, bool wait_response)
 {
 	IF_FAIL_RETURN(subject, ERR_INVALID_PARAMETER);
 
 	int rid = find_sub(subject, option);
 	if (rid > 0) {
-		increase_sub(rid);
+		add_listener(rid, listener);
 		_D("Duplicated request for %s", subject);
 		return rid;
 	}
@@ -96,7 +93,7 @@ int ctx::context_monitor::_subscribe(const char* subject, json* option, bool wai
 	IF_FAIL_RETURN_TAG(req, -1, _E, "Memory allocation failed");
 
 	send_request(req);	//TODO: what happens if the request actually takes more time than the timeout
-	add_sub(rid, subject, option);
+	add_sub(rid, subject, option, listener);
 
 	IF_FAIL_RETURN_TAG(wait_response, rid, _D, "Ignoring response for %s", subject);
 
@@ -109,22 +106,20 @@ int ctx::context_monitor::_subscribe(const char* subject, json* option, bool wai
 	return rid;
 }
 
-int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::json option)
+int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener)
 {
 	if (subject.compare(TIMER_EVENT_SUBJECT) == 0) {
-		return timer->unsubscribe(option);
+//		return timer->unsubscribe(option);
+		return ERR_NONE;
 	}
 
-	ctx::json eoption = NULL;
-	option.get(NULL, CT_RULE_EVENT_OPTION, &eoption);
-
-	int rid = find_sub(subject.c_str(), &eoption);
+	int rid = find_sub(subject.c_str(), &option);
 	if (rid < 0) {
 		_D("Invalid unsubscribe request");
 		return ERR_INVALID_PARAMETER;
 	}
 
-	if (decrease_sub(rid) <= 0) {
+	if (remove_listener(rid, listener) <= 0) {
 		_unsubscribe(subject.c_str(), rid);
 	}
 	_D(YELLOW("Unsubscribe event(rule%d). req%d"), rule_id, rid);
@@ -149,22 +144,23 @@ bool ctx::context_monitor::send_request(fact_request* req)
 
 int ctx::context_monitor::read(std::string subject, json option, ctx::json* result)
 {
-	bool ret;
 	if (subject.compare(TIMER_CONDITION_SUBJECT) == 0) {
-		return timer->read(result);
+//		return timer->read(result);	TODO
+		return ERR_NONE;
 	}
 
-	context_fact fact;
-	ret = _read(subject.c_str(), &option, fact);
+/*	context_fact fact;
+	bool ret = _read(subject.c_str(), &option, fact);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Read fact failed");
 
 	*result = fact.get_data();
-
+*/
 	return ERR_NONE;
 }
 
-bool ctx::context_monitor::_read(const char* subject, json* option, context_fact& fact)
+/*bool ctx::context_monitor::_read(const char* subject, json* option, context_fact& fact)
 {
+	// TODO implement read async
 	IF_FAIL_RETURN(subject, false);
 
 	int rid = generate_req_id();
@@ -187,7 +183,7 @@ bool ctx::context_monitor::_read(const char* subject, json* option, context_fact
 
 	return true;
 }
-
+*/
 bool ctx::context_monitor::is_supported(std::string subject)
 {
 	if (subject.compare(TIMER_EVENT_SUBJECT) == 0
@@ -202,8 +198,8 @@ bool ctx::context_monitor::is_allowed(const char *client, const char *subject)
 {
 	if (STR_EQ(subject, TIMER_EVENT_SUBJECT))
 		return true;
-	//TODO: re-implement above in the proper 3.0 style
-	//	return privilege_manager::is_allowed(client, PRIV_ALARM_SET);
+		//TODO: re-implement above in the proper 3.0 style
+		//		return privilege_manager::is_allowed(client, PRIV_ALARM_SET);
 
 	if (STR_EQ(subject, TIMER_CONDITION_SUBJECT))
 		return true;
@@ -220,6 +216,7 @@ bool ctx::context_monitor::get_fact_definition(std::string &subject, int &operat
 
 int ctx::context_monitor::find_sub(const char* subject, json* option)
 {
+	// @return	request id
 	json opt_j;
 	if (option) {
 		opt_j = *option;
@@ -234,13 +231,13 @@ int ctx::context_monitor::find_sub(const char* subject, json* option)
 	return -1;
 }
 
-bool ctx::context_monitor::add_sub(int sid, const char* subject, json* option)
+bool ctx::context_monitor::add_sub(int sid, const char* subject, json* option, context_listener_iface* listener)
 {
 	subscr_info_s *info = new(std::nothrow) subscr_info_s(sid, subject, option);
 	IF_FAIL_RETURN_TAG(info, false, _E, "Memory allocation failed");
+	info->listener_list.push_back(listener);
 
 	subscr_map[sid] = info;
-
 	return true;
 }
 
@@ -262,29 +259,41 @@ void ctx::context_monitor::remove_sub(const char* subject, json* option)
 
 void ctx::context_monitor::remove_sub(int sid)
 {
+	subscr_info_s* info = subscr_map[sid];
+	info->listener_list.clear();
+
+	delete info;
 	subscr_map.erase(sid);
 
 	return;
 }
 
-int ctx::context_monitor::increase_sub(int sid)
+int ctx::context_monitor::add_listener(int sid, context_listener_iface* listener)
 {
+	// @return	number of listeners for the corresponding sid
 	subscr_map_t::iterator it = subscr_map.find(sid);
 
 	subscr_info_s* info = it->second;
-	info->cnt++;
+	info->listener_list.push_back(listener);
 
-	return info->cnt;
+	return info->listener_list.size();
 }
 
-int ctx::context_monitor::decrease_sub(int sid)
+int ctx::context_monitor::remove_listener(int sid, context_listener_iface* listener)
 {
+	// @return	number of listeners for the corresponding sid
 	subscr_map_t::iterator it = subscr_map.find(sid);
 
 	subscr_info_s* info = it->second;
-	info->cnt--;
 
-	return info->cnt;
+	for (listener_list_t::iterator it2 = info->listener_list.begin(); it2 != info->listener_list.end(); ++it2) {
+		if (*it2 == listener) {
+			info->listener_list.erase(it2);
+			break;
+		}
+	}
+
+	return info->listener_list.size();
 }
 
 void ctx::context_monitor::reply_result(int req_id, int error, json* request_result, json* fact)
@@ -299,8 +308,12 @@ void ctx::context_monitor::publish_fact(int req_id, int error, const char* subje
 {
 	_D(YELLOW("Fact received: subject(%s), option(%s), fact(%s)"), subject, option->str().c_str(), fact->str().c_str());
 
-	// TODO: deliver fact to each rule instance
+	subscr_map_t::iterator it = subscr_map.find(req_id);
+	IF_FAIL_VOID_TAG(it != subscr_map.end(), _E, "Request id not found");
 
-	// TODO Remove
-	_trigger->push_fact(req_id, error, subject, *option, *fact);
+	subscr_info_s* info = it->second;
+	for (listener_list_t::iterator it2 = info->listener_list.begin(); it2 != info->listener_list.end(); ++it2) {
+		(*it2)->on_event_received(subject, *option, *fact);
+	}
+
 }

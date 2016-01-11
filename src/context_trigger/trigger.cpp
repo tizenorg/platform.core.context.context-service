@@ -84,29 +84,12 @@ void ctx::context_trigger::process_request(ctx::request_info* request)
 	}
 }
 
-// TODO remove
-void ctx::context_trigger::push_fact(int req_id, int error, const char* subject, ctx::json& option, ctx::json& data)
-{
-	context_fact *fact = new(std::nothrow) context_fact(req_id, error, subject, option, data);
-	IF_FAIL_VOID_TAG(fact, _E, "Memory allocation failed");
-
-	process_fact(fact);
-
-}
-
-// TODO: remove
-void ctx::context_trigger::process_fact(ctx::context_fact* fact)
-{
-	// Process the context fact.
-	rule_mgr->on_event_received(fact->get_subject(), fact->get_option(), fact->get_data());
-}
-
 void ctx::context_trigger::process_initialize(ctx::context_manager_impl* mgr)
 {
 	rule_mgr = new(std::nothrow) rule_manager();
 	IF_FAIL_VOID_TAG(rule_mgr, _E, "Memory allocation failed");
 
-	bool ret = rule_mgr->init(this, mgr);
+	bool ret = rule_mgr->init(mgr);
 	if (!ret) {
 		_E("Context trigger initialization failed.");
 		raise(SIGTERM);

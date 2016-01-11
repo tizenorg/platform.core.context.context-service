@@ -34,11 +34,9 @@ namespace ctx {
 			void release();
 
 			bool assign_request(ctx::request_info* request);
-			void push_fact(int req_id, int error, const char* subject, ctx::json& option, ctx::json& data);	// TODO remove
 
 		private:
 			void process_request(ctx::request_info* request);
-			void process_fact(ctx::context_fact* fact);
 			void process_initialize(ctx::context_manager_impl* mgr);
 
 			void add_rule(ctx::request_info* request);

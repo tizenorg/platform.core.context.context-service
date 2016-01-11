@@ -18,19 +18,22 @@
 #define __RULE_MANAGER_H__
 
 #include <set>
-#include "clips_handler.h"
+#include <map>
 #include "context_monitor.h"
 
 namespace ctx {
 
 	class json;
 	class context_trigger;
+	class context_manager_impl;
+	class context_monitor;
+	class trigger_rule;
 
 	class rule_manager {
 		public:
 			rule_manager();
 			~rule_manager();
-			bool init(ctx::context_trigger* tr, ctx::context_manager_impl* ctx_mgr);
+			bool init(ctx::context_manager_impl* ctx_mgr);
 			int add_rule(std::string creator, const char* app_id, ctx::json rule, ctx::json* rule_id);
 			int remove_rule(int rule_id);
 			int enable_rule(int rule_id);
@@ -40,12 +43,8 @@ namespace ctx {
 			int check_rule(std::string creator, int rule_id);
 			bool is_rule_enabled(int rule_id);
 
-			void on_event_received(std::string item, ctx::json option, ctx::json data);
-			void on_rule_triggered(int rule_id);
-
 		private:
-			clips_handler* clips_h;
-			context_monitor c_monitor;
+			ctx::context_monitor ctx_monitor;
 
 			void apply_templates(void);
 			bool reenable_rule(void);
@@ -54,17 +53,14 @@ namespace ctx {
 			bool rule_data_arr_elem_equals(ctx::json& lelem, ctx::json& relem);
 			bool rule_item_equals(ctx::json& litem, ctx::json& ritem);
 			bool rule_equals(ctx::json& lrule, ctx::json& rrule);
-			std::string get_instance_name(std::string name, ctx::json& condition);
-			void make_condition_option_based_on_event_data(ctx::json& ctemplate, ctx::json& edata, ctx::json* coption);
 			int get_uninstalled_app(void);
 			bool is_uninstalled_package(std::string app_id);
 			int clear_rule_of_uninstalled_app(bool is_init = false);
-			int disable_uninstalled_rule(ctx::json& rule_info);
-			bool initialize_clips(void);
-			void destroy_clips(void);
 
-			std::map<std::string, int> cond_cnt_map; // <condition instance name, count>
 			std::set<std::string> uninstalled_apps;
+
+			typedef std::map<int, trigger_rule*> rule_map_t;
+			rule_map_t rule_map;
    };	/* class rule_manager */
 
 }	/* namespace ctx */

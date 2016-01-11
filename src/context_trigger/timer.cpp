@@ -289,7 +289,7 @@ void ctx::trigger_timer::on_timer_expired(int hour, int min, int day_of_week)
 	result.set(NULL, TIMER_RESPONSE_KEY_DAY_OF_WEEK, convert_day_of_week_to_string(day_of_week));
 
 	ctx::json dummy = NULL;
-	trigger->push_fact(TIMER_EVENT_REQ_ID, ERR_NONE, TIMER_EVENT_SUBJECT, dummy, result);
+//	trigger->push_fact(TIMER_EVENT_REQ_ID, ERR_NONE, TIMER_EVENT_SUBJECT, dummy, result);	// TODO deliver event
 }
 
 int ctx::trigger_timer::subscribe(ctx::json option)
