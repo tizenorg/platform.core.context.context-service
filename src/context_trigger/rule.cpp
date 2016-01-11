@@ -28,9 +28,8 @@ ctx::trigger_rule::trigger_rule()
 {
 }
 
-ctx::trigger_rule::trigger_rule(int i, ctx::json& d, const char* cr, context_monitor* cm, rule_manager* rm)
+ctx::trigger_rule::trigger_rule(int i, ctx::json& d, const char* cr, rule_manager* rm)
 	: result(EMPTY_JSON_OBJECT)
-	, ctx_monitor(cm)
 	, id(i)
 	, creator(cr)
 {
@@ -73,7 +72,7 @@ ctx::trigger_rule::~trigger_rule()
 int ctx::trigger_rule::start(void)
 {
 	// Subscribe event
-	int error = ctx_monitor->subscribe(id, event->name, event->option, this);
+	int error = ctx::context_monitor::get_instance()->subscribe(id, event->name, event->option, this);
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to start rule%d", id);
 
 	return error;
@@ -82,7 +81,7 @@ int ctx::trigger_rule::start(void)
 int ctx::trigger_rule::stop(void)
 {
 	// Unsubscribe event
-	int error = ctx_monitor->unsubscribe(id, event->name, event->option, this);
+	int error = ctx::context_monitor::get_instance()->unsubscribe(id, event->name, event->option, this);
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to stop rule%d", id);
 
 	return error;
@@ -157,7 +156,7 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 			return;
 		}
 
-		int error = ctx_monitor->read((*it)->name.c_str(), cond_option, this);
+		int error = ctx::context_monitor::get_instance()->read((*it)->name.c_str(), cond_option, this);
 		IF_FAIL_VOID_TAG(error == ERR_NONE, _E, "Failed to read condition");
 	}
 

@@ -29,9 +29,9 @@ namespace ctx {
 
 	class context_monitor {
 	public:
-		context_monitor();
-		~context_monitor();
-		bool init(ctx::context_manager_impl* ctx_mgr);
+		static context_monitor* get_instance();
+		static void set_context_manager(ctx::context_manager_impl* ctx_mgr);
+		static void destroy();
 
 		int subscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener);
 		int unsubscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener);
@@ -46,11 +46,16 @@ namespace ctx {
 		bool get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
 
 	private:
+		context_monitor();
+		context_monitor(const context_monitor& other);
+		~context_monitor();
+
+		static context_monitor *_instance;
+		static context_manager_impl *_context_mgr;
+
 		int _subscribe(const char* subject, ctx::json* option, context_listener_iface* listener);
 		void _unsubscribe(const char *subject, int subscription_id);
 		int _read(const char *subject, ctx::json *option, context_listener_iface* listener);
-
-		static context_manager_impl *_context_mgr;
 
 		typedef std::list<context_listener_iface*> listener_list_t;
 

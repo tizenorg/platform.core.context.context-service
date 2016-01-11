@@ -53,13 +53,10 @@ ctx::rule_manager::~rule_manager()
 {
 }
 
-bool ctx::rule_manager::init(ctx::context_manager_impl* ctx_mgr)
+bool ctx::rule_manager::init()
 {
 	bool ret;
 	int error;
-
-	ret = ctx_monitor.init(ctx_mgr);
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Context monitor initialization failed");
 
 	// Create tables into db (rule, event, condition, action, template)
 	std::string q1 = std::string("enabled INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL,")
@@ -95,7 +92,10 @@ void ctx::rule_manager::apply_templates(void)
 	std::string q_update;
 	std::string q_insert = "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options) VALUES";
 
-	while (ctx_monitor.get_fact_definition(subject, operation, attributes, options)) {
+	ctx::context_monitor* ctx_monitor = ctx::context_monitor::get_instance();
+	IF_FAIL_VOID_TAG(ctx_monitor, _E, "Memory allocation failed");
+
+	while (ctx_monitor->get_fact_definition(subject, operation, attributes, options)) {
 		_D("Subject: %s, Ops: %d", subject.c_str(), operation);
 		_J("Attr", attributes);
 		_J("Opt", options);
@@ -110,8 +110,7 @@ void ctx::rule_manager::apply_templates(void)
 	q_insert += ";";
 
 	bool ret = db_manager::execute(5, q_update.c_str(), NULL);
-	if (!ret)
-		_E("Update item definition failed");
+	IF_FAIL_VOID_TAG(ret, _E, "Update item definition failed");
 
 	ret = db_manager::execute(6, q_insert.c_str(), NULL);
 	IF_FAIL_VOID_TAG(ret, _E, "Insert item definition failed");
@@ -447,10 +446,13 @@ int ctx::rule_manager::verify_rule(ctx::json& rule, const char* creator)
 	std::string e_name;
 	rule.get(CT_RULE_DETAILS "." CT_RULE_EVENT, CT_RULE_EVENT_ITEM, &e_name);
 
-	IF_FAIL_RETURN_TAG(ctx_monitor.is_supported(e_name), ERR_NOT_SUPPORTED, _I, "Event(%s) is not supported", e_name.c_str());
+	ctx::context_monitor* ctx_monitor = ctx::context_monitor::get_instance();
+	IF_FAIL_RETURN_TAG(ctx_monitor, ERR_OUT_OF_MEMORY, _E, "Memory allocation failed");
+
+	IF_FAIL_RETURN_TAG(ctx_monitor->is_supported(e_name), ERR_NOT_SUPPORTED, _I, "Event(%s) is not supported", e_name.c_str());
 
 	if (creator) {
-		if (!ctx_monitor.is_allowed(creator, e_name.c_str())) {
+		if (!ctx_monitor->is_allowed(creator, e_name.c_str())) {
 			_W("Permission denied for '%s'", e_name.c_str());
 			return ERR_PERMISSION_DENIED;
 		}
@@ -461,9 +463,9 @@ int ctx::rule_manager::verify_rule(ctx::json& rule, const char* creator)
 		std::string c_name;
 		it.get(NULL, CT_RULE_CONDITION_ITEM, &c_name);
 
-		IF_FAIL_RETURN_TAG(ctx_monitor.is_supported(c_name), ERR_NOT_SUPPORTED, _I, "Condition(%s) is not supported", c_name.c_str());
+		IF_FAIL_RETURN_TAG(ctx_monitor->is_supported(c_name), ERR_NOT_SUPPORTED, _I, "Condition(%s) is not supported", c_name.c_str());
 
-		if (!ctx_monitor.is_allowed(creator, c_name.c_str())) {
+		if (!ctx_monitor->is_allowed(creator, c_name.c_str())) {
 			_W("Permission denied for '%s'", c_name.c_str());
 			return ERR_PERMISSION_DENIED;
 		}
@@ -557,7 +559,7 @@ int ctx::rule_manager::enable_rule(int rule_id)
 	rule_record[0].get(NULL, "creator_app_id", &creator_app_id);
 
 	// Create a rule instance
-	rule = new(std::nothrow) trigger_rule(rule_id, jrule, creator_app_id.c_str(), &ctx_monitor, this);
+	rule = new(std::nothrow) trigger_rule(rule_id, jrule, creator_app_id.c_str(), this);
 	IF_FAIL_RETURN_TAG(rule, ERR_OUT_OF_MEMORY, _E, "Failed to create rule instance");
 
 	// Start the rule

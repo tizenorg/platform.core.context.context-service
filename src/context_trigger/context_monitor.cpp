@@ -24,6 +24,7 @@
 static int last_rid;
 static int last_err;
 
+ctx::context_monitor *ctx::context_monitor::_instance = NULL;
 ctx::context_manager_impl *ctx::context_monitor::_context_mgr = NULL;
 
 static int generate_req_id()
@@ -46,11 +47,29 @@ ctx::context_monitor::~context_monitor()
 {
 }
 
-bool ctx::context_monitor::init(ctx::context_manager_impl* ctx_mgr)
+void ctx::context_monitor::set_context_manager(ctx::context_manager_impl* ctx_mgr)
 {
 	_context_mgr = ctx_mgr;
+}
 
-	return true;
+ctx::context_monitor* ctx::context_monitor::get_instance()
+{
+	IF_FAIL_RETURN_TAG(_context_mgr, NULL, _E, "Context manager is needed");
+
+	IF_FAIL_RETURN(!_instance, _instance);
+
+	_instance = new(std::nothrow) context_monitor();
+	IF_FAIL_RETURN_TAG(_instance, NULL, _E, "Memory alllocation failed");
+
+	return _instance;
+}
+
+void ctx::context_monitor::destroy()
+{
+	if (_instance) {
+		delete _instance;
+		_instance = NULL;
+	}
 }
 
 int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener)

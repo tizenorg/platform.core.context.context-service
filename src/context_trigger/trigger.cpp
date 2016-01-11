@@ -18,6 +18,7 @@
 #include <context_trigger_types_internal.h>
 #include "trigger.h"
 #include "rule_manager.h"
+#include "context_monitor.h"
 
 ctx::context_trigger::context_trigger()
 {
@@ -42,9 +43,10 @@ void ctx::context_trigger::release()
 	// Release the occupied resources.
 	// This function is called from the main thread during the service termination process.
 	_D("Context Trigger Release");
-
 	delete rule_mgr;
 	rule_mgr = NULL;
+
+	ctx::context_monitor::destroy();
 }
 
 bool ctx::context_trigger::assign_request(ctx::request_info* request)
@@ -86,10 +88,12 @@ void ctx::context_trigger::process_request(ctx::request_info* request)
 
 void ctx::context_trigger::process_initialize(ctx::context_manager_impl* mgr)
 {
+	ctx::context_monitor::set_context_manager(mgr);
+
 	rule_mgr = new(std::nothrow) rule_manager();
 	IF_FAIL_VOID_TAG(rule_mgr, _E, "Memory allocation failed");
 
-	bool ret = rule_mgr->init(mgr);
+	bool ret = rule_mgr->init();
 	if (!ret) {
 		_E("Context trigger initialization failed.");
 		raise(SIGTERM);

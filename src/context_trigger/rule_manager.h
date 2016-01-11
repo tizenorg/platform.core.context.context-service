@@ -19,21 +19,19 @@
 
 #include <set>
 #include <map>
-#include "context_monitor.h"
 
 namespace ctx {
 
 	class json;
 	class context_trigger;
 	class context_manager_impl;
-	class context_monitor;
 	class trigger_rule;
 
 	class rule_manager {
 		public:
 			rule_manager();
 			~rule_manager();
-			bool init(ctx::context_manager_impl* ctx_mgr);
+			bool init();
 			int add_rule(std::string creator, const char* app_id, ctx::json rule, ctx::json* rule_id);
 			int remove_rule(int rule_id);
 			int enable_rule(int rule_id);
@@ -46,8 +44,6 @@ namespace ctx {
 			static bool is_uninstalled_package(std::string app_id);
 
 		private:
-			ctx::context_monitor ctx_monitor;
-
 			void apply_templates(void);
 			bool reenable_rule(void);
 			int verify_rule(ctx::json& rule, const char* app_id);

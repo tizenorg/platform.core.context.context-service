@@ -23,7 +23,6 @@
 
 namespace ctx {
 
-	class context_monitor;
 	class rule_manager;
 
 	class trigger_rule : public context_listener_iface {
@@ -49,7 +48,6 @@ namespace ctx {
 			ctx::json action;
 			ctx::json result;
 
-			context_monitor* ctx_monitor;
 			static rule_manager* rule_mgr;
 
 			void clear_result(void);
@@ -63,7 +61,7 @@ namespace ctx {
 			std::string creator;
 
 			trigger_rule();
-			trigger_rule(int i, ctx::json& d, const char* c, context_monitor* cm, rule_manager* rm);
+			trigger_rule(int i, ctx::json& d, const char* c, rule_manager* rm);
 			~trigger_rule();
 
 			int start(void);
