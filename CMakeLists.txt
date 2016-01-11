@@ -24,7 +24,6 @@ SET(DEPS
 	cynara-creds-gdbus
 	cynara-client
 	cynara-session
-	clips
 	context-common
 	device-context-provider
 	statistics-context-provider
