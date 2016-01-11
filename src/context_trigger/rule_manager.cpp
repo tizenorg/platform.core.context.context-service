@@ -22,6 +22,7 @@
 #include "rule_manager.h"
 #include "context_monitor.h"
 #include "rule.h"
+#include "timer.h"
 
 #define RULE_TABLE "context_trigger_rule"
 #define TEMPLATE_TABLE "context_trigger_template"
@@ -509,6 +510,10 @@ int ctx::rule_manager::add_rule(std::string creator, const char* app_id, ctx::js
 		r_record.set(NULL, "creator_app_id", app_id);
 	}
 	r_record.set(NULL, "description", description);
+
+	// Handle timer event
+	ctx::trigger_timer::handle_timer_event(details);
+
 	r_record.set(NULL, "details", details.str());
 	ret = db_manager::insert_sync(RULE_TABLE, r_record, &rid);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Insert rule to db failed");

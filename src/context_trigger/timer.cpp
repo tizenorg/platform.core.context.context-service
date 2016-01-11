@@ -22,8 +22,8 @@
 #include <context_mgr.h>
 #include <context_trigger_types_internal.h>
 #include "timer.h"
-#include "trigger.h"
 #include "timer_types.h"
+#include "context_listener_iface.h"
 
 #define MAX_HOUR	24
 #define MAX_DAY		7
@@ -34,7 +34,6 @@ static GMutex timer_mutex;
 static int convert_string_to_day_of_week(std::string d)
 {
 	int day = 0;
-	d = d.substr(1, d.length() - 2);
 
 	if (d.compare(TIMER_SUN) == 0) {
 		day = SUN;
@@ -67,12 +66,12 @@ static int arrange_day_of_week(ctx::json day_info)
 
 	std::string key_op;
 	if (!day_info.get(NULL, CT_RULE_DATA_KEY_OPERATOR, &key_op)) {
-		result = convert_string_to_day_of_week("\"" TIMER_EVERYDAY "\"");
+		result = convert_string_to_day_of_week(TIMER_EVERYDAY);
 		return result;
 	}
 
 	if (key_op.compare("and") == 0) {
-		result = convert_string_to_day_of_week("\"" TIMER_EVERYDAY "\"");
+		result = convert_string_to_day_of_week(TIMER_EVERYDAY);
 	}
 
 	std::string tmp_d;
@@ -82,7 +81,7 @@ static int arrange_day_of_week(ctx::json day_info)
 		day_info.get_array_elem(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, i, &op);
 
 		if (op.compare("neq") == 0) {
-			dow = convert_string_to_day_of_week("\"" TIMER_EVERYDAY "\"") & ~dow;
+			dow = convert_string_to_day_of_week(TIMER_EVERYDAY) & ~dow;
 		}
 
 		if (key_op.compare("and") == 0) {
@@ -130,8 +129,7 @@ ctx::trigger_timer::ref_count_array_s::ref_count_array_s()
 	memset(count, 0, sizeof(int) * MAX_DAY);
 }
 
-ctx::trigger_timer::trigger_timer(ctx::context_trigger* tr)
-	: trigger(tr)
+ctx::trigger_timer::trigger_timer()
 {
 	submit_trigger_item();
 }
@@ -289,10 +287,13 @@ void ctx::trigger_timer::on_timer_expired(int hour, int min, int day_of_week)
 	result.set(NULL, TIMER_RESPONSE_KEY_DAY_OF_WEEK, convert_day_of_week_to_string(day_of_week));
 
 	ctx::json dummy = NULL;
-//	trigger->push_fact(TIMER_EVENT_REQ_ID, ERR_NONE, TIMER_EVENT_SUBJECT, dummy, result);	// TODO deliver event
+
+	for (listener_list_t::iterator it = listener_list.begin(); it != listener_list.end(); ++it) {
+		(*it)->on_event_received(TIMER_EVENT_SUBJECT, EMPTY_JSON_OBJECT, result);
+	}
 }
 
-int ctx::trigger_timer::subscribe(ctx::json option)
+int ctx::trigger_timer::subscribe(ctx::json option, context_listener_iface* listener)
 {
 	ctx::json day_info;
 	ctx::json time_info;
@@ -318,10 +319,12 @@ int ctx::trigger_timer::subscribe(ctx::json option)
 		add(time, dow);
 	}
 
+	listener_list.push_back(listener);
+
 	return ERR_NONE;
 }
 
-int ctx::trigger_timer::unsubscribe(ctx::json option)
+int ctx::trigger_timer::unsubscribe(ctx::json option, context_listener_iface* listener)
 {
 	ctx::json day_info;
 	ctx::json time_info;
@@ -347,10 +350,12 @@ int ctx::trigger_timer::unsubscribe(ctx::json option)
 		remove(time, dow);
 	}
 
+	listener_list.remove(listener);
+
 	return ERR_NONE;
 }
 
-int ctx::trigger_timer::read(ctx::json* result)
+int ctx::trigger_timer::read(context_listener_iface* listener)
 {
 	time_t rawtime;
 	struct tm timeinfo;
@@ -363,9 +368,14 @@ int ctx::trigger_timer::read(ctx::json* result)
 	int minute_of_day = timeinfo.tm_hour * 60 + timeinfo.tm_min;
 	std::string day_of_week = convert_day_of_week_to_string(0x01 << timeinfo.tm_wday);
 
-	(*result).set(NULL, TIMER_RESPONSE_KEY_DAY_OF_MONTH, day_of_month);
-	(*result).set(NULL, TIMER_RESPONSE_KEY_DAY_OF_WEEK, day_of_week);
-	(*result).set(NULL, TIMER_RESPONSE_KEY_TIME_OF_DAY, minute_of_day);
+	ctx::json result;
+	result.set(NULL, TIMER_RESPONSE_KEY_DAY_OF_MONTH, day_of_month);
+	result.set(NULL, TIMER_RESPONSE_KEY_DAY_OF_WEEK, day_of_week);
+	result.set(NULL, TIMER_RESPONSE_KEY_TIME_OF_DAY, minute_of_day);
+
+	_I("Time: %02d:%02d, Day of Week: %s, Day of Month: %d", timeinfo.tm_hour, timeinfo.tm_min, day_of_week.c_str(), day_of_month);
+
+	listener->on_condition_received(TIMER_CONDITION_SUBJECT, EMPTY_JSON_OBJECT, result);
 
 	return ERR_NONE;
 }
@@ -373,4 +383,44 @@ int ctx::trigger_timer::read(ctx::json* result)
 bool ctx::trigger_timer::empty()
 {
 	return timer_state_map.empty();
+}
+
+void ctx::trigger_timer::handle_timer_event(ctx::json& rule)
+{
+	ctx::json event;
+	rule.get(NULL, CT_RULE_EVENT, &event);
+
+	std::string e_name;
+	event.get(NULL, CT_RULE_EVENT_ITEM, &e_name);
+	if (e_name.compare(TIMER_EVENT_SUBJECT) != 0 ) {
+		return;
+	}
+
+	ctx::json day_info;
+	ctx::json it;
+	int dow;
+	for (int i = 0; event.get_array_elem(NULL, CT_RULE_DATA_ARR, i, &it); i++){
+		std::string key;
+		it.get(NULL, CT_RULE_DATA_KEY, &key);
+
+		if (key.compare(TIMER_RESPONSE_KEY_DAY_OF_WEEK) == 0) {
+			dow = arrange_day_of_week(it);
+
+			day_info.set(NULL, CT_RULE_DATA_KEY, TIMER_RESPONSE_KEY_DAY_OF_WEEK);
+			day_info.set(NULL, CT_RULE_DATA_KEY_OPERATOR, "or");
+
+			for (int j = 0; j < MAX_DAY; j++) {
+				int d = 0x01 << j;
+				if (dow & d) {
+					std::string day = convert_day_of_week_to_string(d);
+					day_info.array_append(NULL, CT_RULE_DATA_VALUE_ARR, day);
+					day_info.array_append(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, "eq");
+				}
+			}
+			event.array_set_at(NULL, CT_RULE_DATA_ARR, i, day_info);
+		}
+
+	}
+
+	rule.set(NULL, CT_RULE_EVENT, event);
 }

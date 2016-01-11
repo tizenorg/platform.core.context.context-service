@@ -25,7 +25,7 @@
 
 namespace ctx {
 
-	class context_trigger;
+	class context_listener_iface;
 
 	class trigger_timer : public timer_listener_iface {
 	private:
@@ -42,10 +42,11 @@ namespace ctx {
 
 		typedef std::map<int, ref_count_array_s> ref_count_map_t;
 		typedef std::map<int, timer_state_s> timer_state_map_t;
+		typedef std::list<context_listener_iface*> listener_list_t;
 
-		ctx::context_trigger *trigger;
 		ref_count_map_t ref_count_map;
 		timer_state_map_t timer_state_map;
+		listener_list_t listener_list;
 
 		bool add(int minute, int day_of_week);
 		bool remove(int minute, int day_of_week);
@@ -60,13 +61,15 @@ namespace ctx {
 		bool on_timer_expired(int timer_id, void *user_data);
 
 	public:
-		trigger_timer(ctx::context_trigger *tr);
+		trigger_timer();
 		~trigger_timer();
 		static void submit_trigger_item();
 
-		int subscribe(ctx::json option);
-		int unsubscribe(ctx::json option);
-		int read(ctx::json* result);
+		int subscribe(ctx::json option, context_listener_iface* listener);
+		int unsubscribe(ctx::json option, context_listener_iface* listener);
+		int read(context_listener_iface* listener);
+
+		static void handle_timer_event(ctx::json& rule);
 	};
 
 }	/* namespace ctx */

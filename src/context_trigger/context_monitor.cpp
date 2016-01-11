@@ -53,8 +53,8 @@ bool ctx::context_monitor::init(ctx::context_manager_impl* ctx_mgr)
 {
 	_context_mgr = ctx_mgr;
 
-/*	timer = new(std::nothrow) trigger_timer(_trigger);	TODO
-	IF_FAIL_RETURN_TAG(timer, false, _E, "Memory allocation failed");*/
+	timer = new(std::nothrow) trigger_timer();
+	IF_FAIL_RETURN_TAG(timer, false, _E, "Memory allocation failed");
 
 	return true;
 }
@@ -63,8 +63,7 @@ int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json 
 {
 	if (subject.compare(TIMER_EVENT_SUBJECT) == 0) {
 		// option is event json in case of ON_TIME
-//		return timer->subscribe(event);
-		return ERR_NONE;
+		return timer->subscribe(option, listener);
 	}
 
 	int req_id = _subscribe(subject.c_str(), &option, listener);
@@ -106,8 +105,7 @@ int ctx::context_monitor::_subscribe(const char* subject, json* option, context_
 int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener)
 {
 	if (subject.compare(TIMER_EVENT_SUBJECT) == 0) {
-//		return timer->unsubscribe(option);
-		return ERR_NONE;
+		return timer->unsubscribe(option, listener);
 	}
 
 	int rid = find_sub(REQ_SUBSCRIBE, subject.c_str(), &option);
@@ -136,8 +134,7 @@ void ctx::context_monitor::_unsubscribe(const char *subject, int subscription_id
 int ctx::context_monitor::read(std::string subject, json option, context_listener_iface* listener)
 {
 	if (subject.compare(TIMER_CONDITION_SUBJECT) == 0) {
-//		return timer->read(result);	TODO
-		return ERR_NONE;
+		return timer->read(listener);
 	}
 
 	int req_id = _read(subject.c_str(), &option, listener);
