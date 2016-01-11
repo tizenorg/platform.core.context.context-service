@@ -19,7 +19,6 @@
 #include "action_manager.h"
 #include "rule_evaluator.h"
 #include "context_monitor.h"
-#include "timer_types.h"
 #include "context_fact_types.h"
 #include "rule_manager.h"
 
@@ -73,13 +72,8 @@ ctx::trigger_rule::~trigger_rule()
 
 int ctx::trigger_rule::start(void)
 {
-	ctx::json time_option = EMPTY_JSON_OBJECT;
-	if (event->name.compare(TIMER_EVENT_SUBJECT) == 0) {
-		statement.get(NULL, CT_RULE_EVENT, &time_option);
-	}
-
 	// Subscribe event
-	int error = ctx_monitor->subscribe(id, event->name, (time_option == EMPTY_JSON_OBJECT)? event->option : time_option, this);
+	int error = ctx_monitor->subscribe(id, event->name, event->option, this);
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to start rule%d", id);
 
 	return error;
@@ -87,13 +81,8 @@ int ctx::trigger_rule::start(void)
 
 int ctx::trigger_rule::stop(void)
 {
-	ctx::json time_option = EMPTY_JSON_OBJECT;
-	if (event->name.compare(TIMER_EVENT_SUBJECT) == 0) {
-		statement.get(NULL, CT_RULE_EVENT, &time_option);
-	}
-
 	// Unsubscribe event
-	int error = ctx_monitor->unsubscribe(id, event->name, (time_option == EMPTY_JSON_OBJECT)? event->option : time_option, this);
+	int error = ctx_monitor->unsubscribe(id, event->name, event->option, this);
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to stop rule%d", id);
 
 	return error;

@@ -19,8 +19,6 @@
 #include "../context_mgr_impl.h"
 #include "context_monitor.h"
 #include "fact_request.h"
-#include "timer.h"
-#include "timer_types.h"
 #include "context_listener_iface.h"
 
 static int last_rid;
@@ -46,26 +44,17 @@ ctx::context_monitor::context_monitor()
 
 ctx::context_monitor::~context_monitor()
 {
-	delete timer;
 }
 
 bool ctx::context_monitor::init(ctx::context_manager_impl* ctx_mgr)
 {
 	_context_mgr = ctx_mgr;
 
-	timer = new(std::nothrow) trigger_timer();
-	IF_FAIL_RETURN_TAG(timer, false, _E, "Memory allocation failed");
-
 	return true;
 }
 
 int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener)
 {
-	if (subject.compare(TIMER_EVENT_SUBJECT) == 0) {
-		// option is event json in case of ON_TIME
-		return timer->subscribe(option, listener);
-	}
-
 	int req_id = _subscribe(subject.c_str(), &option, listener);
 	IF_FAIL_RETURN_TAG(req_id > 0, ERR_OPERATION_FAILED, _E, "Subscribe event failed");
 	_D(YELLOW("Subscribe event(rule%d). req%d"), rule_id, req_id);
@@ -104,10 +93,6 @@ int ctx::context_monitor::_subscribe(const char* subject, json* option, context_
 
 int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener)
 {
-	if (subject.compare(TIMER_EVENT_SUBJECT) == 0) {
-		return timer->unsubscribe(option, listener);
-	}
-
 	int rid = find_sub(REQ_SUBSCRIBE, subject.c_str(), &option);
 	if (rid < 0) {
 		_D("Invalid unsubscribe request");
@@ -133,10 +118,6 @@ void ctx::context_monitor::_unsubscribe(const char *subject, int subscription_id
 
 int ctx::context_monitor::read(std::string subject, json option, context_listener_iface* listener)
 {
-	if (subject.compare(TIMER_CONDITION_SUBJECT) == 0) {
-		return timer->read(listener);
-	}
-
 	int req_id = _read(subject.c_str(), &option, listener);
 	IF_FAIL_RETURN_TAG(req_id > 0, ERR_OPERATION_FAILED, _E, "Read condition failed");
 	_D(YELLOW("Read condition(%s). req%d"), subject.c_str(), req_id);
@@ -174,24 +155,11 @@ int ctx::context_monitor::_read(const char* subject, json* option, context_liste
 
 bool ctx::context_monitor::is_supported(std::string subject)
 {
-	if (subject.compare(TIMER_EVENT_SUBJECT) == 0
-			|| subject.compare(TIMER_CONDITION_SUBJECT) == 0) {
-		return true;
-	}
-
 	return _context_mgr->is_supported(subject.c_str());
 }
 
 bool ctx::context_monitor::is_allowed(const char *client, const char *subject)
 {
-	if (STR_EQ(subject, TIMER_EVENT_SUBJECT))
-		return true;
-		//TODO: re-implement above in the proper 3.0 style
-		//		return privilege_manager::is_allowed(client, PRIV_ALARM_SET);
-
-	if (STR_EQ(subject, TIMER_CONDITION_SUBJECT))
-		return true;
-
 	//TODO: re-implement this in the proper 3.0 style
 	//return _context_mgr->is_allowed(client, subject);
 	return true;
@@ -230,7 +198,6 @@ bool ctx::context_monitor::add_sub(request_type type, int sid, const char* subje
 	info->listener_list.push_back(listener);
 
 	map->insert(std::pair<int, subscr_info_s*>(sid, info));
-
 	return true;
 }
 

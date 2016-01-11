@@ -26,7 +26,6 @@ namespace ctx {
 	class fact_request;
 	class context_manager_impl;
 	class context_listener_iface;
-	class trigger_timer;
 
 	class context_monitor {
 	public:
@@ -51,7 +50,6 @@ namespace ctx {
 		void _unsubscribe(const char *subject, int subscription_id);
 		int _read(const char *subject, ctx::json *option, context_listener_iface* listener);
 
-		ctx::trigger_timer* timer;
 		static context_manager_impl *_context_mgr;
 
 		typedef std::list<context_listener_iface*> listener_list_t;
