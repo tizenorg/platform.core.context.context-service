@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <context_trigger.h>
 #include <context_trigger_types_internal.h>
 #include <types_internal.h>
 #include <timer_util.h>
@@ -42,7 +43,7 @@ static int arrange_day_of_week(ctx::json day_info)
 		std::string op;
 		day_info.get_array_elem(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, i, &op);
 
-		if (op.compare("neq") == 0) {
+		if (op.compare(CONTEXT_TRIGGER_NOT_EQUAL_TO) == 0) {
 			dow = ctx::timer_util::convert_day_of_week_string_to_int(TIMER_TYPES_EVERYDAY) & ~dow;
 		}
 
@@ -86,7 +87,7 @@ void ctx::trigger_timer::handle_timer_event(ctx::json& rule)
 				if (dow & d) {
 					std::string day = ctx::timer_util::convert_day_of_week_int_to_string(d);
 					day_info.array_append(NULL, CT_RULE_DATA_VALUE_ARR, day);
-					day_info.array_append(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, "eq");
+					day_info.array_append(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, CONTEXT_TRIGGER_EQUAL_TO);
 
 					// Set option
 					event.array_append(CT_RULE_EVENT_OPTION, TIMER_DAY_OF_WEEK, day);
