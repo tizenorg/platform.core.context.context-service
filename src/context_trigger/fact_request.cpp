@@ -38,21 +38,22 @@ bool ctx::fact_request::reply(int error)
 {
 	IF_FAIL_RETURN(!replied && _ctx_monitor, true);
 	_ctx_monitor->reply_result(_req_id, error);
-	return (replied = true);
+	replied = (error != ERR_NONE);
+	return true;
 }
 
 bool ctx::fact_request::reply(int error, ctx::json& request_result)
 {
 	IF_FAIL_RETURN(!replied && _ctx_monitor, true);
-	IF_FAIL_RETURN(_type != REQ_READ_SYNC, true);
 	_ctx_monitor->reply_result(_req_id, error, &request_result);
-	return (replied = true);
+	replied = (error != ERR_NONE);
+	return true;
 }
 
 bool ctx::fact_request::reply(int error, ctx::json& request_result, ctx::json& data_read)
 {
 	IF_FAIL_RETURN(!replied && _ctx_monitor, true);
-	_ctx_monitor->reply_result(_req_id, error, &request_result, &data_read);
+	_ctx_monitor->reply_result(_req_id, error, _subject.c_str(), &get_description(), &data_read);
 	return (replied = true);
 }
 

@@ -31,7 +31,8 @@ ctx::trigger_rule::trigger_rule()
 }
 
 ctx::trigger_rule::trigger_rule(int i, ctx::json& d, const char* cr, context_monitor* cm)
-	: ctx_monitor(cm)
+	: result(EMPTY_JSON_OBJECT)
+	, ctx_monitor(cm)
 	, id(i)
 	, creator(cr)
 {
@@ -84,9 +85,44 @@ int ctx::trigger_rule::stop(void)
 	return error;
 }
 
+bool ctx::trigger_rule::set_condition_option_based_on_event(ctx::json& option)
+{
+	// Set condition option if it references event data
+	std::list<std::string> option_keys;
+	option.get_keys(&option_keys);
+
+	for (std::list<std::string>::iterator it = option_keys.begin(); it != option_keys.end(); ++it) {
+		std::string opt_key = (*it);
+
+		std::string opt_val;
+		if (option.get(NULL, opt_key.c_str(), &opt_val)) {
+			if (opt_val.find("?") != 0) {
+				continue;
+			}
+
+			std::string event_key = opt_val.substr(1, opt_val.length() - 1);
+
+			std::string new_str;
+			int new_val;
+			if (result.get(CONTEXT_RULE_EVENT "." CONTEXT_RULE_DATA, event_key.c_str(), &new_str)) {
+				option.set(NULL, opt_key.c_str(), new_str);
+			} else if (result.get(CONTEXT_RULE_EVENT "." CONTEXT_RULE_DATA, event_key.c_str(), &new_val)) {
+				option.set(NULL, opt_key.c_str(), new_val);
+			} else {
+				_W("Failed to find '%s' in event data", event_key.c_str());
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ctx::json data)
 {
-	clear_result();
+	if (result != EMPTY_JSON_OBJECT) {
+		clear_result();
+	}
 	_D("Rule%d received event data", id);
 
 	// Set event data
@@ -95,12 +131,22 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 	result.set(CONTEXT_RULE_EVENT, CONTEXT_RULE_DATA, data);
 
 	if (condition.size() == 0) {
-		on_context_data_prepared(data);
+		on_context_data_prepared();
 		return;
 	}
 
+	// TODO check if event matched first
+
+	// Request read conditions
 	for (std::list<context_item_t>::iterator it = condition.begin(); it != condition.end(); ++it) {
-		// TODO send read request for each condition
+		ctx::json cond_option = (*it)->option.str();
+		if (!set_condition_option_based_on_event(cond_option)) { // cond_option should be copy of original option.
+			clear_result();
+			return;
+		}
+
+		int error = ctx_monitor->read((*it)->name.c_str(), cond_option, this);
+		IF_FAIL_VOID_TAG(error == ERR_NONE, _E, "Failed to read condition");
 	}
 
 	// TODO timer set
@@ -108,6 +154,8 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 
 void ctx::trigger_rule::on_condition_received(std::string name, ctx::json option, ctx::json data)
 {
+	_D("Rule%d received condition data", id);
+
 	// Set condition data
 	ctx::json item;
 	item.set(NULL, CONTEXT_RULE_NAME, name);
@@ -116,19 +164,19 @@ void ctx::trigger_rule::on_condition_received(std::string name, ctx::json option
 	result.array_append(NULL, CONTEXT_RULE_CONDITION, item);
 
 	if (result.array_get_size(NULL, CONTEXT_RULE_CONDITION) == (int) condition.size()) {
-		on_context_data_prepared(data);
+		on_context_data_prepared();
 	}
 }
 
 void ctx::trigger_rule::clear_result()
 {
-	result = json();
+	result = EMPTY_JSON_OBJECT;
 	// TODO timer cancel
 }
 
-void ctx::trigger_rule::on_context_data_prepared(ctx::json& data)
+void ctx::trigger_rule::on_context_data_prepared(void)
 {
-	if (ctx::rule_evaluator::evaluate_rule(statement, data)) {
+	if (ctx::rule_evaluator::evaluate_rule(statement, result)) {
 		ctx::action_manager::trigger_action(action, creator);
 	}
 

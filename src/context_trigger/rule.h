@@ -51,7 +51,8 @@ namespace ctx {
 			context_monitor* ctx_monitor;
 
 			void clear_result(void);
-			void on_context_data_prepared(ctx::json& data);
+			bool set_condition_option_based_on_event(ctx::json& option);
+			void on_context_data_prepared(void);
 
 		public:
 			int id;

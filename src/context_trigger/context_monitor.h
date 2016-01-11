@@ -36,19 +36,20 @@ namespace ctx {
 
 		int subscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener);
 		int unsubscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener);
-		int read(std::string subject, json option, ctx::json* result);
+		int read(std::string subject, json option, context_listener_iface* listener);
 		bool is_supported(std::string subject);
 		bool is_allowed(const char *client, const char *subject);
 
-		void reply_result(int req_id, int error, json *request_result = NULL, ctx::json *fact = NULL);
-		void publish_fact(int req_id, int error, const char *subject, json *option, ctx::json *fact);
+		void reply_result(int req_id, int error, json *request_result = NULL);
+		void reply_result(int req_id, int error, const char *subject, ctx::json *option, ctx::json *fact);
+		void publish_fact(int req_id, int error, const char *subject, ctx::json *option, ctx::json *fact);
 
 		bool get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
 
 	private:
-		int _subscribe(const char* subject, ctx::json* option, context_listener_iface* listener, bool wait_response);
+		int _subscribe(const char* subject, ctx::json* option, context_listener_iface* listener);
 		void _unsubscribe(const char *subject, int subscription_id);
-//		bool _read(const char *subject, ctx::json *option, context_fact& fact);
+		int _read(const char *subject, ctx::json *option, context_listener_iface* listener);
 
 		ctx::trigger_timer* timer;
 		static context_manager_impl *_context_mgr;
@@ -71,15 +72,15 @@ namespace ctx {
 
 		typedef std::map<int, subscr_info_s*> subscr_map_t;
 		subscr_map_t subscr_map;
+		subscr_map_t read_map;
 
-		int find_sub(const char *subject, ctx::json *option);
-		bool add_sub(int sid, const char *subject, ctx::json *option, context_listener_iface* listener);
-		void remove_sub(const char *subject, ctx::json *option);
-		void remove_sub(int sid);
-		int add_listener(int sid, context_listener_iface* listener);
-		int remove_listener(int sid, context_listener_iface* listener);
+		int find_sub(request_type type, const char *subject, ctx::json *option);
+		bool add_sub(request_type type, int sid, const char *subject, ctx::json *option, context_listener_iface* listener);
+		void remove_sub(request_type type, const char *subject, ctx::json *option);
+		void remove_sub(request_type type, int sid);
+		int add_listener(request_type type, int sid, context_listener_iface* listener);
+		int remove_listener(request_type type, int sid, context_listener_iface* listener);
 
-		static bool send_request(fact_request* req);
 	};	/* class context_monitor */
 
 }	/* namespace ctx */
