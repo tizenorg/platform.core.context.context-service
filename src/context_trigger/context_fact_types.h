@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-#include <json.h>
-#include <context_trigger_types_internal.h>
-#include "rule_evaluator.h"
-#include "context_fact_types.h"
+#ifndef __CONTEXT_FACT_TYPES_H__
+#define __CONTEXT_FACT_TYPES_H__
 
-bool ctx::rule_evaluator::evaluate_rule(ctx::json& rule, ctx::json& data)
-{
-	return true;
-}
+#define CONTEXT_FACT_EVENT "EVENT"
+#define CONTEXT_FACT_CONDITION "CONDITION"
+#define CONTEXT_FACT_NAME "NAME"
+#define CONTEXT_FACT_OPTION "OPTION"
+#define CONTEXT_FACT_DATA "DATA"
+
+#endif	//__CONTEXT_FACT_TYPES_H__

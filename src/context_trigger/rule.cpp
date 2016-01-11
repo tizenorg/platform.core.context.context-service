@@ -20,12 +20,7 @@
 #include "rule_evaluator.h"
 #include "context_monitor.h"
 #include "timer_types.h"
-
-#define CONTEXT_RULE_EVENT "event"
-#define CONTEXT_RULE_CONDITION "condition"
-#define CONTEXT_RULE_NAME "name"
-#define CONTEXT_RULE_OPTION "option"
-#define CONTEXT_RULE_DATA "data"
+#include "context_fact_types.h"
 
 ctx::trigger_rule::trigger_rule()
 {
@@ -115,9 +110,9 @@ bool ctx::trigger_rule::set_condition_option_based_on_event(ctx::json& option)
 
 			std::string new_str;
 			int new_val;
-			if (result.get(CONTEXT_RULE_EVENT "." CONTEXT_RULE_DATA, event_key.c_str(), &new_str)) {
+			if (result.get(CONTEXT_FACT_EVENT "." CONTEXT_FACT_DATA, event_key.c_str(), &new_str)) {
 				option.set(NULL, opt_key.c_str(), new_str);
-			} else if (result.get(CONTEXT_RULE_EVENT "." CONTEXT_RULE_DATA, event_key.c_str(), &new_val)) {
+			} else if (result.get(CONTEXT_FACT_EVENT "." CONTEXT_FACT_DATA, event_key.c_str(), &new_val)) {
 				option.set(NULL, opt_key.c_str(), new_val);
 			} else {
 				_W("Failed to find '%s' in event data", event_key.c_str());
@@ -137,9 +132,9 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 	_D("Rule%d received event data", id);
 
 	// Set event data
-	result.set(CONTEXT_RULE_EVENT, CONTEXT_RULE_NAME, name);
-	result.set(CONTEXT_RULE_EVENT, CONTEXT_RULE_OPTION, option);
-	result.set(CONTEXT_RULE_EVENT, CONTEXT_RULE_DATA, data);
+	result.set(CONTEXT_FACT_EVENT, CONTEXT_FACT_NAME, name);
+	result.set(CONTEXT_FACT_EVENT, CONTEXT_FACT_OPTION, option);
+	result.set(CONTEXT_FACT_EVENT, CONTEXT_FACT_DATA, data);
 
 	if (condition.size() == 0) {
 		on_context_data_prepared();
@@ -169,12 +164,12 @@ void ctx::trigger_rule::on_condition_received(std::string name, ctx::json option
 
 	// Set condition data
 	ctx::json item;
-	item.set(NULL, CONTEXT_RULE_NAME, name);
-	item.set(NULL, CONTEXT_RULE_OPTION, option);
-	item.set(NULL, CONTEXT_RULE_DATA, data);
-	result.array_append(NULL, CONTEXT_RULE_CONDITION, item);
+	item.set(NULL, CONTEXT_FACT_NAME, name);
+	item.set(NULL, CONTEXT_FACT_OPTION, option);
+	item.set(NULL, CONTEXT_FACT_DATA, data);
+	result.array_append(NULL, CONTEXT_FACT_CONDITION, item);
 
-	if (result.array_get_size(NULL, CONTEXT_RULE_CONDITION) == (int) condition.size()) {
+	if (result.array_get_size(NULL, CONTEXT_FACT_CONDITION) == (int) condition.size()) {
 		on_context_data_prepared();
 	}
 }
