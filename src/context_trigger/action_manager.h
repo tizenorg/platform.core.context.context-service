@@ -17,8 +17,6 @@
 #ifndef __CONTEXT_ACTION_MANAGER_H__
 #define __CONTEXT_ACTION_MANAGER_H__
 
-#include <json.h>
-
 namespace ctx {
 
 	class json;

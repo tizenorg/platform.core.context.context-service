@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
 #include <time.h>
 #include <types_internal.h>
 #include <scope_mutex.h>

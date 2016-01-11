@@ -18,7 +18,6 @@
 #define __CONTEXT_CONTEXT_TRIGGER_H__
 
 #include "../request.h"
-#include "fact.h"
 
 namespace ctx {
 

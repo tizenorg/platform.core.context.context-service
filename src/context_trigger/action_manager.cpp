@@ -16,20 +16,15 @@
 
 #include <app_control.h>
 #include <app_control_internal.h>
-#include <appsvc.h>
 #include <bundle.h>
 #include <device/display.h>
-#include <glib.h>
 #include <notification.h>
 #include <notification_internal.h>
 #include <runtime_info.h>
 #include <system_settings.h>
-#include <stdlib.h>
 #include <context_trigger_types_internal.h>
+#include <json.h>
 #include "../dbus_server_impl.h"
-//#include <string>
-//#include <json.h>
-//#include <types_internal.h>
 #include "action_manager.h"
 
 static void trigger_action_app_control(ctx::json& action);
