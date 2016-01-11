@@ -43,6 +43,8 @@ namespace ctx {
 			int check_rule(std::string creator, int rule_id);
 			bool is_rule_enabled(int rule_id);
 
+			static bool is_uninstalled_package(std::string app_id);
+
 		private:
 			ctx::context_monitor ctx_monitor;
 
@@ -54,7 +56,6 @@ namespace ctx {
 			bool rule_item_equals(ctx::json& litem, ctx::json& ritem);
 			bool rule_equals(ctx::json& lrule, ctx::json& rrule);
 			int get_uninstalled_app(void);
-			bool is_uninstalled_package(std::string app_id);
 			int clear_rule_of_uninstalled_app(bool is_init = false);
 
 			std::set<std::string> uninstalled_apps;

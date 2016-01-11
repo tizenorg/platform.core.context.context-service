@@ -24,6 +24,7 @@
 namespace ctx {
 
 	class context_monitor;
+	class rule_manager;
 
 	class trigger_rule : public context_listener_iface {
 		private:
@@ -49,17 +50,20 @@ namespace ctx {
 			ctx::json result;
 
 			context_monitor* ctx_monitor;
+			static rule_manager* rule_mgr;
 
 			void clear_result(void);
 			bool set_condition_option_based_on_event(ctx::json& option);
 			void on_context_data_prepared(void);
+
+			static gboolean handle_uninstalled_rule(gpointer data);
 
 		public:
 			int id;
 			std::string creator;
 
 			trigger_rule();
-			trigger_rule(int i, ctx::json& d, const char* c, context_monitor* cm);
+			trigger_rule(int i, ctx::json& d, const char* c, context_monitor* cm, rule_manager* rm);
 			~trigger_rule();
 
 			int start(void);

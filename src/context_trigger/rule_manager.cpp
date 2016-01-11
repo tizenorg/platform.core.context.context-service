@@ -528,6 +528,8 @@ int ctx::rule_manager::remove_rule(int rule_id)
 	ret = db_manager::execute_sync(query.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Remove rule from db failed");
 
+	_D("Remove rule%d succeeded", rule_id);
+
 	return ERR_NONE;
 }
 
@@ -555,7 +557,7 @@ int ctx::rule_manager::enable_rule(int rule_id)
 	rule_record[0].get(NULL, "creator_app_id", &creator_app_id);
 
 	// Create a rule instance
-	rule = new(std::nothrow) trigger_rule(rule_id, jrule, creator_app_id.c_str(), &ctx_monitor);
+	rule = new(std::nothrow) trigger_rule(rule_id, jrule, creator_app_id.c_str(), &ctx_monitor, this);
 	IF_FAIL_RETURN_TAG(rule, ERR_OUT_OF_MEMORY, _E, "Failed to create rule instance");
 
 	// Start the rule

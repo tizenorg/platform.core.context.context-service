@@ -21,17 +21,25 @@
 #include "context_monitor.h"
 #include "timer_types.h"
 #include "context_fact_types.h"
+#include "rule_manager.h"
+
+ctx::rule_manager *ctx::trigger_rule::rule_mgr = NULL;
 
 ctx::trigger_rule::trigger_rule()
 {
 }
 
-ctx::trigger_rule::trigger_rule(int i, ctx::json& d, const char* cr, context_monitor* cm)
+ctx::trigger_rule::trigger_rule(int i, ctx::json& d, const char* cr, context_monitor* cm, rule_manager* rm)
 	: result(EMPTY_JSON_OBJECT)
 	, ctx_monitor(cm)
 	, id(i)
 	, creator(cr)
 {
+	// Rule manager
+	if (!rule_mgr) {
+		rule_mgr = rm;
+	}
+
 	// Statement
 	statement = d.str();
 
@@ -129,6 +137,14 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 	if (result != EMPTY_JSON_OBJECT) {
 		clear_result();
 	}
+
+	// Check if creator is uninstalled
+	if (ctx::rule_manager::is_uninstalled_package(creator)) {
+		_D("Creator(%s) of rule%d is uninstalled.", creator.c_str(), id);
+		g_idle_add(handle_uninstalled_rule, &id);
+		return;
+	}
+
 	_D("Rule%d received event data", id);
 
 	// Set event data
@@ -142,6 +158,7 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 	}
 
 	// TODO check if event matched first
+
 
 	// Request read conditions
 	for (std::list<context_item_t>::iterator it = condition.begin(); it != condition.end(); ++it) {
@@ -187,4 +204,13 @@ void ctx::trigger_rule::on_context_data_prepared(void)
 	}
 
 	clear_result();
+}
+
+gboolean ctx::trigger_rule::handle_uninstalled_rule(gpointer data)
+{
+	int* rule_id = static_cast<int*>(data);
+	rule_mgr->disable_rule(*rule_id);
+	rule_mgr->remove_rule(*rule_id);
+
+	return FALSE;
 }
