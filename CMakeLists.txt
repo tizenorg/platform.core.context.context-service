@@ -25,9 +25,7 @@ SET(DEPS
 	cynara-client
 	cynara-session
 	context-common
-	device-context-provider
-	statistics-context-provider
-	place-context-provider
+	context-provider
 )
 
 IF("${MAINLOOP}" STREQUAL "ecore")

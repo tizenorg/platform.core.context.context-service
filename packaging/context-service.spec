@@ -34,10 +34,7 @@ BuildRequires: pkgconfig(cynara-session)
 
 BuildRequires: pkgconfig(context-common)
 BuildRequires: pkgconfig(context)
-
-BuildRequires: pkgconfig(device-context-provider)
-BuildRequires: pkgconfig(statistics-context-provider)
-BuildRequires: pkgconfig(place-context-provider)
+BuildRequires: pkgconfig(context-provider)
 
 Requires(preun): /usr/bin/systemctl
 Requires(post): /usr/bin/systemctl
