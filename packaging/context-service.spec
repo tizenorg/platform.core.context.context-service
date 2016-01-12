@@ -1,8 +1,8 @@
 Name:       context-service
 Summary:    Context-Service
-Version:    0.6.3
+Version:    0.7.0
 Release:    1
-Group:      System/Service
+Group:      Service/Context
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1:	context-service.service
