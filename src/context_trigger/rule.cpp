@@ -24,10 +24,6 @@
 
 ctx::rule_manager *ctx::trigger_rule::rule_mgr = NULL;
 
-ctx::trigger_rule::trigger_rule()
-{
-}
-
 ctx::trigger_rule::trigger_rule(int i, ctx::json& d, const char* cr, rule_manager* rm)
 	: result(EMPTY_JSON_OBJECT)
 	, id(i)

@@ -60,7 +60,6 @@ namespace ctx {
 			int id;
 			std::string creator;
 
-			trigger_rule();
 			trigger_rule(int i, ctx::json& d, const char* c, rule_manager* rm);
 			~trigger_rule();
 

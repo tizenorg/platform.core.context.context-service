@@ -22,6 +22,8 @@
 #include "template_manager.h"
 
 ctx::context_trigger::context_trigger()
+	: rule_mgr(NULL)
+	, tmpl_mgr(NULL)
 {
 }
 
