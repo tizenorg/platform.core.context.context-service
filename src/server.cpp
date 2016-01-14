@@ -129,8 +129,20 @@ void ctx::server::release()
 	delete timer_mgr;
 }
 
+static gboolean postpone_request_assignment(gpointer data)
+{
+	ctx::server::send_request(static_cast<ctx::request_info*>(data));
+	return FALSE;
+}
+
 void ctx::server::send_request(ctx::request_info* request)
 {
+	if (!started) {
+		_W("Service not ready...");
+		g_idle_add(postpone_request_assignment, request);
+		return;
+	}
+
 	if (!trigger->assign_request(request)) {
 		context_mgr->assign_request(request);
 	}
