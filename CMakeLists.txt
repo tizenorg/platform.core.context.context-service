@@ -28,14 +28,6 @@ SET(DEPS
 	context-provider
 )
 
-IF("${MAINLOOP}" STREQUAL "ecore")
-	ADD_DEFINITIONS("-D_USE_ECORE_MAIN_LOOP_")
-	SET(DEPS
-		${DEPS}
-		ecore
-	)
-ENDIF("${MAINLOOP}" STREQUAL "ecore")
-
 # Common Options
 INCLUDE(FindPkgConfig)
 INCLUDE_DIRECTORIES(

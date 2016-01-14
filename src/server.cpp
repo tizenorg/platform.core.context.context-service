@@ -27,12 +27,7 @@
 #include "context_trigger/trigger.h"
 #include "server.h"
 
-#ifdef _USE_ECORE_MAIN_LOOP_
-#include <Ecore.h>
-#else
 static GMainLoop *mainloop = NULL;
-#endif
-
 static bool started = false;
 
 static ctx::context_manager_impl *context_mgr = NULL;
@@ -44,12 +39,7 @@ static ctx::context_trigger *trigger = NULL;
 void ctx::server::initialize()
 {
 	_I("Init MainLoop");
-#ifdef _USE_ECORE_MAIN_LOOP_
-	ecore_init();
-	ecore_main_loop_glib_integrate();
-#else
 	mainloop = g_main_loop_new(NULL, FALSE);
-#endif
 
 	_I("Init Dbus Connection");
 	dbus_handle = new(std::nothrow) ctx::dbus_server_impl();
@@ -60,11 +50,7 @@ void ctx::server::initialize()
 
 	// Start the main loop
 	_I(CYAN("Launching Context-Service"));
-#ifdef _USE_ECORE_MAIN_LOOP_
-	ecore_main_loop_begin();
-#else
 	g_main_loop_run(mainloop);
-#endif
 }
 
 void ctx::server::activate()
@@ -108,11 +94,7 @@ CATCH:
 	_E(RED("Launching Failed"));
 
 	// Stop the main loop
-#ifdef _USE_ECORE_MAIN_LOOP_
-	ecore_main_loop_quit();
-#else
 	g_main_loop_quit(mainloop);
-#endif
 }
 
 void ctx::server::release()
@@ -138,11 +120,7 @@ void ctx::server::release()
 	if (timer_mgr)
 		timer_mgr->release();
 
-#ifdef _USE_ECORE_MAIN_LOOP_
-	ecore_shutdown();
-#else
 	g_main_loop_unref(mainloop);
-#endif
 
 	delete trigger;
 	delete context_mgr;
@@ -163,11 +141,7 @@ static void signal_handler(int signo)
 	_I("SIGNAL %d received", signo);
 
 	// Stop the main loop
-#ifdef _USE_ECORE_MAIN_LOOP_
-	ecore_main_loop_quit();
-#else
 	g_main_loop_quit(mainloop);
-#endif
 }
 
 int main(int argc, char* argv[])

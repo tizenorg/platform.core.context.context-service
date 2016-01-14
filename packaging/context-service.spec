@@ -8,9 +8,6 @@ Source0:    %{name}-%{version}.tar.gz
 Source1:	context-service.service
 Source2:	org.tizen.context.conf
 
-# For active window hooking, we need to use 'ecore' mainloop instead of the 'glib' mainloop.
-%define MAINLOOP glib
-
 BuildRequires: cmake
 BuildRequires: sed
 BuildRequires: pkgconfig(libtzplatform-config)
@@ -23,10 +20,6 @@ BuildRequires: pkgconfig(appsvc)
 BuildRequires: pkgconfig(alarm-service)
 BuildRequires: pkgconfig(notification)
 BuildRequires: pkgconfig(capi-system-system-settings)
-
-%if "%{MAINLOOP}" == "ecore"
-BuildRequires: pkgconfig(ecore)
-%endif
 
 BuildRequires: pkgconfig(cynara-creds-gdbus)
 BuildRequires: pkgconfig(cynara-client)
@@ -63,7 +56,7 @@ export   CFLAGS+=" -DTIZEN_ENGINEER_MODE"
 export CXXFLAGS+=" -DTIZEN_ENGINEER_MODE"
 export   FFLAGS+=" -DTIZEN_ENGINEER_MODE"
 
-cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DMAJORVER=${MAJORVER} -DFULLVER=%{version} -DMAINLOOP=%{MAINLOOP}
+cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DMAJORVER=${MAJORVER} -DFULLVER=%{version}
 make %{?jobs:-j%jobs}
 
 %install
