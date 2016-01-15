@@ -17,14 +17,14 @@
 #ifndef __CONTEXT_TRIGGER_FACT_REQUEST_H__
 #define __CONTEXT_TRIGGER_FACT_REQUEST_H__
 
-#include "fact_reader.h"
+#include "context_monitor.h"
 #include "../request.h"
 
 namespace ctx {
 
 	class fact_request : public request_info {
 	public:
-		fact_request(int type, int req_id, const char* subj, const char* desc, fact_reader* reader);
+		fact_request(int type, int req_id, const char* subj, const char* desc, context_monitor* ctx_monitor);
 		~fact_request();
 
 		const char* get_client();
@@ -34,7 +34,7 @@ namespace ctx {
 		bool publish(int error, ctx::json& data);
 
 	private:
-		fact_reader *_reader;
+		context_monitor *_ctx_monitor;
 		bool replied;
 	};
 

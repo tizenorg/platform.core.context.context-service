@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
-#define __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
-
-#include <json.h>
+#ifndef __CONTEXT_ACTION_MANAGER_H__
+#define __CONTEXT_ACTION_MANAGER_H__
 
 namespace ctx {
 
-	namespace trigger_timer {
+	class json;
 
-		void handle_timer_event(ctx::json& rule);
+	namespace action_manager {
 
-	};
+		void trigger_action(ctx::json& action, std::string creator);
+
+	}
 
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_CONTEXT_TRIGGER_TIMER_H__ */
+#endif	/* End of __CONTEXT_ACTION_MANAGER_H__ */

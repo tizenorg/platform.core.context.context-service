@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
-#define __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
-
-#include <json.h>
+#ifndef __CONTEXT_CONTEXT_LISTENER_INTERFACE_H__
+#define __CONTEXT_CONTEXT_LISTENER_INTERFACE_H__
 
 namespace ctx {
+	/* Forward Declaration */
+	class json;
 
-	namespace trigger_timer {
+	class context_listener_iface {
+		public:
+			virtual ~context_listener_iface() {}
 
-		void handle_timer_event(ctx::json& rule);
+			virtual void on_event_received(std::string name, ctx::json option, ctx::json data) = 0;
 
+			virtual void on_condition_received(std::string name, ctx::json option, ctx::json data) = 0;
 	};
 
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_CONTEXT_TRIGGER_TIMER_H__ */
+#endif	/* End of __CONTEXT_CONTEXT_LISTENER_INTERFACE_H__ */

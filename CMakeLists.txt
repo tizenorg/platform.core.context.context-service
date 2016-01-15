@@ -24,20 +24,9 @@ SET(DEPS
 	cynara-creds-gdbus
 	cynara-client
 	cynara-session
-	clips
 	context-common
-	device-context-provider
-	statistics-context-provider
-	place-context-provider
+	context-provider
 )
-
-IF("${MAINLOOP}" STREQUAL "ecore")
-	ADD_DEFINITIONS("-D_USE_ECORE_MAIN_LOOP_")
-	SET(DEPS
-		${DEPS}
-		ecore
-	)
-ENDIF("${MAINLOOP}" STREQUAL "ecore")
 
 # Common Options
 INCLUDE(FindPkgConfig)

@@ -29,7 +29,8 @@
 static bool conn_acquired = false;
 static bool name_acquired = false;
 static ctx::dbus_server_impl *_instance = NULL;
-static GDBusConnection *dbus_connection = NULL;
+static GDBusConnection *dbus_conn_session = NULL;
+static GDBusConnection *dbus_conn_system = NULL;
 static guint dbus_owner_id = 0;
 static GDBusNodeInfo *dbus_node_info = NULL;
 
@@ -83,7 +84,7 @@ static void handle_request(const char *sender, GVariant *param, GDBusMethodInvoc
 
 	ctx::credentials *creds = NULL;
 
-	if (!ctx::peer_creds::get(dbus_connection, sender, &creds)) {
+	if (!ctx::peer_creds::get(dbus_conn_session, sender, &creds)) {
 		_E("Peer credentialing failed");
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 		return;
@@ -130,7 +131,7 @@ static void on_bus_acquired(GDBusConnection *conn, const gchar *name, gpointer u
 	}
 
 	conn_acquired = true;
-	dbus_connection = conn;
+	dbus_conn_session = conn;
 
 	_I("Dbus connection acquired");
 
@@ -178,8 +179,8 @@ bool ctx::dbus_server_impl::init()
 
 void ctx::dbus_server_impl::release()
 {
-	if (dbus_connection) {
-		g_dbus_connection_flush_sync(dbus_connection, NULL, NULL);
+	if (dbus_conn_session) {
+		g_dbus_connection_flush_sync(dbus_conn_session, NULL, NULL);
 	}
 
 	if (dbus_owner_id > 0) {
@@ -187,15 +188,21 @@ void ctx::dbus_server_impl::release()
 		dbus_owner_id = 0;
 	}
 
-	if (dbus_connection) {
-		g_dbus_connection_close_sync(dbus_connection, NULL, NULL);
-		g_object_unref(dbus_connection);
-		dbus_connection = NULL;
+	if (dbus_conn_session) {
+		g_dbus_connection_close_sync(dbus_conn_session, NULL, NULL);
+		g_object_unref(dbus_conn_session);
+		dbus_conn_session = NULL;
 	}
 
 	if (dbus_node_info) {
 		g_dbus_node_info_unref(dbus_node_info);
 		dbus_node_info = NULL;
+	}
+
+	if (dbus_conn_system) {
+		g_dbus_connection_close_sync(dbus_conn_system, NULL, NULL);
+		g_object_unref(dbus_conn_system);
+		dbus_conn_system = NULL;
 	}
 }
 
@@ -208,7 +215,7 @@ void ctx::dbus_server_impl::publish(const char* dest, int req_id, const char* su
 	GVariant *param = g_variant_new("(isis)", req_id, subject, error, data);
 	IF_FAIL_VOID_TAG(param, _E, "Memory allocation failed");
 
-	g_dbus_connection_call(dbus_connection, dest, DBUS_PATH, DBUS_IFACE,
+	g_dbus_connection_call(dbus_conn_session, dest, DBUS_PATH, DBUS_IFACE,
 			METHOD_RESPOND, param, NULL, G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, NULL, NULL, NULL);
 }
 
@@ -231,7 +238,7 @@ void ctx::dbus_server_impl::call(const char *dest, const char *obj, const char *
 
 	_SI("Call %u: %s, %s, %s.%s", call_count, dest, obj, iface, method);
 
-	g_dbus_connection_call(dbus_connection, dest, obj, iface, method, param, NULL,
+	g_dbus_connection_call(dbus_conn_session, dest, obj, iface, method, param, NULL,
 			G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, NULL, handle_call_result, &call_count);
 }
 
@@ -244,20 +251,55 @@ static void handle_signal_received(GDBusConnection *conn, const gchar *sender,
 	listener->on_signal_received(sender, obj_path, iface, signal_name, param);
 }
 
-int64_t ctx::dbus_server_impl::signal_subscribe(const char* sender, const char* path, const char* iface, const char* name, ctx::dbus_listener_iface* listener)
+int64_t ctx::dbus_server_impl::subscribe_system_signal(const char* sender, const char* path, const char* iface, const char* name, ctx::dbus_listener_iface* listener)
 {
-	IF_FAIL_RETURN_TAG(dbus_connection, -1, _E, "Dbus not connected");
-	guint sid = g_dbus_connection_signal_subscribe(dbus_connection,
+	IF_FAIL_RETURN_TAG(connect_system(), -1, _E, "Dbus not connected");
+	guint sid = g_dbus_connection_signal_subscribe(dbus_conn_system,
 			sender, iface, name, path, NULL, G_DBUS_SIGNAL_FLAGS_NONE,
 			handle_signal_received, listener, NULL);
 	return static_cast<int64_t>(sid);
 }
 
-void ctx::dbus_server_impl::signal_unsubscribe(int64_t subscription_id)
+int64_t ctx::dbus_server_impl::subscribe_session_signal(const char* sender, const char* path, const char* iface, const char* name, ctx::dbus_listener_iface* listener)
 {
-	IF_FAIL_VOID_TAG(dbus_connection, _E, "Dbus not connected");
+	IF_FAIL_RETURN_TAG(dbus_conn_session, -1, _E, "Dbus not connected");
+	guint sid = g_dbus_connection_signal_subscribe(dbus_conn_session,
+			sender, iface, name, path, NULL, G_DBUS_SIGNAL_FLAGS_NONE,
+			handle_signal_received, listener, NULL);
+	return static_cast<int64_t>(sid);
+}
+
+void ctx::dbus_server_impl::unsubscribe_system_signal(int64_t subscription_id)
+{
 	IF_FAIL_VOID_TAG(subscription_id >= 0, _W, "Invalid parameter");
-	g_dbus_connection_signal_unsubscribe(dbus_connection, static_cast<guint>(subscription_id));
+	g_dbus_connection_signal_unsubscribe(dbus_conn_system, static_cast<guint>(subscription_id));
+}
+
+void ctx::dbus_server_impl::unsubscribe_session_signal(int64_t subscription_id)
+{
+	IF_FAIL_VOID_TAG(dbus_conn_session, _E, "Dbus not connected");
+	IF_FAIL_VOID_TAG(subscription_id >= 0, _W, "Invalid parameter");
+	g_dbus_connection_signal_unsubscribe(dbus_conn_session, static_cast<guint>(subscription_id));
+}
+
+bool ctx::dbus_server_impl::connect_system()
+{
+	IF_FAIL_RETURN(dbus_conn_system == NULL, true);
+
+	GError *gerr = NULL;
+	gchar *addr = g_dbus_address_get_for_bus_sync(G_BUS_TYPE_SYSTEM, NULL, &gerr);
+	HANDLE_GERROR(gerr);
+	IF_FAIL_RETURN(addr, false);
+
+	dbus_conn_system = g_dbus_connection_new_for_address_sync(addr,
+			(GDBusConnectionFlags)(G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT | G_DBUS_CONNECTION_FLAGS_MESSAGE_BUS_CONNECTION),
+			NULL, NULL, &gerr);
+	g_free(addr);
+	HANDLE_GERROR(gerr);
+	IF_FAIL_RETURN(dbus_conn_system, false);
+
+	_D("System Dbus Connected: %s", g_dbus_connection_get_unique_name(dbus_conn_system));
+	return true;
 }
 
 void ctx::dbus_server::publish(const char* dest, int req_id, const char* subject, int error, const char* data)

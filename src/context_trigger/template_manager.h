@@ -14,19 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
-#define __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
+#ifndef __TEMPLATE_MANAGER_H__
+#define __TEMPLATE_MANAGER_H__
 
 #include <json.h>
 
 namespace ctx {
 
-	namespace trigger_timer {
+	class context_manager_impl;
 
-		void handle_timer_event(ctx::json& rule);
+	class template_manager {
+	public:
+		template_manager(ctx::context_manager_impl* ctx_mgr);
+		~template_manager();
 
-	};
+		void apply_templates(void);
+		bool get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
+		int get_template(std::string &subject, ctx::json* tmpl);
+
+	private:
+		context_manager_impl *_context_mgr;
+
+	};	/* class template_manager */
 
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_CONTEXT_TRIGGER_TIMER_H__ */
+#endif	/* End of __TEMPLATE_MANAGER_H__ */

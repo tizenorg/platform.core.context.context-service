@@ -14,19 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
-#define __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
+#ifndef __CONTEXT_FACT_TYPES_H__
+#define __CONTEXT_FACT_TYPES_H__
 
-#include <json.h>
+#define CONTEXT_FACT_EVENT "EVENT"
+#define CONTEXT_FACT_CONDITION "CONDITION"
+#define CONTEXT_FACT_NAME "NAME"
+#define CONTEXT_FACT_OPTION "OPTION"
+#define CONTEXT_FACT_DATA "DATA"
 
-namespace ctx {
-
-	namespace trigger_timer {
-
-		void handle_timer_event(ctx::json& rule);
-
-	};
-
-}	/* namespace ctx */
-
-#endif	/* End of __CONTEXT_CONTEXT_TRIGGER_TIMER_H__ */
+#endif	//__CONTEXT_FACT_TYPES_H__

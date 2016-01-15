@@ -19,6 +19,7 @@
 
 #include <string>
 #include <map>
+#include <glib.h>
 #include <context_mgr.h>
 #include <context_mgr_iface.h>
 

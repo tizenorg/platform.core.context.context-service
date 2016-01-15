@@ -32,8 +32,13 @@ namespace ctx {
 
 		void publish(const char *dest, int req_id, const char *subject, int error, const char *data);
 		void call(const char *dest, const char *obj, const char *iface, const char *method, GVariant *param);
-		int64_t signal_subscribe(const char *sender, const char *path, const char *iface, const char *name, dbus_listener_iface *listener);
-		void signal_unsubscribe(int64_t subscription_id);
+		int64_t subscribe_system_signal(const char *sender, const char *path, const char *iface, const char *name, dbus_listener_iface *listener);
+		int64_t subscribe_session_signal(const char *sender, const char *path, const char *iface, const char *name, dbus_listener_iface *listener);
+		void unsubscribe_system_signal(int64_t subscription_id);
+		void unsubscribe_session_signal(int64_t subscription_id);
+
+	private:
+		bool connect_system();
 
 	};	/* class ctx::dbus_server */
 

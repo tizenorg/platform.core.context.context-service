@@ -17,7 +17,7 @@
 #include <map>
 #include <alarm.h>
 #include <scope_mutex.h>
-#include <timer_mgr.h>
+#include <timer_types.h>
 #include "timer_mgr_impl.h"
 
 #define IDENTIFIER "contextd"
@@ -154,17 +154,17 @@ int ctx::timer_manager_impl::set_at(int hour, int min, int day_of_week, timer_li
 	IF_FAIL_RETURN_TAG(
 			hour < 24 && hour >= 0 &&
 			min < 60 && min >= 0 &&
-			day_of_week > 0 && day_of_week <= timer_manager::EVERYDAY &&
+			day_of_week > 0 && day_of_week <= timer_types::EVERYDAY &&
 			listener, false, _E, "Invalid parameter");
 
 	int repeat = 0;
-	if (day_of_week & timer_manager::SUN) repeat |= ALARM_WDAY_SUNDAY;
-	if (day_of_week & timer_manager::MON) repeat |= ALARM_WDAY_MONDAY;
-	if (day_of_week & timer_manager::TUE) repeat |= ALARM_WDAY_TUESDAY;
-	if (day_of_week & timer_manager::WED) repeat |= ALARM_WDAY_WEDNESDAY;
-	if (day_of_week & timer_manager::THU) repeat |= ALARM_WDAY_THURSDAY;
-	if (day_of_week & timer_manager::FRI) repeat |= ALARM_WDAY_FRIDAY;
-	if (day_of_week & timer_manager::SAT) repeat |= ALARM_WDAY_SATURDAY;
+	if (day_of_week & timer_types::SUN) repeat |= ALARM_WDAY_SUNDAY;
+	if (day_of_week & timer_types::MON) repeat |= ALARM_WDAY_MONDAY;
+	if (day_of_week & timer_types::TUE) repeat |= ALARM_WDAY_TUESDAY;
+	if (day_of_week & timer_types::WED) repeat |= ALARM_WDAY_WEDNESDAY;
+	if (day_of_week & timer_types::THU) repeat |= ALARM_WDAY_THURSDAY;
+	if (day_of_week & timer_types::FRI) repeat |= ALARM_WDAY_FRIDAY;
+	if (day_of_week & timer_types::SAT) repeat |= ALARM_WDAY_SATURDAY;
 
 	alarm_entry_t *alarm_info = alarmmgr_create_alarm();
 	IF_FAIL_RETURN_TAG(alarm_info, ERR_OPERATION_FAILED, _E, "Memory allocation failed");

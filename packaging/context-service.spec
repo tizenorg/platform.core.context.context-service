@@ -1,15 +1,12 @@
 Name:       context-service
 Summary:    Context-Service
-Version:    0.6.3
+Version:    0.7.0
 Release:    1
-Group:      System/Service
+Group:      Service/Context
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1:	context-service.service
 Source2:	org.tizen.context.conf
-
-# For active window hooking, we need to use 'ecore' mainloop instead of the 'glib' mainloop.
-%define MAINLOOP glib
 
 BuildRequires: cmake
 BuildRequires: sed
@@ -24,21 +21,13 @@ BuildRequires: pkgconfig(alarm-service)
 BuildRequires: pkgconfig(notification)
 BuildRequires: pkgconfig(capi-system-system-settings)
 
-%if "%{MAINLOOP}" == "ecore"
-BuildRequires: pkgconfig(ecore)
-%endif
-
 BuildRequires: pkgconfig(cynara-creds-gdbus)
 BuildRequires: pkgconfig(cynara-client)
 BuildRequires: pkgconfig(cynara-session)
 
-BuildRequires: pkgconfig(clips)
 BuildRequires: pkgconfig(context-common)
 BuildRequires: pkgconfig(context)
-
-BuildRequires: pkgconfig(device-context-provider)
-BuildRequires: pkgconfig(statistics-context-provider)
-BuildRequires: pkgconfig(place-context-provider)
+BuildRequires: pkgconfig(context-provider)
 
 Requires(preun): /usr/bin/systemctl
 Requires(post): /usr/bin/systemctl
@@ -67,7 +56,7 @@ export   CFLAGS+=" -DTIZEN_ENGINEER_MODE"
 export CXXFLAGS+=" -DTIZEN_ENGINEER_MODE"
 export   FFLAGS+=" -DTIZEN_ENGINEER_MODE"
 
-cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DMAJORVER=${MAJORVER} -DFULLVER=%{version} -DMAINLOOP=%{MAINLOOP}
+cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DMAJORVER=${MAJORVER} -DFULLVER=%{version}
 make %{?jobs:-j%jobs}
 
 %install
