@@ -21,7 +21,6 @@
 #include <app_manager.h>
 #include "rule_manager.h"
 #include "context_monitor.h"
-#include "template_manager.h"
 #include "rule.h"
 #include "timer.h"
 
@@ -46,8 +45,7 @@ static std::string int_to_string(int i)
 	return str;
 }
 
-ctx::rule_manager::rule_manager(ctx::template_manager* tmpl_mgr)
-: _tmpl_mgr(tmpl_mgr)
+ctx::rule_manager::rule_manager()
 {
 }
 
@@ -61,20 +59,11 @@ bool ctx::rule_manager::init()
 	int error;
 
 	// Create tables into db (rule, template)
-	std::string q1 = std::string("enabled INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL,")
+	std::string q1 = std::string("status INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL,")
 			+ "creator_app_id TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '',"
 			+ "details TEXT DEFAULT '' NOT NULL";
 	ret = db_manager::create_table(1, RULE_TABLE, q1.c_str(), NULL, NULL);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create rule table failed");
-
-	std::string q2 = std::string("CREATE TABLE IF NOT EXISTS context_trigger_template ")
-			+ "(name TEXT DEFAULT '' NOT NULL PRIMARY KEY, operation INTEGER DEFAULT 3 NOT NULL, "
-			+ "attributes TEXT DEFAULT '' NOT NULL, options TEXT DEFAULT '' NOT NULL)";
-	ret = db_manager::execute(2, q2.c_str(), NULL);
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Create template table failed");
-
-	// Apply templates
-	_tmpl_mgr->apply_templates();
 
 	// Before re-enable rules, handle uninstalled app's rules
 	if (get_uninstalled_app() > 0) {
@@ -151,7 +140,7 @@ int ctx::rule_manager::clear_rule_of_uninstalled_app(bool is_init)
 
 	// After event received, disable all the enabled rules of uninstalled apps	// TODO register uninstalled apps app_id when before trigger
 	if (!is_init) {
-		std::string q1 = "SELECT row_id FROM context_trigger_rule WHERE enabled = 1 and (";
+		std::string q1 = "SELECT row_id FROM context_trigger_rule WHERE status = 2 and (";
 		q1 += creator_list;
 		q1 += ")";
 
@@ -182,10 +171,35 @@ int ctx::rule_manager::clear_rule_of_uninstalled_app(bool is_init)
 	return ERR_NONE;
 }
 
+int ctx::rule_manager::disable_rule_with_removed_item(std::string& subject)
+{
+	std::string q = "SELECT row_id FROM context_trigger_rule WHERE (status = 2) AND (details LIKE '%\"ITEM_NAME\":\"" + subject + "\"%');";
+	std::vector<json> record;
+	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query row_ids using removed custom item failed");
+
+	std::vector<json>::iterator vec_end = record.end();
+	for (std::vector<json>::iterator vec_pos = record.begin(); vec_pos != vec_end; ++vec_pos) {
+		ctx::json elem = *vec_pos;
+		int row_id;
+		elem.get(NULL, "row_id", &row_id);
+
+		int error = disable_rule(row_id);
+		IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to disable rules using custom item");
+	}
+
+	std::string q_update = "UPDATE context_trigger_rule SET status=1 WHERE details LIKE '%\"ITEM_NAME\":\"" + subject + "\"%';";
+	std::vector<json> record2;
+	ret = db_manager::execute_sync(q_update.c_str(), &record2);
+	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to update rules as paused");
+
+	return ERR_NONE;
+}
+
 bool ctx::rule_manager::reenable_rule(void)
 {
 	int error;
-	std::string q = "SELECT row_id FROM context_trigger_rule where enabled = 1";
+	std::string q = "SELECT row_id FROM context_trigger_rule WHERE status = 2";
 
 	std::vector<json> record;
 	bool ret = db_manager::execute_sync(q.c_str(), &record);
@@ -537,7 +551,7 @@ int ctx::rule_manager::enable_rule(int rule_id)
 	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Failed to start rule%d", rule_id);
 
 	// Update db to set 'enabled'
-	query = "UPDATE context_trigger_rule SET enabled = 1 WHERE row_id = ";
+	query = "UPDATE context_trigger_rule SET status = 2 WHERE row_id = ";
 	query += id_str;
 	error = (db_manager::execute_sync(query.c_str(), &record))? ERR_NONE : ERR_OPERATION_FAILED;
 	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Update db failed");
@@ -569,7 +583,7 @@ int ctx::rule_manager::disable_rule(int rule_id)
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to stop rule%d", rule_id);
 
 	// Update db to set 'disabled'	// TODO skip while clear uninstalled rule
-	std::string query = "UPDATE context_trigger_rule SET enabled = 0 WHERE row_id = ";
+	std::string query = "UPDATE context_trigger_rule SET status = 0 WHERE row_id = ";
 
 	query += int_to_string(rule_id);
 	std::vector<json> record;
@@ -610,17 +624,17 @@ int ctx::rule_manager::check_rule(std::string creator, int rule_id)
 
 bool ctx::rule_manager::is_rule_enabled(int rule_id)
 {
-	std::string q = "SELECT enabled FROM context_trigger_rule WHERE row_id =";
+	std::string q = "SELECT status FROM context_trigger_rule WHERE row_id =";
 	q += int_to_string(rule_id);
 
 	std::vector<json> record;
 	bool ret = db_manager::execute_sync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Query enabled by rule id failed");
 
-	int enabled;
-	record[0].get(NULL, "enabled", &enabled);
+	int status;
+	record[0].get(NULL, "status", &status);
 
-	if (enabled == 1)
+	if (status == 2)
 		return true;
 	else
 		return false;
@@ -657,7 +671,7 @@ int ctx::rule_manager::get_rule_ids(std::string creator, ctx::json* request_resu
 {
 	(*request_result) = "{ \"" CT_RULE_ARRAY_ENABLED "\" : [ ] , \"" CT_RULE_ARRAY_DISABLED "\" : [ ] }";
 
-	std::string q = "SELECT row_id, enabled FROM context_trigger_rule WHERE (creator = '";
+	std::string q = "SELECT row_id, status FROM context_trigger_rule WHERE (creator = '";
 	q += creator;
 	q += "')";
 
@@ -669,14 +683,14 @@ int ctx::rule_manager::get_rule_ids(std::string creator, ctx::json* request_resu
 	for (std::vector<json>::iterator vec_pos = record.begin(); vec_pos != vec_end; ++vec_pos) {
 		ctx::json elem = *vec_pos;
 		std::string id;
-		int enabled;
+		int status;
 
 		elem.get(NULL, "row_id", &id);
-		elem.get(NULL, "enabled", &enabled);
+		elem.get(NULL, "status", &status);
 
-		if (enabled == 1) {
+		if (status == 2) {
 			(*request_result).array_append(NULL, CT_RULE_ARRAY_ENABLED, string_to_int(id));
-		} else if (enabled == 0) {
+		} else if (status <= 1) {
 			(*request_result).array_append(NULL, CT_RULE_ARRAY_DISABLED, string_to_int(id));
 		}
 	}

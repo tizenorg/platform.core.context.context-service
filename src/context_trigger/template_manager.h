@@ -22,18 +22,22 @@
 namespace ctx {
 
 	class context_manager_impl;
-
+	class rule_manager;
 	class template_manager {
 	public:
-		template_manager(ctx::context_manager_impl* ctx_mgr);
+		template_manager(ctx::context_manager_impl* ctx_mgr, ctx::rule_manager* rule_mgr);
 		~template_manager();
 
-		void apply_templates(void);
-		bool get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
+		bool init();
+		void apply_templates();
 		int get_template(std::string &subject, ctx::json* tmpl);
 
 	private:
 		context_manager_impl *_context_mgr;
+		rule_manager *_rule_mgr;
+
+		std::string add_template(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options, std::string &owner);
+		std::string remove_template(std::string &subject);
 
 	};	/* class template_manager */
 
