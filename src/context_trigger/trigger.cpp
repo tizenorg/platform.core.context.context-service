@@ -17,9 +17,9 @@
 #include <types_internal.h>
 #include <context_trigger_types_internal.h>
 #include "trigger.h"
-#include "rule_manager.h"
 #include "context_monitor.h"
 #include "template_manager.h"
+#include "rule_manager.h"
 
 ctx::context_trigger::context_trigger()
 	: rule_mgr(NULL)
@@ -98,17 +98,25 @@ void ctx::context_trigger::process_request(ctx::request_info* request)
 
 void ctx::context_trigger::process_initialize(ctx::context_manager_impl* mgr)
 {
+	// Context Monitor
 	ctx::context_monitor::set_context_manager(mgr);
 
-	tmpl_mgr = new(std::nothrow) template_manager(mgr);
-	IF_FAIL_VOID_TAG(tmpl_mgr, _E, "Memory allocation failed");
-
-	rule_mgr = new(std::nothrow) rule_manager(tmpl_mgr);
+	// Rule Manager
+	rule_mgr = new(std::nothrow) rule_manager();
 	IF_FAIL_VOID_TAG(rule_mgr, _E, "Memory allocation failed");
 
-	bool ret = rule_mgr->init();
-	if (!ret) {
-		_E("Context trigger initialization failed.");
+	// Template Manager
+	tmpl_mgr = new(std::nothrow) template_manager(mgr, rule_mgr);
+	IF_FAIL_VOID_TAG(tmpl_mgr, _E, "Memory allocation failed");
+
+	// Initialization
+	if (!tmpl_mgr->init()) {
+		_E("Template manager initialization failed");
+		raise(SIGTERM);
+	}
+
+	if (!rule_mgr->init()) {
+		_E("Context trigger initialization failed");
 		raise(SIGTERM);
 	}
 }

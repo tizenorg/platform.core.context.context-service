@@ -30,6 +30,7 @@ namespace ctx {
 
 		const credentials* get_credentials();
 		const char* get_app_id();
+		const char* get_package_id();
 		const char* get_client();
 		bool reply(int error);
 		bool reply(int error, ctx::json &request_result);
