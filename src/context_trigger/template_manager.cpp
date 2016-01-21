@@ -19,6 +19,7 @@
 #include <context_trigger_types_internal.h>
 #include <db_mgr.h>
 #include "../context_mgr_impl.h"
+#include "rule_manager.h"
 #include "template_manager.h"
 
 static std::string int_to_string(int i)
@@ -29,52 +30,83 @@ static std::string int_to_string(int i)
 	return str;
 }
 
-ctx::template_manager::template_manager(ctx::context_manager_impl* ctx_mgr)
-: _context_mgr(ctx_mgr)
+ctx::template_manager::template_manager(ctx::context_manager_impl* ctx_mgr, ctx::rule_manager* rule_mgr)
+: _context_mgr(ctx_mgr), _rule_mgr(rule_mgr)
 {
 }
 
 ctx::template_manager::~template_manager()
 {
+	apply_templates();
 }
 
-bool ctx::template_manager::get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options)
+bool ctx::template_manager::init()
 {
-	return _context_mgr->pop_trigger_item(subject, operation, attributes, options);
+	std::string q = std::string("CREATE TABLE IF NOT EXISTS context_trigger_template ")
+			+ "(name TEXT DEFAULT '' NOT NULL PRIMARY KEY, operation INTEGER DEFAULT 3 NOT NULL, "
+			+ "attributes TEXT DEFAULT '' NOT NULL, options TEXT DEFAULT '' NOT NULL, owner TEXT DEFAULT '' NOT NULL)";
+
+	std::vector<json> record;
+	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Create template table failed");
+
+	// Apply templates
+	apply_templates();
+
+	return true;
 }
 
-void ctx::template_manager::apply_templates(void)
+void ctx::template_manager::apply_templates()
 {
 	// TODO remove templates if needed
 	std::string subject;
 	int operation;
 	ctx::json attributes;
 	ctx::json options;
-	std::string q_update;
-	std::string q_insert = "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options) VALUES";
-	int cnt = 0;
+	std::string owner;
+	bool unregister;
+	std::string query;
+	query.clear();
 
-	while (get_fact_definition(subject, operation, attributes, options)) {
-		_D("Subject: %s, Ops: %d", subject.c_str(), operation);
-		_J("Attr", attributes);
-		_J("Opt", options);
-
-		q_update += "UPDATE context_trigger_template SET operation=" + int_to_string(operation)
-			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "' WHERE name='" + subject + "';";
-
-		q_insert += " ('" + subject + "', " + int_to_string(operation) + ", '" + attributes.str() + "', '" + options.str() + "'),";
-		cnt++;
+	while(_context_mgr->pop_trigger_item(subject, operation, attributes, options, owner, unregister)) {
+		if (unregister) {
+			query += remove_template(subject);
+			_rule_mgr->pause_rule_with_item(subject);
+		} else {
+			query += add_template(subject, operation, attributes, options, owner);
+			if (!owner.empty()) {
+				_rule_mgr->resume_rule_with_item(subject);
+			}
+		}
 	}
-	IF_FAIL_VOID(cnt > 0);
+	std::vector<json> record;
+	bool ret = db_manager::execute_sync(query.c_str(), &record);
+	IF_FAIL_VOID_TAG(ret, _E, "Update template db failed");
+}
 
-	q_insert.erase(q_insert.end() - 1, q_insert.end());
-	q_insert += ";";
+std::string ctx::template_manager::add_template(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options, std::string &owner)
+{
+	_D("[Add template] Subject: %s, Ops: %d, Owner: %s", subject.c_str(), operation, owner.c_str());
+	_J("Attr", attributes);
+	_J("Opt", options);
 
-	bool ret = db_manager::execute(1, q_update.c_str(), NULL);
-	IF_FAIL_VOID_TAG(ret, _E, "Update item definition failed");
+	std::string query = "UPDATE context_trigger_template SET operation=" + int_to_string(operation)
+			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "', owner='" + owner
+			+ "' WHERE name='" + subject + "'; ";
 
-	ret = db_manager::execute(2, q_insert.c_str(), NULL);
-	IF_FAIL_VOID_TAG(ret, _E, "Insert item definition failed");
+	query += "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options, owner) VALUES ('"
+			+ subject + "', " + int_to_string(operation) + ", '" + attributes.str() + "', '" + options.str() + "', '"
+			+ owner + "'); ";
+
+	return query;
+}
+
+std::string ctx::template_manager::remove_template(std::string &subject)
+{
+	_D("[Remove template] Subject: %s", subject.c_str());
+	std::string query = "DELETE FROM context_trigger_template WHERE name = '" + subject + "'; ";
+
+	return query;
 }
 
 int ctx::template_manager::get_template(std::string &subject, ctx::json* tmpl)

@@ -78,6 +78,10 @@ int ctx::trigger_rule::stop(void)
 {
 	// Unsubscribe event
 	int error = ctx::context_monitor::get_instance()->unsubscribe(id, event->name, event->option, this);
+	if (error == ERR_NOT_SUPPORTED) {
+		_E("Stop rule%d (event not supported)");
+		return ERR_NONE;
+	}
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to stop rule%d", id);
 
 	return error;
@@ -125,7 +129,7 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 	// Check if creator is uninstalled
 	if (ctx::rule_manager::is_uninstalled_package(creator)) {
 		_D("Creator(%s) of rule%d is uninstalled.", creator.c_str(), id);
-		g_idle_add(handle_uninstalled_rule, &id);
+		g_idle_add(handle_uninstalled_rule, &creator);
 		return;
 	}
 
@@ -190,9 +194,8 @@ void ctx::trigger_rule::on_context_data_prepared(void)
 
 gboolean ctx::trigger_rule::handle_uninstalled_rule(gpointer data)
 {
-	int* rule_id = static_cast<int*>(data);
-	rule_mgr->disable_rule(*rule_id);
-	rule_mgr->remove_rule(*rule_id);
+	std::string* app_id = static_cast<std::string*>(data);
+	rule_mgr->handle_rule_of_uninstalled_app(*app_id);
 
 	return FALSE;
 }

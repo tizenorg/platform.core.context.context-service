@@ -21,8 +21,8 @@
 
 namespace ctx {
 
-	class rule_manager;
 	class template_manager;
+	class rule_manager;
 	class client_request;
 	class context_manager_impl;
 	class context_trigger {

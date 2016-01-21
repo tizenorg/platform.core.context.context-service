@@ -41,11 +41,13 @@ namespace ctx {
 		void assign_request(ctx::request_info *request);
 		bool is_supported(const char *subject);
 		bool is_allowed(const credentials *creds, const char *subject);
-		bool pop_trigger_item(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
+		bool pop_trigger_item(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options, std::string &owner, bool& unregister);
 
 		/* From the interface class */
 		bool register_provider(const char *subject, context_provider_info &provider_info);
-		bool register_trigger_item(const char *subject, int operation, ctx::json attributes, ctx::json options);
+		bool unregister_provider(const char *subject);
+		bool register_trigger_item(const char *subject, int operation, ctx::json attributes, ctx::json options, const char *owner = NULL);
+		bool unregister_trigger_item(const char *subject);
 		bool publish(const char *subject, ctx::json &option, int error, ctx::json &data_updated);
 		bool reply_to_read(const char *subject, ctx::json &option, int error, ctx::json &data_read);
 
@@ -56,6 +58,8 @@ namespace ctx {
 		void _publish(const char *subject, ctx::json &option, int error, ctx::json &data_updated);
 		void _reply_to_read(const char *subject, ctx::json &option, int error, ctx::json &data_read);
 
+		/* For custom request */
+		bool handle_custom_request(ctx::request_info* request);
 	};	/* class context_manager_impl */
 
 }	/* namespace ctx */
