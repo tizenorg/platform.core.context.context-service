@@ -75,7 +75,7 @@ void ctx::context_monitor::destroy()
 int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener)
 {
 	int req_id = _subscribe(subject.c_str(), &option, listener);
-	IF_FAIL_RETURN_TAG(req_id > 0, ERR_OPERATION_FAILED, _E, "Subscribe event failed");
+	IF_FAIL_RETURN_TAG(req_id > 0, req_id, _E, "Subscribe event failed");
 	_D(YELLOW("Subscribe event(rule%d). req%d"), rule_id, req_id);
 
 	return ERR_NONE;
@@ -96,7 +96,7 @@ int ctx::context_monitor::_subscribe(const char* subject, json* option, context_
 
 	fact_request *req = new(std::nothrow) fact_request(REQ_SUBSCRIBE,
 			rid, subject, option ? option->str().c_str() : NULL, this);
-	IF_FAIL_RETURN_TAG(req, -1, _E, "Memory allocation failed");
+	IF_FAIL_RETURN_TAG(req, ERR_OUT_OF_MEMORY, _E, "Memory allocation failed");
 
 	_context_mgr->assign_request(req);
 	add_sub(REQ_SUBSCRIBE, rid, subject, option, listener);
@@ -104,7 +104,7 @@ int ctx::context_monitor::_subscribe(const char* subject, json* option, context_
 	if (last_err != ERR_NONE) {
 		remove_sub(REQ_SUBSCRIBE, rid);
 		_E("Subscription request failed: %#x", last_err);
-		return -1;
+		return last_err;
 	}
 
 	return rid;
