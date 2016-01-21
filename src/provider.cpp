@@ -116,6 +116,7 @@ void ctx::context_provider_handler::unsubscribe(ctx::request_info *request)
 	request->reply(error);
 	delete request;
 	delete req_found;
+
 }
 
 void ctx::context_provider_handler::read(ctx::request_info *request)

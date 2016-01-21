@@ -78,6 +78,10 @@ int ctx::trigger_rule::stop(void)
 {
 	// Unsubscribe event
 	int error = ctx::context_monitor::get_instance()->unsubscribe(id, event->name, event->option, this);
+	if (error == ERR_NOT_SUPPORTED) {
+		_E("Stop rule%d (event not supported)");
+		return ERR_NONE;
+	}
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to stop rule%d", id);
 
 	return error;

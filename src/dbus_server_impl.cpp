@@ -63,6 +63,10 @@ static const char* req_type_to_str(int req_type)
 			return "Read (Sync)";
 		case REQ_WRITE:
 			return "Write";
+		case REQ_SUPPORT:
+			return "Support";
+		case REQ_SUPPORT_CUSTOM:
+			return "Support (Custom)";
 		default:
 			return NULL;
 	}
