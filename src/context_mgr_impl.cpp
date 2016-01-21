@@ -18,6 +18,7 @@
 #include <list>
 
 #include <types_internal.h>
+#include <context_trigger_types_internal.h>
 #include <json.h>
 #include <provider_iface.h>
 #include "server.h"
@@ -30,14 +31,25 @@
 #include <internal/device_context_provider.h>
 #include <internal/statistics_context_provider.h>
 #include <internal/place_context_provider.h>
+#include <internal/custom_context_provider.h>
 
 struct trigger_item_format_s {
 	std::string subject;
 	int operation;
 	ctx::json attributes;
 	ctx::json options;
-	trigger_item_format_s(std::string subj, int ops, ctx::json attr, ctx::json opt)
-		: subject(subj), operation(ops), attributes(attr), options(opt) {}
+	std::string owner;
+	bool unregister;
+	trigger_item_format_s(std::string subj, int ops, ctx::json attr, ctx::json opt, std::string own)
+		: subject(subj), operation(ops), attributes(attr), options(opt), owner(own)
+	{
+		unregister = false;
+	}
+
+	trigger_item_format_s(std::string subj)
+		: subject(subj) {
+		unregister = true;
+	}
 };
 
 static std::list<trigger_item_format_s> __trigger_item_list;
@@ -63,6 +75,9 @@ bool ctx::context_manager_impl::init()
 
 	ret = init_place_context_provider();
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: place-context-provider");
+
+	ret = init_custom_context_provider();
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: custom-context-provider");
 
 	return true;
 }
@@ -98,14 +113,37 @@ bool ctx::context_manager_impl::register_provider(const char *subject, ctx::cont
 	return true;
 }
 
-bool ctx::context_manager_impl::register_trigger_item(const char *subject, int operation, ctx::json attributes, ctx::json options)
+bool ctx::context_manager_impl::unregister_provider(const char *subject)
 {
-	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
-	__trigger_item_list.push_back(trigger_item_format_s(subject, operation, attributes, options));
+	auto it = provider_handle_map.find(subject);
+	if (it == provider_handle_map.end()) {
+		_E("The provider for the subject '%s' is not found.", subject);
+		return false;
+	}
+
+	delete it->second;
+	provider_handle_map.erase(it);
+
 	return true;
 }
 
-bool ctx::context_manager_impl::pop_trigger_item(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options)
+bool ctx::context_manager_impl::register_trigger_item(const char *subject, int operation, ctx::json attributes, ctx::json options, const char* owner)
+{
+	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
+	__trigger_item_list.push_back(trigger_item_format_s(subject, operation, attributes, options, (owner)? owner : ""));
+
+	return true;
+}
+
+bool ctx::context_manager_impl::unregister_trigger_item(const char *subject)
+{
+	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
+	__trigger_item_list.push_back(trigger_item_format_s(subject));
+
+	return true;
+}
+
+bool ctx::context_manager_impl::pop_trigger_item(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options, std::string& owner, bool& unregister)
 {
 	IF_FAIL_RETURN(!__trigger_item_list.empty(), false);
 
@@ -116,12 +154,19 @@ bool ctx::context_manager_impl::pop_trigger_item(std::string &subject, int &oper
 	operation = format.operation;
 	attributes = format.attributes;
 	options = format.options;
+	owner = format.owner;
+	unregister = format.unregister;
 
 	return true;
 }
 
 void ctx::context_manager_impl::assign_request(ctx::request_info* request)
 {
+	if (handle_custom_request(request)) {
+		delete request;
+		return;
+	}
+
 	auto it = provider_handle_map.find(request->get_subject());
 	if (it == provider_handle_map.end()) {
 		_W("Unsupported subject");
@@ -253,5 +298,47 @@ bool ctx::context_manager_impl::reply_to_read(const char* subject, ctx::json& op
 
 	g_idle_add(thread_switcher, tuple);
 
+	return true;
+}
+
+bool ctx::context_manager_impl::handle_custom_request(ctx::request_info* request)
+{
+	std::string subject = request->get_subject();
+	IF_FAIL_RETURN(	subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_ADD ||
+					subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_REMOVE ||
+					subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_PUBLISH, false);
+
+	const char* pkg_id = request->get_package_id();
+	if (pkg_id == NULL) {
+		request->reply(ERR_OPERATION_FAILED);
+		return true;
+	}
+
+	ctx::json desc = request->get_description();
+	std::string name;
+	desc.get(NULL, CT_CUSTOM_NAME, &name);
+	std::string subj = pkg_id + std::string("::") + name;
+
+	int error = ERR_NONE;
+	if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_ADD) {
+		ctx::json tmpl;
+		desc.get(NULL, CT_CUSTOM_ATTRIBUTES, &tmpl);
+
+		error = ctx::custom_context_provider::add_item(subj, name, tmpl, pkg_id);
+	} else if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_REMOVE) {
+		error = ctx::custom_context_provider::remove_item(subj);
+		if (error == ERR_NONE) {
+			ctx::json data;
+			data.set(NULL, CT_CUSTOM_SUBJECT, subj);
+			request->reply(error, data);
+		}
+	} else if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_PUBLISH) {
+		ctx::json fact;
+		desc.get(NULL, CT_CUSTOM_FACT, &fact);
+
+		error = ctx::custom_context_provider::publish_data(subj, fact);
+	}
+
+	request->reply(error);
 	return true;
 }
