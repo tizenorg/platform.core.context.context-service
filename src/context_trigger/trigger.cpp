@@ -23,7 +23,6 @@
 
 ctx::context_trigger::context_trigger()
 	: rule_mgr(NULL)
-	, tmpl_mgr(NULL)
 {
 }
 
@@ -45,14 +44,15 @@ void ctx::context_trigger::release()
 {
 	// Release the occupied resources.
 	// This function is called from the main thread during the service termination process.
-	_D("Template Manager Release");
-	delete tmpl_mgr;
-	tmpl_mgr = NULL;
+
+	_D("Template Manager Destroy");
+	ctx::template_manager::destroy();
 
 	_D("Rule Manager Release");
 	delete rule_mgr;
 	rule_mgr = NULL;
 
+	_D("Context Monitor Destroy");
 	ctx::context_monitor::destroy();
 }
 
@@ -106,7 +106,8 @@ void ctx::context_trigger::process_initialize(ctx::context_manager_impl* mgr)
 	IF_FAIL_VOID_TAG(rule_mgr, _E, "Memory allocation failed");
 
 	// Template Manager
-	tmpl_mgr = new(std::nothrow) template_manager(mgr, rule_mgr);
+	ctx::template_manager::set_manager(mgr, rule_mgr);
+	ctx::template_manager* tmpl_mgr = ctx::template_manager::get_instance();
 	IF_FAIL_VOID_TAG(tmpl_mgr, _E, "Memory allocation failed");
 
 	// Initialization
@@ -277,6 +278,13 @@ void ctx::context_trigger::get_template(ctx::request_info* request)
 	ctx::json option = request->get_description();
 	std::string name;
 	option.get(NULL, SUBJECT_STR, &name);
+
+	ctx::template_manager* tmpl_mgr = ctx::template_manager::get_instance();
+	if (!tmpl_mgr) {
+		_E("Memory allocation failed");
+		request->reply(ERR_OUT_OF_MEMORY);
+		return;
+	}
 
 	ctx::json tmpl;
 	error = tmpl_mgr->get_template(name, &tmpl);
