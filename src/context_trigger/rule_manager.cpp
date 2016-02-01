@@ -20,6 +20,7 @@
 #include <db_mgr.h>
 #include <app_manager.h>
 #include "rule_manager.h"
+#include "template_manager.h"
 #include "context_monitor.h"
 #include "rule.h"
 #include "timer.h"
@@ -235,6 +236,7 @@ bool ctx::rule_manager::reenable_rule(void)
 	_D(YELLOW("Re-enable rule started"));
 
 	std::string q_rowid;
+	q_rowid.clear();
 	std::vector<json>::iterator vec_end = record.end();
 	for (std::vector<json>::iterator vec_pos = record.begin(); vec_pos != vec_end; ++vec_pos) {
 		ctx::json elem = *vec_pos;
@@ -248,6 +250,7 @@ bool ctx::rule_manager::reenable_rule(void)
 			_E("Re-enable rule%d failed(%d)", row_id, error);
 		}
 	}
+	IF_FAIL_RETURN(!q_rowid.empty(), true);
 	q_rowid = q_rowid.substr(0, q_rowid.length() - 4);
 
 	// For rules which is failed to re-enable
@@ -499,6 +502,7 @@ int ctx::rule_manager::verify_rule(ctx::json& rule, const char* creator)
 
 int ctx::rule_manager::add_rule(std::string creator, const char* app_id, ctx::json rule, ctx::json* rule_id)
 {
+	apply_templates();
 	bool ret;
 	int64_t rid;
 
@@ -543,6 +547,7 @@ int ctx::rule_manager::add_rule(std::string creator, const char* app_id, ctx::js
 
 int ctx::rule_manager::remove_rule(int rule_id)
 {
+	apply_templates();
 	bool ret;
 
 	// Delete rule from DB
@@ -560,6 +565,7 @@ int ctx::rule_manager::remove_rule(int rule_id)
 
 int ctx::rule_manager::enable_rule(int rule_id)
 {
+	apply_templates();
 	int error;
 	std::string query;
 	std::vector<json> rule_record;
@@ -610,6 +616,7 @@ CATCH:
 
 int ctx::rule_manager::disable_rule(int rule_id)
 {
+	apply_templates();
 	bool ret;
 	int error;
 
@@ -709,6 +716,7 @@ bool ctx::rule_manager::is_rule_enabled(int rule_id)
 
 int ctx::rule_manager::get_rule_by_id(std::string creator, int rule_id, ctx::json* request_result)
 {
+	apply_templates();
 	std::string q = "SELECT description FROM context_trigger_rule WHERE (creator = '";
 	q += creator;
 	q += "') and (row_id = ";
@@ -763,4 +771,11 @@ int ctx::rule_manager::get_rule_ids(std::string creator, ctx::json* request_resu
 	}
 
 	return ERR_NONE;
+}
+
+void ctx::rule_manager::apply_templates()
+{
+	ctx::template_manager* tmpl_mgr = ctx::template_manager::get_instance();
+	IF_FAIL_VOID_TAG(tmpl_mgr, _E, "Memory allocation failed");
+	tmpl_mgr->apply_templates();
 }
