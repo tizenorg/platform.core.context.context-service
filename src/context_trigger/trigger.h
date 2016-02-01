@@ -21,7 +21,6 @@
 
 namespace ctx {
 
-	class template_manager;
 	class rule_manager;
 	class client_request;
 	class context_manager_impl;
@@ -48,7 +47,6 @@ namespace ctx {
 			void get_template(ctx::request_info* request);
 
 			ctx::rule_manager* rule_mgr;
-			ctx::template_manager* tmpl_mgr;
 	};
 
 }	/* namespace ctx */
