@@ -22,6 +22,10 @@
 #include "rule_manager.h"
 #include "template_manager.h"
 
+ctx::template_manager *ctx::template_manager::_instance = NULL;
+ctx::context_manager_impl *ctx::template_manager::_context_mgr = NULL;
+ctx::rule_manager *ctx::template_manager::_rule_mgr = NULL;
+
 static std::string int_to_string(int i)
 {
 	std::ostringstream convert;
@@ -30,14 +34,41 @@ static std::string int_to_string(int i)
 	return str;
 }
 
-ctx::template_manager::template_manager(ctx::context_manager_impl* ctx_mgr, ctx::rule_manager* rule_mgr)
-: _context_mgr(ctx_mgr), _rule_mgr(rule_mgr)
+ctx::template_manager::template_manager()
 {
 }
 
 ctx::template_manager::~template_manager()
 {
-	apply_templates();
+}
+
+void ctx::template_manager::set_manager(ctx::context_manager_impl* ctx_mgr, ctx::rule_manager* rule_mgr)
+{
+	_context_mgr = ctx_mgr;
+	_rule_mgr = rule_mgr;
+}
+
+ctx::template_manager* ctx::template_manager::get_instance()
+{
+	IF_FAIL_RETURN_TAG(_context_mgr, NULL, _E, "Context manager is needed");
+	IF_FAIL_RETURN_TAG(_rule_mgr, NULL, _E, "Rule manager is needed");
+
+	IF_FAIL_RETURN(!_instance, _instance);
+
+	_instance = new(std::nothrow) template_manager();
+	IF_FAIL_RETURN_TAG(_instance, NULL, _E, "Memory alllocation failed");
+
+	return _instance;
+}
+
+void ctx::template_manager::destroy()
+{
+	_instance->apply_templates();
+
+	if (_instance) {
+		delete _instance;
+		_instance = NULL;
+	}
 }
 
 bool ctx::template_manager::init()
@@ -58,7 +89,6 @@ bool ctx::template_manager::init()
 
 void ctx::template_manager::apply_templates()
 {
-	// TODO remove templates if needed
 	std::string subject;
 	int operation;
 	ctx::json attributes;
@@ -79,6 +109,8 @@ void ctx::template_manager::apply_templates()
 			}
 		}
 	}
+	IF_FAIL_VOID(!query.empty());
+
 	std::vector<json> record;
 	bool ret = db_manager::execute_sync(query.c_str(), &record);
 	IF_FAIL_VOID_TAG(ret, _E, "Update template db failed");
