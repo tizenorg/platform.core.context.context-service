@@ -21,13 +21,13 @@
 #include <json.h>
 #include <sqlite3.h>
 
-#include <event_driven.h>
+#include <EventDrivenThread.h>
 #include <db_listener_iface.h>
 #include <db_mgr_iface.h>
 
 namespace ctx {
 
-	class db_manager_impl : public event_driven_thread, public db_manager_iface {
+	class db_manager_impl : public EventDrivenThread, public db_manager_iface {
 	private:
 		enum query_type_e {
 			QTYPE_CREATE_TABLE = 1,
@@ -51,8 +51,8 @@ namespace ctx {
 
 		sqlite3 *db_handle;
 
-		void on_thread_event_popped(int type, void* data);
-		void delete_thread_event(int type, void* data);
+		void onEvent(int type, void* data);
+		void deleteEvent(int type, void* data);
 
 		bool open();
 		void close();
