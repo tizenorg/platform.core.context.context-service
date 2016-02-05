@@ -20,7 +20,7 @@
 #include <glib-object.h>
 
 #include <types_internal.h>
-#include "dbus_server_impl.h"
+#include "DBusServer.h"
 #include "db_mgr_impl.h"
 #include "timer_mgr_impl.h"
 #include "context_mgr_impl.h"
@@ -33,7 +33,7 @@ static bool started = false;
 static ctx::context_manager_impl *context_mgr = NULL;
 static ctx::timer_manager_impl *timer_mgr = NULL;
 static ctx::db_manager_impl *database_mgr = NULL;
-static ctx::dbus_server_impl *dbus_handle = NULL;
+static ctx::DBusServer *dbus_handle = NULL;
 static ctx::context_trigger *trigger = NULL;
 
 void ctx::server::initialize()
@@ -42,9 +42,9 @@ void ctx::server::initialize()
 	mainloop = g_main_loop_new(NULL, FALSE);
 
 	_I("Init Dbus Connection");
-	dbus_handle = new(std::nothrow) ctx::dbus_server_impl();
+	dbus_handle = new(std::nothrow) ctx::DBusServer();
 	IF_FAIL_VOID_TAG(dbus_handle, _E, "Memory allocation failed");
-	IF_FAIL_VOID_TAG(dbus_handle->init(), _E, "Initialization Failed");
+	IF_FAIL_VOID_TAG(dbus_handle->__init(), _E, "Initialization Failed");
 
 	// Start the main loop
 	_I(CYAN("Launching Context-Service"));
@@ -108,7 +108,7 @@ void ctx::server::release()
 
 	_I("Release Dbus Connection");
 	if (dbus_handle)
-		dbus_handle->release();
+		dbus_handle->__release();
 
 	_I("Close the Database");
 	if (database_mgr)

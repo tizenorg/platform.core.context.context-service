@@ -21,14 +21,14 @@ namespace ctx {
 
 	class request_info;
 
-	namespace server {
+	class server {
+	public:
+		static void initialize();
+		static void activate();
+		static void release();
+		static void send_request(request_info* request);
 
-		void initialize();
-		void activate();
-		void release();
-		void send_request(request_info* request);
-
-	};	/* namespace ctx::server */
+	};
 
 }	/* namespace ctx */
 
