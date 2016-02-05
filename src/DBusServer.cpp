@@ -15,24 +15,15 @@
  */
 
 #include <signal.h>
-#include <glib.h>
-#include <gio/gio.h>
 #include <app_manager.h>
 
 #include <types_internal.h>
 #include "server.h"
 #include "client_request.h"
 #include "access_control/peer_creds.h"
-#include "dbus_server_impl.h"
+#include "DBusServer.h"
 
-static bool conn_acquired = false;
-static bool name_acquired = false;
-static ctx::dbus_server_impl *_instance = NULL;
-static GDBusConnection *dbus_conn_session = NULL;
-static guint dbus_owner_id = 0;
-static GDBusNodeInfo *dbus_node_info = NULL;
-
-static const gchar introspection_xml[] =
+static const gchar __introspection_xml[] =
 	"<node>"
 	"	<interface name='" DBUS_IFACE "'>"
 	"		<method name='" METHOD_REQUEST "'>"
@@ -48,24 +39,6 @@ static const gchar introspection_xml[] =
 	"	</interface>"
 	"</node>";
 
-static const char* req_type_to_str(int req_type)
-{
-	switch (req_type) {
-		case REQ_SUBSCRIBE:
-			return "Subscribe";
-		case REQ_UNSUBSCRIBE:
-			return "Unsubscribe";
-		case REQ_READ:
-			return "Read";
-		case REQ_READ_SYNC:
-			return "Read (Sync)";
-		case REQ_WRITE:
-			return "Write";
-		default:
-			return NULL;
-	}
-}
-
 static void handle_request(const char *sender, GVariant *param, GDBusMethodInvocation *invocation)
 {
 	gint req_type = 0;
@@ -77,7 +50,7 @@ static void handle_request(const char *sender, GVariant *param, GDBusMethodInvoc
 	g_variant_get(param, "(i&si&s&s)", &req_type, &cookie, &req_id, &subject, &input);
 	IF_FAIL_VOID_TAG(req_type > 0 && req_id > 0 && cookie && subject && input, _E, "Invalid request");
 
-	_I("[%s] ReqId: %d, Subject: %s", req_type_to_str(req_type), req_id, subject);
+	_I("[%d] ReqId: %d, Subject: %s", req_type, req_id, subject);
 	_SI("Input: %s", input);
 
 	ctx::credentials *creds = NULL;
@@ -152,16 +125,16 @@ static void on_name_lost(GDBusConnection *conn, const gchar *name, gpointer user
 	raise(SIGTERM);
 }
 
-ctx::dbus_server_impl::dbus_server_impl()
+ctx::DBusServer::DBusServer()
 {
 }
 
-ctx::dbus_server_impl::~dbus_server_impl()
+ctx::DBusServer::~DBusServer()
 {
-	release();
+	__release();
 }
 
-bool ctx::dbus_server_impl::init()
+bool ctx::DBusServer::__init()
 {
 	IF_FAIL_RETURN_TAG(dbus_node_info == NULL, false, _E, "Re-initialization");
 
@@ -175,7 +148,7 @@ bool ctx::dbus_server_impl::init()
 	return true;
 }
 
-void ctx::dbus_server_impl::release()
+void ctx::DBusServer::release()
 {
 	if (dbus_conn_session) {
 		g_dbus_connection_flush_sync(dbus_conn_session, NULL, NULL);
@@ -198,7 +171,7 @@ void ctx::dbus_server_impl::release()
 	}
 }
 
-void ctx::dbus_server_impl::publish(const char* dest, int req_id, const char* subject, int error, const char* data)
+void ctx::DBusServer::publish(const char* dest, int req_id, const char* subject, int error, const char* data)
 {
 	IF_FAIL_VOID_TAG(dest && subject && data, _E, "Parameter null");
 
@@ -221,7 +194,7 @@ static void handle_call_result(GObject *source, GAsyncResult *res, gpointer user
 	HANDLE_GERROR(error);
 }
 
-void ctx::dbus_server_impl::call(const char *dest, const char *obj, const char *iface, const char *method, GVariant *param)
+void ctx::DBusServer::call(const char *dest, const char *obj, const char *iface, const char *method, GVariant *param)
 {
 	IF_FAIL_VOID_TAG(dest && obj && iface && method, _E, "Parameter null");
 
