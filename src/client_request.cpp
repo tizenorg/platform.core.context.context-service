@@ -18,7 +18,6 @@
 #include <glib.h>
 #include <app_manager.h>
 #include <types_internal.h>
-#include <dbus_server.h>
 #include "dbus_server_impl.h"
 #include "access_control/peer_creds.h"
 #include "client_request.h"

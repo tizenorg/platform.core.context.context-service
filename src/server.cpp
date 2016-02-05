@@ -44,8 +44,6 @@ void ctx::server::initialize()
 	_I("Init Dbus Connection");
 	dbus_handle = new(std::nothrow) ctx::dbus_server_impl();
 	IF_FAIL_VOID_TAG(dbus_handle, _E, "Memory allocation failed");
-
-	dbus_server::set_instance(dbus_handle);
 	IF_FAIL_VOID_TAG(dbus_handle->init(), _E, "Initialization Failed");
 
 	// Start the main loop
