@@ -45,9 +45,6 @@ void ctx::server::initialize()
 	dbus_handle = new(std::nothrow) ctx::dbus_server_impl();
 	IF_FAIL_VOID_TAG(dbus_handle, _E, "Memory allocation failed");
 
-	dbus_server::set_instance(dbus_handle);
-	IF_FAIL_VOID_TAG(dbus_handle->init(), _E, "Initialization Failed");
-
 	// Start the main loop
 	_I(CYAN("Launching Context-Service"));
 	g_main_loop_run(mainloop);
