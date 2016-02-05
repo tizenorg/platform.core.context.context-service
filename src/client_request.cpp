@@ -18,7 +18,7 @@
 #include <glib.h>
 #include <app_manager.h>
 #include <types_internal.h>
-#include "dbus_server_impl.h"
+#include "DBusServer.h"
 #include "access_control/peer_creds.h"
 #include "client_request.h"
 
@@ -123,11 +123,6 @@ CATCH:
 
 bool ctx::client_request::publish(int error, ctx::json& data)
 {
-	char *data_str = data.dup_cstr();
-	IF_FAIL_RETURN_TAG(data_str, false, _E, "Memory allocation failed");
-
-	dbus_server::publish(__dbus_sender.c_str(), _req_id, _subject.c_str(), error, data_str);
-	g_free(data_str);
-
+	DBusServer::publish(__dbus_sender, _req_id, _subject, error, data.str());
 	return true;
 }

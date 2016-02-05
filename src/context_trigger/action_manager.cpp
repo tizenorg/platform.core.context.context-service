@@ -24,7 +24,7 @@
 #include <system_settings.h>
 #include <context_trigger_types_internal.h>
 #include <json.h>
-#include "../dbus_server_impl.h"
+#include "../DBusServer.h"
 #include "action_manager.h"
 
 static void trigger_action_app_control(ctx::json& action);
@@ -205,5 +205,5 @@ void trigger_action_dbus_call(ctx::json& action)
 
 	action.get(NULL, CT_RULE_ACTION_DBUS_PARAMETER, &param);
 
-	ctx::dbus_server::call(bus_name.c_str(), object.c_str(), iface.c_str(), method.c_str(), param);
+	ctx::DBusServer::call(bus_name, object, iface, method, param);
 }

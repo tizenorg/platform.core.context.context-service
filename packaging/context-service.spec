@@ -42,8 +42,8 @@ Context-Service
 %build
 MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
 
-export   CFLAGS+=" -Wextra -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wswitch-default"
-export CXXFLAGS+=" -Wextra -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wswitch-default -Wnon-virtual-dtor"
+export   CFLAGS+=" -Wextra -Wcast-align -Wshadow -Wwrite-strings -Wswitch-default"
+export CXXFLAGS+=" -Wextra -Wcast-align -Wshadow -Wwrite-strings -Wswitch-default -Wnon-virtual-dtor"
 
 export   CFLAGS+=" -Wno-unused-parameter -Wno-empty-body"
 export CXXFLAGS+=" -Wno-unused-parameter -Wno-empty-body"
