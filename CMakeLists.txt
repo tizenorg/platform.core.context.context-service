@@ -13,7 +13,6 @@ MESSAGE("Sources: ${SRCS}")
 SET(DEPS
 	libtzplatform-config
 	vconf
-	libxml-2.0
 	sqlite3
 	capi-system-info
 	capi-appfw-app-manager
