@@ -41,19 +41,25 @@ Context-Service
 %build
 MAJORVER=`echo %{version} | awk 'BEGIN {FS="."}{print $1}'`
 
-export   CFLAGS+=" -Wextra -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wswitch-default"
-export CXXFLAGS+=" -Wextra -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wswitch-default -Wnon-virtual-dtor"
+export   CFLAGS+=" -Wextra -Wcast-align -Wshadow -Wwrite-strings -Wswitch-default -Wno-unused-parameter"
+export CXXFLAGS+=" -Wextra -Wcast-align -Wshadow -Wwrite-strings -Wswitch-default -Wno-unused-parameter"
 
-export   CFLAGS+=" -Wno-unused-parameter -Wno-empty-body"
-export CXXFLAGS+=" -Wno-unused-parameter -Wno-empty-body"
+export   CFLAGS+=" -Wno-empty-body -fno-omit-frame-pointer -fno-optimize-sibling-calls"
+export CXXFLAGS+=" -Wno-empty-body -fno-omit-frame-pointer -fno-optimize-sibling-calls"
 
-export   CFLAGS+=" -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-strict-aliasing -fno-unroll-loops -fsigned-char -fstrict-overflow -fno-common"
-export CXXFLAGS+=" -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-strict-aliasing -fno-unroll-loops -fsigned-char -fstrict-overflow"
+export   CFLAGS+=" -fno-strict-aliasing -fno-unroll-loops -fsigned-char -fstrict-overflow"
+export CXXFLAGS+=" -fno-strict-aliasing -fno-unroll-loops -fsigned-char -fstrict-overflow"
+
+export   CFLAGS+=" -fno-common"
+export CXXFLAGS+=" -Wnon-virtual-dtor"
 export CXXFLAGS+=" -std=c++11 -Wno-c++11-compat"
 
-export   CFLAGS+=" -DTIZEN_ENGINEER_MODE"
-export CXXFLAGS+=" -DTIZEN_ENGINEER_MODE"
-export   FFLAGS+=" -DTIZEN_ENGINEER_MODE"
+#export   CFLAGS+=" -Wcast-qual"
+#export CXXFLAGS+=" -Wcast-qual"
+
+#export   CFLAGS+=" -DTIZEN_ENGINEER_MODE"
+#export CXXFLAGS+=" -DTIZEN_ENGINEER_MODE"
+#export   FFLAGS+=" -DTIZEN_ENGINEER_MODE"
 
 cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DMAJORVER=${MAJORVER} -DFULLVER=%{version}
 make %{?jobs:-j%jobs}
