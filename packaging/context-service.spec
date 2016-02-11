@@ -12,7 +12,6 @@ BuildRequires: cmake
 BuildRequires: sed
 BuildRequires: pkgconfig(libtzplatform-config)
 BuildRequires: pkgconfig(vconf)
-BuildRequires: pkgconfig(libxml-2.0)
 BuildRequires: pkgconfig(sqlite3)
 BuildRequires: pkgconfig(capi-system-info)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
@@ -69,9 +68,6 @@ mkdir -p %{buildroot}%{_datadir}/packages
 mkdir -p %{buildroot}/opt/data/context-service
 install -m 0644 %{SOURCE1} %{buildroot}%{_unitdir_user}
 cp LICENSE %{buildroot}%{_datadir}/license/%{name}
-sed -i "s/^\tversion=\".*\"/\tversion=\"%{version}\"/g" packaging/context-service.xml
-cp packaging/context-service.xml %{buildroot}%{_datadir}/packages/
-
 mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/session.d
 install -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/dbus-1/session.d/
 
@@ -97,4 +93,3 @@ rm -f %{_unitdir_user}/default.target.wants/context-service.service
 %{_bindir}/*
 %{_unitdir_user}/context-service.service
 %{_datadir}/license/%{name}
-%{_datadir}/packages/*.xml
