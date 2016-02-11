@@ -75,7 +75,7 @@ void ctx::db_manager_impl::close()
 	db_handle = NULL;
 }
 
-void ctx::db_manager_impl::on_thread_event_popped(int type, void* data)
+void ctx::db_manager_impl::onEvent(int type, void* data)
 {
 	IF_FAIL_VOID(data);
 	query_info_s *info = static_cast<query_info_s*>(data);
@@ -91,10 +91,10 @@ void ctx::db_manager_impl::on_thread_event_popped(int type, void* data)
 		break;
 	}
 
-	delete_thread_event(type, data);
+	deleteEvent(type, data);
 }
 
-void ctx::db_manager_impl::delete_thread_event(int type, void* data)
+void ctx::db_manager_impl::deleteEvent(int type, void* data)
 {
 	IF_FAIL_VOID(data);
 	query_info_s *info = static_cast<query_info_s*>(data);
@@ -124,7 +124,7 @@ bool ctx::db_manager_impl::create_table(unsigned int query_id, const char* table
 	info->id = query_id;
 	info->listener = listener;
 
-	if (!push_thread_event(QTYPE_CREATE_TABLE, info)) {
+	if (!pushEvent(QTYPE_CREATE_TABLE, info)) {
 		_E("Pushing thread event failed");
 		delete info;
 		return false;
@@ -186,7 +186,7 @@ bool ctx::db_manager_impl::insert(unsigned int query_id, const char* table_name,
 	info->id = query_id;
 	info->listener = listener;
 
-	if (!push_thread_event(QTYPE_INSERT, info)) {
+	if (!pushEvent(QTYPE_INSERT, info)) {
 		_E("Pushing thread event failed");
 		delete info;
 		return false;
@@ -207,7 +207,7 @@ bool ctx::db_manager_impl::execute(unsigned int query_id, const char* query, db_
 	info->query = query;
 	info->listener = listener;
 
-	if (!push_thread_event(QTYPE_EXECUTE, info)) {
+	if (!pushEvent(QTYPE_EXECUTE, info)) {
 		_E("Pushing thread event failed");
 		delete info;
 		return false;
