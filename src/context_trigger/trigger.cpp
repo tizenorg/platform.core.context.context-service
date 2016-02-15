@@ -132,9 +132,9 @@ void ctx::context_trigger::add_rule(ctx::request_info* request)
 		return;
 	}
 
-	const char* app_id = request->get_app_id();
+	const char* pkg_id = request->get_package_id();
 
-	int error = rule_mgr->add_rule(client, app_id, request->get_description(), &rule_id);
+	int error = rule_mgr->add_rule(client, pkg_id, request->get_description(), &rule_id);
 	_I("'%s' adds a rule (Error: %#x)", request->get_client(), error);
 
 	request->reply(error, rule_id);
@@ -145,16 +145,12 @@ void ctx::context_trigger::remove_rule(ctx::request_info* request)
 	int id;
 	int error;
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
+	const char* pkg_id = request->get_package_id();
 
 	ctx::json rule_id = request->get_description();
 	rule_id.get(NULL, CT_RULE_ID, &id);
 
-	error = rule_mgr->check_rule(app_id, id);
+	error = rule_mgr->check_rule((pkg_id)? pkg_id : "", id);
 	if (error != ERR_NONE) {
 		request->reply(error);
 		return;
@@ -176,16 +172,12 @@ void ctx::context_trigger::enable_rule(ctx::request_info* request)
 	int id;
 	int error;
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
+	const char* pkg_id = request->get_package_id();
 
 	ctx::json rule_id = request->get_description();
 	rule_id.get(NULL, CT_RULE_ID, &id);
 
-	error = rule_mgr->check_rule(app_id, id);
+	error = rule_mgr->check_rule((pkg_id)? pkg_id : "", id);
 	if (error != ERR_NONE) {
 		request->reply(error);
 		return;
@@ -207,16 +199,12 @@ void ctx::context_trigger::disable_rule(ctx::request_info* request)
 	int id;
 	int error;
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
+	const char* pkg_id = request->get_package_id();
 
 	ctx::json rule_id = request->get_description();
 	rule_id.get(NULL, CT_RULE_ID, &id);
 
-	error = rule_mgr->check_rule(app_id, id);
+	error = rule_mgr->check_rule((pkg_id)? pkg_id : "", id);
 	if (error != ERR_NONE) {
 		request->reply(error);
 		return;
@@ -241,14 +229,10 @@ void ctx::context_trigger::get_rule_by_id(ctx::request_info* request)
 	int id;
 	option.get(NULL, CT_RULE_ID, &id);
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
+	const char* pkg_id = request->get_package_id();
 
 	ctx::json read_data;
-	error = rule_mgr->get_rule_by_id(app_id, id, &read_data);
+	error = rule_mgr->get_rule_by_id((pkg_id)? pkg_id : "", id, &read_data);
 
 	ctx::json dummy;
 	request->reply(error, dummy, read_data);
@@ -258,14 +242,10 @@ void ctx::context_trigger::get_rule_ids(ctx::request_info* request)
 {
 	int error;
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
+	const char* pkg_id = request->get_package_id();
 
 	ctx::json read_data;
-	error = rule_mgr->get_rule_ids(app_id, &read_data);
+	error = rule_mgr->get_rule_ids((pkg_id)? pkg_id : "", &read_data);
 
 	ctx::json dummy;
 	request->reply(error, dummy, read_data);

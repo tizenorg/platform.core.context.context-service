@@ -24,10 +24,10 @@
 
 ctx::rule_manager *ctx::trigger_rule::rule_mgr = NULL;
 
-ctx::trigger_rule::trigger_rule(int i, ctx::json& d, const char* cr, rule_manager* rm)
+ctx::trigger_rule::trigger_rule(int i, ctx::json& d, const char* p, rule_manager* rm)
 	: result(EMPTY_JSON_OBJECT)
 	, id(i)
-	, creator(cr)
+	, pkg_id(p)
 {
 	// Rule manager
 	if (!rule_mgr) {
@@ -126,10 +126,10 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 		clear_result();
 	}
 
-	// Check if creator is uninstalled
-	if (ctx::rule_manager::is_uninstalled_package(creator)) {
-		_D("Creator(%s) of rule%d is uninstalled.", creator.c_str(), id);
-		g_idle_add(handle_uninstalled_rule, &creator);
+	// Check if creator package is uninstalled
+	if (ctx::rule_manager::is_uninstalled_package(pkg_id)) {
+		_D("Creator(%s) of rule%d is uninstalled.", pkg_id.c_str(), id);
+		g_idle_add(handle_uninstalled_rule, &pkg_id);
 		return;
 	}
 
@@ -187,15 +187,15 @@ void ctx::trigger_rule::clear_result()
 void ctx::trigger_rule::on_context_data_prepared(void)
 {
 	if (ctx::rule_evaluator::evaluate_rule(statement, result)) {
-		ctx::action_manager::trigger_action(action, creator);
+		ctx::action_manager::trigger_action(action, pkg_id);
 	}
 	clear_result();
 }
 
 gboolean ctx::trigger_rule::handle_uninstalled_rule(gpointer data)
 {
-	std::string* app_id = static_cast<std::string*>(data);
-	rule_mgr->handle_rule_of_uninstalled_app(*app_id);
+	std::string* pkg_id = static_cast<std::string*>(data);
+	rule_mgr->handle_rule_of_uninstalled_package(*pkg_id);
 
 	return FALSE;
 }

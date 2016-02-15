@@ -58,9 +58,9 @@ namespace ctx {
 
 		public:
 			int id;
-			std::string creator;
+			std::string pkg_id;
 
-			trigger_rule(int i, ctx::json& d, const char* c, rule_manager* rm);
+			trigger_rule(int i, ctx::json& d, const char* p, rule_manager* rm);
 			~trigger_rule();
 
 			int start(void);

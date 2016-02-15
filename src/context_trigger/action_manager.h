@@ -23,7 +23,7 @@ namespace ctx {
 
 	namespace action_manager {
 
-		void trigger_action(ctx::json& action, std::string creator);
+		void trigger_action(ctx::json& action, std::string pkg_id);
 
 	}
 

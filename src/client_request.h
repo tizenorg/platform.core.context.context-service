@@ -29,7 +29,6 @@ namespace ctx {
 		~client_request();
 
 		const credentials* get_credentials();
-		const char* get_app_id();
 		const char* get_package_id();
 		const char* get_client();
 		bool reply(int error);

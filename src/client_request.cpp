@@ -44,14 +44,6 @@ const ctx::credentials* ctx::client_request::get_credentials()
 	return __credentials;
 }
 
-const char* ctx::client_request::get_app_id()
-{
-	if (__credentials)
-		return __credentials->app_id;
-
-	return NULL;
-}
-
 const char* ctx::client_request::get_package_id()
 {
 	if (__credentials)

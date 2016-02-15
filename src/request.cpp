@@ -45,11 +45,6 @@ const ctx::credentials* ctx::request_info::get_credentials()
 	return NULL;
 }
 
-const char* ctx::request_info::get_app_id()
-{
-	return NULL;
-}
-
 const char* ctx::request_info::get_package_id()
 {
 	return NULL;

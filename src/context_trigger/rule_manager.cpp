@@ -18,7 +18,7 @@
 #include <json.h>
 #include <context_trigger_types_internal.h>
 #include <db_mgr.h>
-#include <app_manager.h>
+#include <package_manager.h>
 #include "rule_manager.h"
 #include "template_manager.h"
 #include "context_monitor.h"
@@ -61,14 +61,14 @@ bool ctx::rule_manager::init()
 
 	// Create tables into db (rule, template)
 	std::string q1 = std::string("status INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL,")
-			+ "creator_app_id TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '',"
+			+ "package_id TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '',"
 			+ "details TEXT DEFAULT '' NOT NULL";
 	ret = db_manager::create_table(1, RULE_TABLE, q1.c_str(), NULL, NULL);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create rule table failed");
 
 	// Before re-enable rules, handle uninstalled app's rules
 	if (get_uninstalled_app() > 0) {
-		error = clear_rule_of_uninstalled_app(true);
+		error = clear_rule_of_uninstalled_package(true);
 		IF_FAIL_RETURN_TAG(error == ERR_NONE, false, _E, "Failed to remove uninstalled apps' rules while initialization");
 	}
 	ret = reenable_rule();
@@ -76,84 +76,84 @@ bool ctx::rule_manager::init()
 	return ret;
 }
 
-void ctx::rule_manager::handle_rule_of_uninstalled_app(std::string app_id)
+void ctx::rule_manager::handle_rule_of_uninstalled_package(std::string pkg_id)
 {
-	uninstalled_apps.insert(app_id);
-	clear_rule_of_uninstalled_app();
+	uninstalled_packages.insert(pkg_id);
+	clear_rule_of_uninstalled_package();
 }
 
 int ctx::rule_manager::get_uninstalled_app(void)
 {
 	// Return number of uninstalled apps
-	std::string q1 = "SELECT DISTINCT creator_app_id FROM context_trigger_rule";
+	std::string q1 = "SELECT DISTINCT package_id FROM context_trigger_rule";
 
 	std::vector<json> record;
 	bool ret = db_manager::execute_sync(q1.c_str(), &record);
-	IF_FAIL_RETURN_TAG(ret, -1, _E, "Query creators of registered rules failed");
+	IF_FAIL_RETURN_TAG(ret, -1, _E, "Query package ids of registered rules failed");
 
 	std::vector<json>::iterator vec_end = record.end();
 	for (std::vector<json>::iterator vec_pos = record.begin(); vec_pos != vec_end; ++vec_pos) {
 		ctx::json elem = *vec_pos;
-		std::string app_id;
-		elem.get(NULL, "creator_app_id", &app_id);
+		std::string pkg_id;
+		elem.get(NULL, "package_id", &pkg_id);
 
-		if (is_uninstalled_package(app_id)) {
-			uninstalled_apps.insert(app_id);
+		if (is_uninstalled_package(pkg_id)) {
+			uninstalled_packages.insert(pkg_id);
 		}
 	}
 
-	return uninstalled_apps.size();
+	return uninstalled_packages.size();
 }
 
-bool ctx::rule_manager::is_uninstalled_package(std::string app_id)
+bool ctx::rule_manager::is_uninstalled_package(std::string pkg_id)
 {
-	IF_FAIL_RETURN_TAG(!app_id.empty(), false, _D, "Empty app id");
+	IF_FAIL_RETURN_TAG(!pkg_id.empty(), false, _D, "Empty package id");
 
-	app_info_h app_info;
-	int	error = app_manager_get_app_info(app_id.c_str(), &app_info);
+	package_info_h pkg_info;
+	int error = package_manager_get_package_info(pkg_id.c_str(), &pkg_info);
 
-	if (error == APP_MANAGER_ERROR_NONE) {
-		app_info_destroy(app_info);
-	} else if (error == APP_MANAGER_ERROR_NO_SUCH_APP) {
-		// Uninstalled app found
-		_D("Uninstalled app found: %s", app_id.c_str());
+	if (error == PACKAGE_MANAGER_ERROR_NONE) {
+		package_info_destroy(pkg_info);
+	} else if (error == PACKAGE_MANAGER_ERROR_NO_SUCH_PACKAGE) {
+		// Uninstalled package found
+		_D("Uninstalled package found: %s", pkg_id.c_str());
 		return true;
 	} else {
-		_E("Get app info(%s) failed: %d", app_id.c_str(), error);
+		_E("Failed to get package info(%s): %d", pkg_id.c_str(), error);
 	}
 
 	return false;
 }
 
-int ctx::rule_manager::clear_rule_of_uninstalled_app(bool is_init)
+int ctx::rule_manager::clear_rule_of_uninstalled_package(bool is_init)
 {
-	if (uninstalled_apps.size() <= 0) {
+	if (uninstalled_packages.size() <= 0) {
 		return ERR_NONE;
 	}
 
 	int error;
 	bool ret;
 
-	_D("Clear uninstalled apps' rule started");
-	// creator list
-	std::string creator_list = "(";
-	std::set<std::string>::iterator it = uninstalled_apps.begin();
-	creator_list += "creator_app_id = '" + *it + "'";
+	_D("Clear uninstalled packages' rule started");
+	// Package list
+	std::string pkg_list = "(";
+	std::set<std::string>::iterator it = uninstalled_packages.begin();
+	pkg_list += "package_id = '" + *it + "'";
 	it++;
-	for (; it != uninstalled_apps.end(); ++it) {
-		creator_list += " OR creator_app_id = '" + *it + "'";
+	for (; it != uninstalled_packages.end(); ++it) {
+		pkg_list += " OR package_id = '" + *it + "'";
 	}
-	creator_list += ")";
+	pkg_list += ")";
 
-	// After event received, disable all the enabled rules of uninstalled apps	// TODO register uninstalled apps app_id when before trigger
+	// After event received, disable all the enabled rules of uninstalled apps
 	if (!is_init) {
 		std::string q1 = "SELECT row_id FROM context_trigger_rule WHERE status = 2 and (";
-		q1 += creator_list;
+		q1 += pkg_list;
 		q1 += ")";
 
 		std::vector<json> record;
 		ret = db_manager::execute_sync(q1.c_str(), &record);
-		IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query enabled rules of uninstalled apps failed");
+		IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to query enabled rules of uninstalled packages");
 
 		std::vector<json>::iterator vec_end = record.end();
 		for (std::vector<json>::iterator vec_pos = record.begin(); vec_pos != vec_end; ++vec_pos) {
@@ -163,17 +163,17 @@ int ctx::rule_manager::clear_rule_of_uninstalled_app(bool is_init)
 			error = disable_rule(rule_id);
 			IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to disable rule" );
 		}
-		_D("Uninstalled apps' rules are disabled");
+		_D("Uninstalled packages' rules are disabled");
 	}
 
-	// Delete rules of uninstalled apps from DB
-	std::string q2 = "DELETE FROM context_trigger_rule WHERE " + creator_list;
+	// Delete rules of uninstalled packages from DB
+	std::string q2 = "DELETE FROM context_trigger_rule WHERE " + pkg_list;
 	std::vector<json> dummy;
 	ret = db_manager::execute_sync(q2.c_str(), &dummy);
-	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Remove rule from db failed");
-	_D("Uninstalled apps's rule are deleted from db");
+	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to remove rules from db");
+	_D("Uninstalled packages' rules are deleted from db");
 
-	uninstalled_apps.clear();
+	uninstalled_packages.clear();
 
 	return ERR_NONE;
 }
@@ -413,15 +413,15 @@ bool ctx::rule_manager::rule_equals(ctx::json& lrule, ctx::json& rrule)
 	return true;
 }
 
-int64_t ctx::rule_manager::get_duplicated_rule_id(std::string creator, ctx::json& rule)
+int64_t ctx::rule_manager::get_duplicated_rule_id(std::string pkg_id, ctx::json& rule)
 {
-	std::string q = "SELECT row_id, description, details FROM context_trigger_rule WHERE creator = '";
-	q += creator;
+	std::string q = "SELECT row_id, description, details FROM context_trigger_rule WHERE package_id = '";
+	q += pkg_id;
 	q += "'";
 
 	std::vector<json> d_record;
 	bool ret = db_manager::execute_sync(q.c_str(), &d_record);
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Query row_id, details by creator failed");
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Query row_id, details by package id failed");
 
 	ctx::json r_details;
 	rule.get(NULL, CT_RULE_DETAILS, &r_details);
@@ -500,7 +500,7 @@ int ctx::rule_manager::verify_rule(ctx::json& rule, const char* creator)
 	return ERR_NONE;
 }
 
-int ctx::rule_manager::add_rule(std::string creator, const char* app_id, ctx::json rule, ctx::json* rule_id)
+int ctx::rule_manager::add_rule(std::string creator, const char* pkg_id, ctx::json rule, ctx::json* rule_id)
 {
 	apply_templates();
 	bool ret;
@@ -508,10 +508,10 @@ int ctx::rule_manager::add_rule(std::string creator, const char* app_id, ctx::js
 
 	// Check if all items are supported && allowed to access
 	int err = verify_rule(rule, creator.c_str());
-	IF_FAIL_RETURN(err==ERR_NONE, err);
+	IF_FAIL_RETURN(err == ERR_NONE, err);
 
 	// Check if duplicated rule exits
-	if ((rid = get_duplicated_rule_id(creator, rule)) > 0) {
+	if ((rid = get_duplicated_rule_id(pkg_id, rule)) > 0) {
 		// Save rule id
 		rule_id->set(NULL, CT_RULE_ID, rid);
 		_D("Duplicated rule found");
@@ -525,8 +525,8 @@ int ctx::rule_manager::add_rule(std::string creator, const char* app_id, ctx::js
 	rule.get(NULL, CT_RULE_DESCRIPTION, &description);
 	rule.get(NULL, CT_RULE_DETAILS, &details);
 	r_record.set(NULL, "creator", creator);
-	if (app_id) {
-		r_record.set(NULL, "creator_app_id", app_id);
+	if (pkg_id) {
+		r_record.set(NULL, "package_id", pkg_id);
 	}
 	r_record.set(NULL, "description", description);
 
@@ -570,7 +570,7 @@ int ctx::rule_manager::enable_rule(int rule_id)
 	std::string query;
 	std::vector<json> rule_record;
 	std::vector<json> record;
-	std::string creator_app_id;
+	std::string pkg_id;
 	ctx::json jrule;
 	std::string tmp;
 	std::string id_str = int_to_string(rule_id);
@@ -578,17 +578,17 @@ int ctx::rule_manager::enable_rule(int rule_id)
 	trigger_rule* rule;
 
 	// Get rule json by rule id;
-	query = "SELECT details, creator_app_id FROM context_trigger_rule WHERE row_id = ";
+	query = "SELECT details, package_id FROM context_trigger_rule WHERE row_id = ";
 	query += id_str;
 	error = (db_manager::execute_sync(query.c_str(), &rule_record))? ERR_NONE : ERR_OPERATION_FAILED;
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Query rule by rule id failed");
 
 	rule_record[0].get(NULL, "details", &tmp);
 	jrule = tmp;
-	rule_record[0].get(NULL, "creator_app_id", &creator_app_id);
+	rule_record[0].get(NULL, "package_id", &pkg_id);
 
 	// Create a rule instance
-	rule = new(std::nothrow) trigger_rule(rule_id, jrule, creator_app_id.c_str(), this);
+	rule = new(std::nothrow) trigger_rule(rule_id, jrule, pkg_id.c_str(), this);
 	IF_FAIL_RETURN_TAG(rule, ERR_OUT_OF_MEMORY, _E, "Failed to create rule instance");
 
 	// Start the rule
@@ -675,24 +675,24 @@ int ctx::rule_manager::pause_rule(int rule_id)
 	return ERR_NONE;
 }
 
-int ctx::rule_manager::check_rule(std::string creator, int rule_id)
+int ctx::rule_manager::check_rule(std::string pkg_id, int rule_id)
 {
-	// Get creator app id
-	std::string q = "SELECT creator FROM context_trigger_rule WHERE row_id =";
+	// Get package id
+	std::string q = "SELECT package_id FROM context_trigger_rule WHERE row_id =";
 	q += int_to_string(rule_id);
 
 	std::vector<json> record;
 	bool ret = db_manager::execute_sync(q.c_str(), &record);
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Query creator by rule id failed");
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Query package id by rule id failed");
 
 	if (record.size() == 0) {
 		return ERR_NO_DATA;
 	}
 
-	std::string c;
-	record[0].get(NULL, "creator", &c);
+	std::string p;
+	record[0].get(NULL, "package_id", &p);
 
-	if (c.compare(creator) == 0){
+	if (p.compare(pkg_id) == 0){
 		return ERR_NONE;
 	}
 
@@ -714,11 +714,11 @@ bool ctx::rule_manager::is_rule_enabled(int rule_id)
 	return (status != 0);
 }
 
-int ctx::rule_manager::get_rule_by_id(std::string creator, int rule_id, ctx::json* request_result)
+int ctx::rule_manager::get_rule_by_id(std::string pkg_id, int rule_id, ctx::json* request_result)
 {
 	apply_templates();
-	std::string q = "SELECT description FROM context_trigger_rule WHERE (creator = '";
-	q += creator;
+	std::string q = "SELECT description FROM context_trigger_rule WHERE (package_id = '";
+	q += pkg_id;
 	q += "') and (row_id = ";
 	q += int_to_string(rule_id);
 	q += ")";
@@ -742,12 +742,12 @@ int ctx::rule_manager::get_rule_by_id(std::string creator, int rule_id, ctx::jso
 	return ERR_NONE;
 }
 
-int ctx::rule_manager::get_rule_ids(std::string creator, ctx::json* request_result)
+int ctx::rule_manager::get_rule_ids(std::string pkg_id, ctx::json* request_result)
 {
 	(*request_result) = "{ \"" CT_RULE_ARRAY_ENABLED "\" : [ ] , \"" CT_RULE_ARRAY_DISABLED "\" : [ ] }";
 
-	std::string q = "SELECT row_id, status FROM context_trigger_rule WHERE (creator = '";
-	q += creator;
+	std::string q = "SELECT row_id, status FROM context_trigger_rule WHERE (package_id = '";
+	q += pkg_id;
 	q += "')";
 
 	std::vector<json> record;

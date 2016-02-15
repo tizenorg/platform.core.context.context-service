@@ -36,7 +36,6 @@ namespace ctx {
 		ctx::json& get_description();
 
 		virtual const credentials* get_credentials();
-		virtual const char* get_app_id();
 		virtual const char* get_package_id();
 		/* TODO: remove this get_client() */
 		virtual const char* get_client();

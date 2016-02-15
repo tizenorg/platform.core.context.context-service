@@ -21,8 +21,7 @@
 #include <types_internal.h>
 #include "peer_creds.h"
 
-ctx::credentials::credentials(char *_app_id, char *_package_id, char *_client, char *_session, char *_user) :
-	app_id(_app_id),
+ctx::credentials::credentials(char *_package_id, char *_client, char *_session, char *_user) :
 	package_id(_package_id),
 	client(_client),
 	session(_session),
@@ -32,7 +31,6 @@ ctx::credentials::credentials(char *_app_id, char *_package_id, char *_client, c
 
 ctx::credentials::~credentials()
 {
-	g_free(app_id);
 	g_free(package_id);
 	g_free(client);
 	g_free(session);
@@ -65,7 +63,7 @@ bool ctx::peer_creds::get(GDBusConnection *connection, const char *unique_name, 
 	err = cynara_creds_gdbus_get_user(connection, unique_name, USER_METHOD_DEFAULT, &user);
 	IF_FAIL_CATCH_TAG(err == CYNARA_API_SUCCESS, _E, "Peer credentialing failed");
 
-	*creds = new(std::nothrow) credentials(app_id, package_id, client, session, user);
+	*creds = new(std::nothrow) credentials(package_id, client, session, user);
 	IF_FAIL_CATCH_TAG(*creds, _E, "Memory allocation failed");
 
 	return true;

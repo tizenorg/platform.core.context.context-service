@@ -32,33 +32,33 @@ namespace ctx {
 			~rule_manager();
 
 			bool init();
-			int add_rule(std::string creator, const char* app_id, ctx::json rule, ctx::json* rule_id);
+			int add_rule(std::string creator, const char* pkg_id, ctx::json rule, ctx::json* rule_id);
 			int remove_rule(int rule_id);
 			int enable_rule(int rule_id);
 			int disable_rule(int rule_id);
-			int get_rule_by_id(std::string creator, int rule_id, ctx::json* request_result);
-			int get_rule_ids(std::string creator, ctx::json* request_result);
-			int check_rule(std::string creator, int rule_id);
+			int get_rule_by_id(std::string pkg_id, int rule_id, ctx::json* request_result);
+			int get_rule_ids(std::string pkg_id, ctx::json* request_result);
+			int check_rule(std::string pkg_id, int rule_id);
 			bool is_rule_enabled(int rule_id);
 			int pause_rule_with_item(std::string& subject);
 			int pause_rule(int rule_id);
 			int resume_rule_with_item(std::string& subject);
-			void handle_rule_of_uninstalled_app(std::string app_id);
+			void handle_rule_of_uninstalled_package(std::string pkg_id);
 
-			static bool is_uninstalled_package(std::string app_id);
+			static bool is_uninstalled_package(std::string pkg_id);
 
 		private:
 			bool reenable_rule(void);
-			int verify_rule(ctx::json& rule, const char* app_id);
-			int64_t get_duplicated_rule_id(std::string creator, ctx::json& rule);
+			int verify_rule(ctx::json& rule, const char* creator);
+			int64_t get_duplicated_rule_id(std::string pkg_id, ctx::json& rule);
 			bool rule_data_arr_elem_equals(ctx::json& lelem, ctx::json& relem);
 			bool rule_item_equals(ctx::json& litem, ctx::json& ritem);
 			bool rule_equals(ctx::json& lrule, ctx::json& rrule);
 			int get_uninstalled_app(void);
-			int clear_rule_of_uninstalled_app(bool is_init = false);
+			int clear_rule_of_uninstalled_package(bool is_init = false);
 			void apply_templates(void);
 
-			std::set<std::string> uninstalled_apps;
+			std::set<std::string> uninstalled_packages;
 
 			typedef std::map<int, trigger_rule*> rule_map_t;
 			rule_map_t rule_map;
