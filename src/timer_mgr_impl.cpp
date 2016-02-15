@@ -16,7 +16,8 @@
 
 #include <map>
 #include <alarm.h>
-#include <scope_mutex.h>
+#include <ScopeMutex.h>
+#include <types_internal.h>
 #include <timer_types.h>
 #include "timer_mgr_impl.h"
 
@@ -52,7 +53,7 @@ static int alarm_expired_cb(alarm_id_t alarm_id, void* cb_data)
 	void* user_data;
 
 	{
-		ctx::scope_mutex sm1(&listener_map_mutex);
+		ctx::ScopeMutex sm1(&listener_map_mutex);
 		listener_map_t::iterator mit = listener_map->find(alarm_id);
 		IF_FAIL_RETURN_TAG(mit != listener_map->end(), 0, _W, "Unknown Alarm %d", alarm_id);
 		timer_id = mit->second.timer_id;
@@ -65,7 +66,7 @@ static int alarm_expired_cb(alarm_id_t alarm_id, void* cb_data)
 
 	if (!repeat) {
 		_D("Stop repeating Timer %d (Alarm %d)", timer_id, alarm_id);
-		ctx::scope_mutex sm2(&listener_map_mutex);
+		ctx::ScopeMutex sm2(&listener_map_mutex);
 		alarmmgr_remove_alarm(alarm_id);
 		listener_map->erase(alarm_id);
 	}
@@ -136,7 +137,7 @@ int ctx::timer_manager_impl::set_for(int interval, timer_listener_iface* listene
 	result = alarmmgr_add_periodic_alarm_withcb(interval, QUANTUMIZE, alarm_expired_cb, this, &alarm_id);
 	IF_FAIL_RETURN_TAG(result == ALARMMGR_RESULT_SUCCESS, ERR_OPERATION_FAILED, _E, "Alarm initialization failed");
 
-	ctx::scope_mutex sm(&listener_map_mutex);
+	ctx::ScopeMutex sm(&listener_map_mutex);
 
 	listener_info_s info;
 	info.timer_id = generate_timer_id();
@@ -193,7 +194,7 @@ int ctx::timer_manager_impl::set_at(int hour, int min, int day_of_week, timer_li
 
 	IF_FAIL_RETURN_TAG(ret == ALARMMGR_RESULT_SUCCESS, ERR_OPERATION_FAILED, _E, "Alarm initialization failed");
 
-	ctx::scope_mutex sm(&listener_map_mutex);
+	ctx::ScopeMutex sm(&listener_map_mutex);
 
 	listener_info_s info;
 	info.timer_id = generate_timer_id();
@@ -209,7 +210,7 @@ int ctx::timer_manager_impl::set_at(int hour, int min, int day_of_week, timer_li
 
 void ctx::timer_manager_impl::remove(int timer_id)
 {
-	ctx::scope_mutex sm(&listener_map_mutex);
+	ctx::ScopeMutex sm(&listener_map_mutex);
 
 	listener_map_t::iterator it;
 	for (it = listener_map->begin(); it != listener_map->end(); ++it) {

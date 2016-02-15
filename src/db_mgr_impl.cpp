@@ -20,7 +20,7 @@
 #include <sstream>
 #include <list>
 #include <tzplatform_config.h>
-#include <scope_mutex.h>
+#include <ScopeMutex.h>
 #include "server.h"
 #include "db_mgr_impl.h"
 
@@ -229,7 +229,7 @@ void ctx::db_manager_impl::_execute(int query_type, unsigned int query_id, const
 	int ret;
 
 	{
-		scope_mutex sm(&exec_mutex);
+		ScopeMutex sm(&exec_mutex);
 		ret = sqlite3_exec(db_handle, query, execution_result_cb, query_result, &err);
 	}
 
@@ -324,7 +324,7 @@ bool ctx::db_manager_impl::create_table_sync(const char* table_name, const char*
 	char *err = NULL;
 	int ret;
 	{
-		scope_mutex sm(&exec_mutex);
+		ScopeMutex sm(&exec_mutex);
 		ret = sqlite3_exec(db_handle, query.c_str(), NULL, NULL, &err);
 	}
 
@@ -350,7 +350,7 @@ bool ctx::db_manager_impl::insert_sync(const char* table_name, json& record, int
 	char *err = NULL;
 	int ret;
 	{
-		scope_mutex sm(&exec_mutex);
+		ScopeMutex sm(&exec_mutex);
 		ret = sqlite3_exec(db_handle, query.c_str(), execution_result_cb, &query_result, &err);
 	}
 
@@ -379,7 +379,7 @@ bool ctx::db_manager_impl::execute_sync(const char* query, std::vector<json>* re
 	char *err = NULL;
 	int ret;
 	{
-		scope_mutex sm(&exec_mutex);
+		ScopeMutex sm(&exec_mutex);
 		ret = sqlite3_exec(db_handle, query, execution_result_cb, records, &err);
 	}
 
