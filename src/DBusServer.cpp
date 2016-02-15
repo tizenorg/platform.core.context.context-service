@@ -43,10 +43,10 @@ static const gchar __introspection_xml[] =
 
 DBusServer *DBusServer::__theInstance = NULL;
 
-DBusServer::DBusServer()
-	: __owner(-1)
-	, __connection(NULL)
-	, __nodeInfo(NULL)
+DBusServer::DBusServer() :
+	__owner(-1),
+	__connection(NULL),
+	__nodeInfo(NULL)
 {
 }
 
