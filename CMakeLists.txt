@@ -23,7 +23,6 @@ SET(DEPS
 	cynara-creds-gdbus
 	cynara-client
 	cynara-session
-	context-common
 	context-provider
 )
 
