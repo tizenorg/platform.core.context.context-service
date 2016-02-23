@@ -133,10 +133,10 @@ bool ctx::db_manager_impl::create_table(unsigned int query_id, const char* table
 	return true;
 }
 
-std::string ctx::db_manager_impl::compose_insert_query(const char* table_name, json& record)
+std::string ctx::db_manager_impl::compose_insert_query(const char* table_name, Json& record)
 {
 	std::list<std::string> keys;
-	IF_FAIL_RETURN_TAG(record.get_keys(&keys), "", _E, "Invalid record");
+	IF_FAIL_RETURN_TAG(record.getKeys(&keys), "", _E, "Invalid record");
 
 	std::ostringstream colstream;
 	std::ostringstream valstream;
@@ -172,7 +172,7 @@ std::string ctx::db_manager_impl::compose_insert_query(const char* table_name, j
 	return query;
 }
 
-bool ctx::db_manager_impl::insert(unsigned int query_id, const char* table_name, json& record, db_listener_iface* listener)
+bool ctx::db_manager_impl::insert(unsigned int query_id, const char* table_name, Json& record, db_listener_iface* listener)
 {
 	IF_FAIL_RETURN_TAG(initialized, false, _E, "Not initialized");
 
@@ -222,7 +222,7 @@ void ctx::db_manager_impl::_execute(int query_type, unsigned int query_id, const
 	IF_FAIL_VOID_TAG(db_handle, _E, "DB not opened");
 	_SD("SQL(%d): %s", query_id, query);
 
-	std::vector<json> *query_result = new(std::nothrow) std::vector<json>;
+	std::vector<Json> *query_result = new(std::nothrow) std::vector<Json>;
 	IF_FAIL_VOID_TAG(query_result, _E, "Memory allocation failed");
 
 	char *err = NULL;
@@ -246,8 +246,8 @@ void ctx::db_manager_impl::_execute(int query_type, unsigned int query_id, const
 
 int ctx::db_manager_impl::execution_result_cb(void *user_data, int dim, char **value, char **column)
 {
-	std::vector<json> *records = static_cast<std::vector<json>*>(user_data);
-	json row;
+	std::vector<Json> *records = static_cast<std::vector<Json>*>(user_data);
+	Json row;
 	bool column_null = false;
 
 	for (int i=0; i<dim; ++i) {
@@ -267,7 +267,7 @@ int ctx::db_manager_impl::execution_result_cb(void *user_data, int dim, char **v
 	return 0;
 }
 
-void ctx::db_manager_impl::send_result(int query_type, unsigned int query_id, db_listener_iface* listener, int error, std::vector<json>* result)
+void ctx::db_manager_impl::send_result(int query_type, unsigned int query_id, db_listener_iface* listener, int error, std::vector<Json>* result)
 {
 	query_result_s *qr = new(std::nothrow) query_result_s();
 	IF_FAIL_VOID_TAG(qr, _E, "Memory allocation failed");
@@ -337,7 +337,7 @@ bool ctx::db_manager_impl::create_table_sync(const char* table_name, const char*
 	return true;
 }
 
-bool ctx::db_manager_impl::insert_sync(const char* table_name, json& record, int64_t* row_id)
+bool ctx::db_manager_impl::insert_sync(const char* table_name, Json& record, int64_t* row_id)
 {
 	IF_FAIL_RETURN_TAG(db_handle, false, _E, "DB not opened");
 	IF_FAIL_RETURN_TAG(table_name && row_id, false, _E, "Invalid parameter");
@@ -346,7 +346,7 @@ bool ctx::db_manager_impl::insert_sync(const char* table_name, json& record, int
 	IF_FAIL_RETURN(!query.empty(), false);
 	_SD("SQL: %s", query.c_str());
 
-	std::vector<json> query_result;
+	std::vector<Json> query_result;
 	char *err = NULL;
 	int ret;
 	{
@@ -369,7 +369,7 @@ bool ctx::db_manager_impl::insert_sync(const char* table_name, json& record, int
 	return true;
 }
 
-bool ctx::db_manager_impl::execute_sync(const char* query, std::vector<json>* records)
+bool ctx::db_manager_impl::execute_sync(const char* query, std::vector<Json>* records)
 {
 	IF_FAIL_RETURN_TAG(db_handle, false, _E, "DB not opened");
 	IF_FAIL_RETURN_TAG(query && records, false, _E, "Invalid parameter");

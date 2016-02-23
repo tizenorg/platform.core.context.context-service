@@ -23,7 +23,7 @@
 #define TIMER_DAY_OF_WEEK "DayOfWeek"
 #define TIMER_TIME_OF_DAY "TimeOfDay"
 
-static int arrange_day_of_week(ctx::json day_info)
+static int arrange_day_of_week(ctx::Json day_info)
 {
 	int result = 0;
 
@@ -38,10 +38,10 @@ static int arrange_day_of_week(ctx::json day_info)
 	}
 
 	std::string tmp_d;
-	for (int i = 0; day_info.get_array_elem(NULL, CT_RULE_DATA_VALUE_ARR, i, &tmp_d); i++) {
+	for (int i = 0; day_info.getAt(NULL, CT_RULE_DATA_VALUE_ARR, i, &tmp_d); i++) {
 		int dow = ctx::timer_util::convert_day_of_week_string_to_int(tmp_d);
 		std::string op;
-		day_info.get_array_elem(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, i, &op);
+		day_info.getAt(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, i, &op);
 
 		if (op.compare(CONTEXT_TRIGGER_NOT_EQUAL_TO) == 0) {
 			dow = ctx::timer_util::convert_day_of_week_string_to_int(TIMER_TYPES_EVERYDAY) & ~dow;
@@ -58,9 +58,9 @@ static int arrange_day_of_week(ctx::json day_info)
 	return result;
 }
 
-void ctx::trigger_timer::handle_timer_event(ctx::json& rule)
+void ctx::trigger_timer::handle_timer_event(ctx::Json& rule)
 {
-	ctx::json event;
+	ctx::Json event;
 	rule.get(NULL, CT_RULE_EVENT, &event);
 
 	std::string e_name;
@@ -69,10 +69,10 @@ void ctx::trigger_timer::handle_timer_event(ctx::json& rule)
 		return;
 	}
 
-	ctx::json day_info;
-	ctx::json it;
+	ctx::Json day_info;
+	ctx::Json it;
 	int dow;
-	for (int i = 0; event.get_array_elem(NULL, CT_RULE_DATA_ARR, i, &it); i++) {
+	for (int i = 0; event.getAt(NULL, CT_RULE_DATA_ARR, i, &it); i++) {
 		std::string key;
 		it.get(NULL, CT_RULE_DATA_KEY, &key);
 
@@ -86,18 +86,18 @@ void ctx::trigger_timer::handle_timer_event(ctx::json& rule)
 				int d = 0x01 << j;
 				if (dow & d) {
 					std::string day = ctx::timer_util::convert_day_of_week_int_to_string(d);
-					day_info.array_append(NULL, CT_RULE_DATA_VALUE_ARR, day);
-					day_info.array_append(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, CONTEXT_TRIGGER_EQUAL_TO);
+					day_info.append(NULL, CT_RULE_DATA_VALUE_ARR, day);
+					day_info.append(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, CONTEXT_TRIGGER_EQUAL_TO);
 
 					// Set option
-					event.array_append(CT_RULE_EVENT_OPTION, TIMER_DAY_OF_WEEK, day);
+					event.append(CT_RULE_EVENT_OPTION, TIMER_DAY_OF_WEEK, day);
 				}
 			}
-			event.array_set_at(NULL, CT_RULE_DATA_ARR, i, day_info);
+			event.setAt(NULL, CT_RULE_DATA_ARR, i, day_info);
 		} else if (key.compare(TIMER_TIME_OF_DAY) == 0) {
 			int time;
-			for (int j = 0; it.get_array_elem(NULL, CT_RULE_DATA_VALUE_ARR, j, &time); j++) {
-				event.array_append(CT_RULE_EVENT_OPTION, TIMER_TIME_OF_DAY, time);
+			for (int j = 0; it.getAt(NULL, CT_RULE_DATA_VALUE_ARR, j, &time); j++) {
+				event.append(CT_RULE_EVENT_OPTION, TIMER_TIME_OF_DAY, time);
 			}
 		}
 	}

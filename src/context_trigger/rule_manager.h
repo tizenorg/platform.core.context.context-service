@@ -22,7 +22,7 @@
 
 namespace ctx {
 
-	class json;
+	class Json;
 	class context_trigger;
 	class trigger_rule;
 
@@ -32,12 +32,12 @@ namespace ctx {
 			~rule_manager();
 
 			bool init();
-			int add_rule(std::string creator, const char* pkg_id, ctx::json rule, ctx::json* rule_id);
+			int add_rule(std::string creator, const char* pkg_id, ctx::Json rule, ctx::Json* rule_id);
 			int remove_rule(int rule_id);
 			int enable_rule(int rule_id);
 			int disable_rule(int rule_id);
-			int get_rule_by_id(std::string pkg_id, int rule_id, ctx::json* request_result);
-			int get_rule_ids(std::string pkg_id, ctx::json* request_result);
+			int get_rule_by_id(std::string pkg_id, int rule_id, ctx::Json* request_result);
+			int get_rule_ids(std::string pkg_id, ctx::Json* request_result);
 			int check_rule(std::string pkg_id, int rule_id);
 			bool is_rule_enabled(int rule_id);
 			int pause_rule_with_item(std::string& subject);
@@ -49,11 +49,11 @@ namespace ctx {
 
 		private:
 			bool reenable_rule(void);
-			int verify_rule(ctx::json& rule, const char* creator);
-			int64_t get_duplicated_rule_id(std::string pkg_id, ctx::json& rule);
-			bool rule_data_arr_elem_equals(ctx::json& lelem, ctx::json& relem);
-			bool rule_item_equals(ctx::json& litem, ctx::json& ritem);
-			bool rule_equals(ctx::json& lrule, ctx::json& rrule);
+			int verify_rule(ctx::Json& rule, const char* creator);
+			int64_t get_duplicated_rule_id(std::string pkg_id, ctx::Json& rule);
+			bool rule_data_arr_elem_equals(ctx::Json& lelem, ctx::Json& relem);
+			bool rule_item_equals(ctx::Json& litem, ctx::Json& ritem);
+			bool rule_equals(ctx::Json& lrule, ctx::Json& rrule);
 			int get_uninstalled_app(void);
 			int clear_rule_of_uninstalled_package(bool is_init = false);
 			void apply_templates(void);

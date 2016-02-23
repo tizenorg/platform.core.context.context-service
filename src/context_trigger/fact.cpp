@@ -23,7 +23,7 @@ ctx::context_fact::context_fact()
 {
 }
 
-ctx::context_fact::context_fact(int id, int err, const char* s, ctx::json& o, ctx::json& d)
+ctx::context_fact::context_fact(int id, int err, const char* s, ctx::Json& o, ctx::Json& d)
 	: req_id(id)
 	, error(err)
 	, subject(s)
@@ -51,12 +51,12 @@ void ctx::context_fact::set_subject(const char* s)
 	subject = s;
 }
 
-void ctx::context_fact::set_option(ctx::json& o)
+void ctx::context_fact::set_option(ctx::Json& o)
 {
 	option = o;
 }
 
-void ctx::context_fact::set_data(ctx::json& d)
+void ctx::context_fact::set_data(ctx::Json& d)
 {
 	data = d;
 }
@@ -76,12 +76,12 @@ const char* ctx::context_fact::get_subject()
 	return subject.c_str();
 }
 
-ctx::json& ctx::context_fact::get_option()
+ctx::Json& ctx::context_fact::get_option()
 {
 	return option;
 }
 
-ctx::json& ctx::context_fact::get_data()
+ctx::Json& ctx::context_fact::get_data()
 {
 	return data;
 }

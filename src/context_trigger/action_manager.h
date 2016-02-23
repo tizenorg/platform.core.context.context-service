@@ -19,11 +19,11 @@
 
 namespace ctx {
 
-	class json;
+	class Json;
 
 	namespace action_manager {
 
-		void trigger_action(ctx::json& action, std::string pkg_id);
+		void trigger_action(ctx::Json& action, std::string pkg_id);
 
 	}
 

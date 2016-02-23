@@ -19,7 +19,7 @@
 
 #include <types_internal.h>
 #include <context_trigger_types_internal.h>
-#include <json.h>
+#include <Json.h>
 #include <provider_iface.h>
 #include "server.h"
 #include "access_control/privilege.h"
@@ -36,11 +36,11 @@
 struct trigger_item_format_s {
 	std::string subject;
 	int operation;
-	ctx::json attributes;
-	ctx::json options;
+	ctx::Json attributes;
+	ctx::Json options;
 	std::string owner;
 	bool unregister;
-	trigger_item_format_s(std::string subj, int ops, ctx::json attr, ctx::json opt, std::string own)
+	trigger_item_format_s(std::string subj, int ops, ctx::Json attr, ctx::Json opt, std::string own)
 		: subject(subj), operation(ops), attributes(attr), options(opt), owner(own)
 	{
 		unregister = false;
@@ -127,7 +127,7 @@ bool ctx::context_manager_impl::unregister_provider(const char *subject)
 	return true;
 }
 
-bool ctx::context_manager_impl::register_trigger_item(const char *subject, int operation, ctx::json attributes, ctx::json options, const char* owner)
+bool ctx::context_manager_impl::register_trigger_item(const char *subject, int operation, ctx::Json attributes, ctx::Json options, const char* owner)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 	__trigger_item_list.push_back(trigger_item_format_s(subject, operation, attributes, options, (owner)? owner : ""));
@@ -143,7 +143,7 @@ bool ctx::context_manager_impl::unregister_trigger_item(const char *subject)
 	return true;
 }
 
-bool ctx::context_manager_impl::pop_trigger_item(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options, std::string& owner, bool& unregister)
+bool ctx::context_manager_impl::pop_trigger_item(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string& owner, bool& unregister)
 {
 	IF_FAIL_RETURN(!__trigger_item_list.empty(), false);
 
@@ -220,7 +220,7 @@ bool ctx::context_manager_impl::is_allowed(const ctx::credentials *creds, const 
 	return it->second->is_allowed(creds);
 }
 
-void ctx::context_manager_impl::_publish(const char* subject, ctx::json &option, int error, ctx::json &data_updated)
+void ctx::context_manager_impl::_publish(const char* subject, ctx::Json &option, int error, ctx::Json &data_updated)
 {
 	_I("Publishing '%s'", subject);
 	_J("Option", option);
@@ -231,7 +231,7 @@ void ctx::context_manager_impl::_publish(const char* subject, ctx::json &option,
 	it->second->publish(option, error, data_updated);
 }
 
-void ctx::context_manager_impl::_reply_to_read(const char* subject, ctx::json &option, int error, ctx::json &data_read)
+void ctx::context_manager_impl::_reply_to_read(const char* subject, ctx::Json &option, int error, ctx::Json &data_read)
 {
 	_I("Sending data of '%s'", subject);
 	_J("Option", option);
@@ -248,9 +248,9 @@ struct published_data_s {
 	ctx::context_manager_impl *mgr;
 	std::string subject;
 	int error;
-	ctx::json option;
-	ctx::json data;
-	published_data_s(int t, ctx::context_manager_impl *m, const char* s, ctx::json& o, int e, ctx::json& d)
+	ctx::Json option;
+	ctx::Json data;
+	published_data_s(int t, ctx::context_manager_impl *m, const char* s, ctx::Json& o, int e, ctx::Json& d)
 		: type(t), mgr(m), subject(s), error(e)
 	{
 		option = o.str();
@@ -277,7 +277,7 @@ gboolean ctx::context_manager_impl::thread_switcher(gpointer data)
 	return FALSE;
 }
 
-bool ctx::context_manager_impl::publish(const char* subject, ctx::json& option, int error, ctx::json& data_updated)
+bool ctx::context_manager_impl::publish(const char* subject, ctx::Json& option, int error, ctx::Json& data_updated)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 
@@ -289,7 +289,7 @@ bool ctx::context_manager_impl::publish(const char* subject, ctx::json& option, 
 	return true;
 }
 
-bool ctx::context_manager_impl::reply_to_read(const char* subject, ctx::json& option, int error, ctx::json& data_read)
+bool ctx::context_manager_impl::reply_to_read(const char* subject, ctx::Json& option, int error, ctx::Json& data_read)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 
@@ -314,26 +314,26 @@ bool ctx::context_manager_impl::handle_custom_request(ctx::request_info* request
 		return true;
 	}
 
-	ctx::json desc = request->get_description();
+	ctx::Json desc = request->get_description();
 	std::string name;
 	desc.get(NULL, CT_CUSTOM_NAME, &name);
 	std::string subj = pkg_id + std::string("::") + name;
 
 	int error = ERR_NONE;
 	if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_ADD) {
-		ctx::json tmpl;
+		ctx::Json tmpl;
 		desc.get(NULL, CT_CUSTOM_ATTRIBUTES, &tmpl);
 
 		error = ctx::custom_context_provider::add_item(subj, name, tmpl, pkg_id);
 	} else if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_REMOVE) {
 		error = ctx::custom_context_provider::remove_item(subj);
 		if (error == ERR_NONE) {
-			ctx::json data;
+			ctx::Json data;
 			data.set(NULL, CT_CUSTOM_SUBJECT, subj);
 			request->reply(error, data);
 		}
 	} else if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_PUBLISH) {
-		ctx::json fact;
+		ctx::Json fact;
 		desc.get(NULL, CT_CUSTOM_FACT, &fact);
 
 		error = ctx::custom_context_provider::publish_data(subj, fact);

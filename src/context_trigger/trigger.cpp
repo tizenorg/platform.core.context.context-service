@@ -124,7 +124,7 @@ void ctx::context_trigger::process_initialize(ctx::context_manager_impl* mgr)
 
 void ctx::context_trigger::add_rule(ctx::request_info* request)
 {
-	ctx::json rule_id;
+	ctx::Json rule_id;
 
 	const char* client = request->get_client();
 	if (client == NULL) {
@@ -147,7 +147,7 @@ void ctx::context_trigger::remove_rule(ctx::request_info* request)
 
 	const char* pkg_id = request->get_package_id();
 
-	ctx::json rule_id = request->get_description();
+	ctx::Json rule_id = request->get_description();
 	rule_id.get(NULL, CT_RULE_ID, &id);
 
 	error = rule_mgr->check_rule((pkg_id)? pkg_id : "", id);
@@ -174,7 +174,7 @@ void ctx::context_trigger::enable_rule(ctx::request_info* request)
 
 	const char* pkg_id = request->get_package_id();
 
-	ctx::json rule_id = request->get_description();
+	ctx::Json rule_id = request->get_description();
 	rule_id.get(NULL, CT_RULE_ID, &id);
 
 	error = rule_mgr->check_rule((pkg_id)? pkg_id : "", id);
@@ -201,7 +201,7 @@ void ctx::context_trigger::disable_rule(ctx::request_info* request)
 
 	const char* pkg_id = request->get_package_id();
 
-	ctx::json rule_id = request->get_description();
+	ctx::Json rule_id = request->get_description();
 	rule_id.get(NULL, CT_RULE_ID, &id);
 
 	error = rule_mgr->check_rule((pkg_id)? pkg_id : "", id);
@@ -225,16 +225,16 @@ void ctx::context_trigger::get_rule_by_id(ctx::request_info* request)
 {
 	int error;
 
-	ctx::json option = request->get_description();
+	ctx::Json option = request->get_description();
 	int id;
 	option.get(NULL, CT_RULE_ID, &id);
 
 	const char* pkg_id = request->get_package_id();
 
-	ctx::json read_data;
+	ctx::Json read_data;
 	error = rule_mgr->get_rule_by_id((pkg_id)? pkg_id : "", id, &read_data);
 
-	ctx::json dummy;
+	ctx::Json dummy;
 	request->reply(error, dummy, read_data);
 }
 
@@ -244,10 +244,10 @@ void ctx::context_trigger::get_rule_ids(ctx::request_info* request)
 
 	const char* pkg_id = request->get_package_id();
 
-	ctx::json read_data;
+	ctx::Json read_data;
 	error = rule_mgr->get_rule_ids((pkg_id)? pkg_id : "", &read_data);
 
-	ctx::json dummy;
+	ctx::Json dummy;
 	request->reply(error, dummy, read_data);
 }
 
@@ -255,7 +255,7 @@ void ctx::context_trigger::get_template(ctx::request_info* request)
 {
 	int error;
 
-	ctx::json option = request->get_description();
+	ctx::Json option = request->get_description();
 	std::string name;
 	option.get(NULL, SUBJECT_STR, &name);
 
@@ -266,9 +266,9 @@ void ctx::context_trigger::get_template(ctx::request_info* request)
 		return;
 	}
 
-	ctx::json tmpl;
+	ctx::Json tmpl;
 	error = tmpl_mgr->get_template(name, &tmpl);
 
-	ctx::json dummy;
+	ctx::Json dummy;
 	request->reply(error, dummy, tmpl);
 }

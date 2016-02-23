@@ -41,22 +41,22 @@ namespace ctx {
 		void assign_request(ctx::request_info *request);
 		bool is_supported(const char *subject);
 		bool is_allowed(const credentials *creds, const char *subject);
-		bool pop_trigger_item(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options, std::string &owner, bool& unregister);
+		bool pop_trigger_item(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner, bool& unregister);
 
 		/* From the interface class */
 		bool register_provider(const char *subject, context_provider_info &provider_info);
 		bool unregister_provider(const char *subject);
-		bool register_trigger_item(const char *subject, int operation, ctx::json attributes, ctx::json options, const char *owner = NULL);
+		bool register_trigger_item(const char *subject, int operation, ctx::Json attributes, ctx::Json options, const char *owner = NULL);
 		bool unregister_trigger_item(const char *subject);
-		bool publish(const char *subject, ctx::json &option, int error, ctx::json &data_updated);
-		bool reply_to_read(const char *subject, ctx::json &option, int error, ctx::json &data_read);
+		bool publish(const char *subject, ctx::Json &option, int error, ctx::Json &data_updated);
+		bool reply_to_read(const char *subject, ctx::Json &option, int error, ctx::Json &data_read);
 
 	private:
 		std::map<std::string, context_provider_handler*> provider_handle_map;
 
 		static gboolean thread_switcher(gpointer data);
-		void _publish(const char *subject, ctx::json &option, int error, ctx::json &data_updated);
-		void _reply_to_read(const char *subject, ctx::json &option, int error, ctx::json &data_read);
+		void _publish(const char *subject, ctx::Json &option, int error, ctx::Json &data_updated);
+		void _reply_to_read(const char *subject, ctx::Json &option, int error, ctx::Json &data_read);
 
 		/* For custom request */
 		bool handle_custom_request(ctx::request_info* request);

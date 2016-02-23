@@ -77,7 +77,7 @@ bool ctx::template_manager::init()
 			+ "(name TEXT DEFAULT '' NOT NULL PRIMARY KEY, operation INTEGER DEFAULT 3 NOT NULL, "
 			+ "attributes TEXT DEFAULT '' NOT NULL, options TEXT DEFAULT '' NOT NULL, owner TEXT DEFAULT '' NOT NULL)";
 
-	std::vector<json> record;
+	std::vector<Json> record;
 	bool ret = db_manager::execute_sync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create template table failed");
 
@@ -91,8 +91,8 @@ void ctx::template_manager::apply_templates()
 {
 	std::string subject;
 	int operation;
-	ctx::json attributes;
-	ctx::json options;
+	ctx::Json attributes;
+	ctx::Json options;
 	std::string owner;
 	bool unregister;
 	std::string query;
@@ -111,12 +111,12 @@ void ctx::template_manager::apply_templates()
 	}
 	IF_FAIL_VOID(!query.empty());
 
-	std::vector<json> record;
+	std::vector<Json> record;
 	bool ret = db_manager::execute_sync(query.c_str(), &record);
 	IF_FAIL_VOID_TAG(ret, _E, "Update template db failed");
 }
 
-std::string ctx::template_manager::add_template(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options, std::string &owner)
+std::string ctx::template_manager::add_template(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner)
 {
 	_D("[Add template] Subject: %s, Ops: %d, Owner: %s", subject.c_str(), operation, owner.c_str());
 	_J("Attr", attributes);
@@ -141,14 +141,14 @@ std::string ctx::template_manager::remove_template(std::string &subject)
 	return query;
 }
 
-int ctx::template_manager::get_template(std::string &subject, ctx::json* tmpl)
+int ctx::template_manager::get_template(std::string &subject, ctx::Json* tmpl)
 {
 	// Update latest template information
 	apply_templates();
 
 	std::string q = "SELECT * FROM context_trigger_template WHERE name = '" + subject + "'";
 
-	std::vector<json> record;
+	std::vector<Json> record;
 	bool ret = db_manager::execute_sync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query template failed");
 	IF_FAIL_RETURN_TAG(record.size() > 0, ERR_NOT_SUPPORTED, _E, "Template(%s) not found", subject.c_str());
@@ -161,8 +161,8 @@ int ctx::template_manager::get_template(std::string &subject, ctx::json* tmpl)
 	tmpl->get(NULL, TYPE_OPTION_STR, &opt_str);
 	tmpl->get(NULL, TYPE_ATTR_STR, &attr_str);
 
-	ctx::json opt = opt_str;
-	ctx::json attr = attr_str;
+	ctx::Json opt = opt_str;
+	ctx::Json attr = attr_str;
 
 	tmpl->set(NULL, TYPE_OPTION_STR, opt);
 	tmpl->set(NULL, TYPE_ATTR_STR, attr);

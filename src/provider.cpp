@@ -16,7 +16,7 @@
 
 #include <glib.h>
 #include <types_internal.h>
-#include <json.h>
+#include <Json.h>
 #include "access_control/privilege.h"
 #include "server.h"
 #include "request.h"
@@ -68,7 +68,7 @@ void ctx::context_provider_handler::subscribe(ctx::request_info *request)
 	context_provider_iface *provider = get_provider(request);
 	IF_FAIL_VOID(provider);
 
-	ctx::json request_result;
+	ctx::Json request_result;
 	int error = provider->subscribe(subject, request->get_description().str(), &request_result);
 
 	if (!request->reply(error, request_result) || error != ERR_NONE) {
@@ -125,7 +125,7 @@ void ctx::context_provider_handler::read(ctx::request_info *request)
 	context_provider_iface *provider = get_provider(request);
 	IF_FAIL_VOID(provider);
 
-	ctx::json request_result;
+	ctx::Json request_result;
 	int error = provider->read(subject, request->get_description().str(), &request_result);
 
 	if (!request->reply(error, request_result) || error != ERR_NONE) {
@@ -143,14 +143,14 @@ void ctx::context_provider_handler::write(ctx::request_info *request)
 	context_provider_iface *provider = get_provider(request);
 	IF_FAIL_VOID(provider);
 
-	ctx::json request_result;
+	ctx::Json request_result;
 	int error = provider->write(subject, request->get_description(), &request_result);
 
 	request->reply(error, request_result);
 	delete request;
 }
 
-bool ctx::context_provider_handler::publish(ctx::json &option, int error, ctx::json &data_updated)
+bool ctx::context_provider_handler::publish(ctx::Json &option, int error, ctx::Json &data_updated)
 {
 	auto end = subscribe_requests.end();
 	auto target = find_request(subscribe_requests.begin(), end, option);
@@ -165,13 +165,13 @@ bool ctx::context_provider_handler::publish(ctx::json &option, int error, ctx::j
 	return true;
 }
 
-bool ctx::context_provider_handler::reply_to_read(ctx::json &option, int error, ctx::json &data_read)
+bool ctx::context_provider_handler::reply_to_read(ctx::Json &option, int error, ctx::Json &data_read)
 {
 	auto end = read_requests.end();
 	auto target = find_request(read_requests.begin(), end, option);
 	auto prev = target;
 
-	ctx::json dummy;
+	ctx::Json dummy;
 
 	while (target != end) {
 		(*target)->reply(error, dummy, data_read);
@@ -186,7 +186,7 @@ bool ctx::context_provider_handler::reply_to_read(ctx::json &option, int error, 
 }
 
 ctx::context_provider_handler::request_list_t::iterator
-ctx::context_provider_handler::find_request(request_list_t &r_list, json &option)
+ctx::context_provider_handler::find_request(request_list_t &r_list, Json &option)
 {
 	return find_request(r_list.begin(), r_list.end(), option);
 }
@@ -203,7 +203,7 @@ ctx::context_provider_handler::find_request(request_list_t &r_list, std::string 
 }
 
 ctx::context_provider_handler::request_list_t::iterator
-ctx::context_provider_handler::find_request(request_list_t::iterator begin, request_list_t::iterator end, json &option)
+ctx::context_provider_handler::find_request(request_list_t::iterator begin, request_list_t::iterator end, Json &option)
 {
 	for (auto it = begin; it != end; ++it) {
 		if (option == (*it)->get_description()) {

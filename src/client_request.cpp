@@ -71,57 +71,44 @@ bool ctx::client_request::reply(int error)
 	return true;
 }
 
-bool ctx::client_request::reply(int error, ctx::json& request_result)
+bool ctx::client_request::reply(int error, ctx::Json& request_result)
 {
 	IF_FAIL_RETURN(__invocation, true);
 	IF_FAIL_RETURN(_type != REQ_READ_SYNC, true);
 
-	char *result = request_result.dup_cstr();
-	IF_FAIL_RETURN_TAG(result, false, _E, "Memory allocation failed");
+	std::string result = request_result.str();
+	IF_FAIL_RETURN(!result.empty(), false);
 
 	_I("Reply %#x", error);
-	_SD("Result: %s", result);
+	_SD("Result: %s", result.c_str());
 
-	g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", error, result, EMPTY_JSON_OBJECT));
+	g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", error, result.c_str(), EMPTY_JSON_OBJECT));
 	__invocation = NULL;
 
-	g_free(result);
 	return true;
 }
 
-bool ctx::client_request::reply(int error, ctx::json& request_result, ctx::json& data_read)
+bool ctx::client_request::reply(int error, ctx::Json& request_result, ctx::Json& data_read)
 {
 	if (__invocation == NULL) {
 		return publish(error, data_read);
 	}
 
-	char *result = NULL;
-	char *data = NULL;
-
-	result = request_result.dup_cstr();
-	IF_FAIL_CATCH_TAG(result, _E, "Memory allocation failed");
-
-	data = data_read.dup_cstr();
-	IF_FAIL_CATCH_TAG(data, _E, "Memory allocation failed");
+	std::string result = request_result.str();
+	std::string data = data_read.str();
+	IF_FAIL_RETURN(!result.empty() && !data.empty(), false);
 
 	_I("Reply %#x", error);
-	_SD("Result: %s", result);
-	_SD("Data: %s", data);
+	_SD("Result: %s", result.c_str());
+	_SD("Data: %s", data.c_str());
 
-	g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", error, result, data));
+	g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", error, result.c_str(), data.c_str()));
 	__invocation = NULL;
 
-	g_free(result);
-	g_free(data);
 	return true;
-
-CATCH:
-	g_free(result);
-	g_free(data);
-	return false;
 }
 
-bool ctx::client_request::publish(int error, ctx::json& data)
+bool ctx::client_request::publish(int error, ctx::Json& data)
 {
 	DBusServer::publish(__dbus_sender, _req_id, _subject, error, data.str());
 	return true;

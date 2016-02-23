@@ -42,7 +42,7 @@ bool ctx::fact_request::reply(int error)
 	return true;
 }
 
-bool ctx::fact_request::reply(int error, ctx::json& request_result)
+bool ctx::fact_request::reply(int error, ctx::Json& request_result)
 {
 	IF_FAIL_RETURN(!replied && _ctx_monitor, true);
 	_ctx_monitor->reply_result(_req_id, error, &request_result);
@@ -50,14 +50,14 @@ bool ctx::fact_request::reply(int error, ctx::json& request_result)
 	return true;
 }
 
-bool ctx::fact_request::reply(int error, ctx::json& request_result, ctx::json& data_read)
+bool ctx::fact_request::reply(int error, ctx::Json& request_result, ctx::Json& data_read)
 {
 	IF_FAIL_RETURN(!replied && _ctx_monitor, true);
 	_ctx_monitor->reply_result(_req_id, error, _subject.c_str(), &get_description(), &data_read);
 	return (replied = true);
 }
 
-bool ctx::fact_request::publish(int error, ctx::json& data)
+bool ctx::fact_request::publish(int error, ctx::Json& data)
 {
 	IF_FAIL_RETURN(_ctx_monitor, true);
 	_ctx_monitor->publish_fact(_req_id, error, _subject.c_str(), &get_description(), &data);

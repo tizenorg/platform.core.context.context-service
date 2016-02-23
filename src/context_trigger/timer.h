@@ -17,13 +17,13 @@
 #ifndef __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
 #define __CONTEXT_CONTEXT_TRIGGER_TIMER_H__
 
-#include <json.h>
+#include <Json.h>
 
 namespace ctx {
 
 	namespace trigger_timer {
 
-		void handle_timer_event(ctx::json& rule);
+		void handle_timer_event(ctx::Json& rule);
 
 	};
 

@@ -17,7 +17,7 @@
 #ifndef __TEMPLATE_MANAGER_H__
 #define __TEMPLATE_MANAGER_H__
 
-#include <json.h>
+#include <Json.h>
 
 namespace ctx {
 
@@ -31,7 +31,7 @@ namespace ctx {
 
 		bool init();
 		void apply_templates();
-		int get_template(std::string &subject, ctx::json* tmpl);
+		int get_template(std::string &subject, ctx::Json* tmpl);
 
 	private:
 		template_manager();
@@ -42,7 +42,7 @@ namespace ctx {
 		static context_manager_impl *_context_mgr;
 		static rule_manager *_rule_mgr;
 
-		std::string add_template(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options, std::string &owner);
+		std::string add_template(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner);
 		std::string remove_template(std::string &subject);
 
 	};	/* class template_manager */

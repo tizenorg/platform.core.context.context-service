@@ -18,7 +18,7 @@
 #define __CONTEXT_TRIGGER_RULE_H__
 
 #include <string>
-#include <json.h>
+#include <Json.h>
 #include "context_listener_iface.h"
 
 namespace ctx {
@@ -29,29 +29,29 @@ namespace ctx {
 		private:
 			struct context_item_s {
 				std::string name;
-				ctx::json option;
-				context_item_s(ctx::json item) {
+				ctx::Json option;
+				context_item_s(ctx::Json item) {
 					std::string n;
 					item.get(NULL, CT_RULE_EVENT_ITEM, &n);
 					name = n;
 
-					ctx::json o;
+					ctx::Json o;
 					if (item.get(NULL, CT_RULE_EVENT_OPTION, &o))
 						option = o.str();
 				}
 			};
 
 			typedef struct context_item_s* context_item_t;
-			ctx::json statement;
+			ctx::Json statement;
 			context_item_t event;
 			std::list<context_item_t> condition;
-			ctx::json action;
-			ctx::json result;
+			ctx::Json action;
+			ctx::Json result;
 
 			static rule_manager* rule_mgr;
 
 			void clear_result(void);
-			bool set_condition_option_based_on_event(ctx::json& option);
+			bool set_condition_option_based_on_event(ctx::Json& option);
 			void on_context_data_prepared(void);
 
 			static gboolean handle_uninstalled_rule(gpointer data);
@@ -60,14 +60,14 @@ namespace ctx {
 			int id;
 			std::string pkg_id;
 
-			trigger_rule(int i, ctx::json& d, const char* p, rule_manager* rm);
+			trigger_rule(int i, ctx::Json& d, const char* p, rule_manager* rm);
 			~trigger_rule();
 
 			int start(void);
 			int stop(void);
 
-			void on_event_received(std::string name, ctx::json option, ctx::json data);
-			void on_condition_received(std::string name, ctx::json option, ctx::json data);
+			void on_event_received(std::string name, ctx::Json option, ctx::Json data);
+			void on_condition_received(std::string name, ctx::Json option, ctx::Json data);
 
 	};
 

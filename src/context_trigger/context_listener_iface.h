@@ -19,15 +19,15 @@
 
 namespace ctx {
 	/* Forward Declaration */
-	class json;
+	class Json;
 
 	class context_listener_iface {
 		public:
 			virtual ~context_listener_iface() {}
 
-			virtual void on_event_received(std::string name, ctx::json option, ctx::json data) = 0;
+			virtual void on_event_received(std::string name, ctx::Json option, ctx::Json data) = 0;
 
-			virtual void on_condition_received(std::string name, ctx::json option, ctx::json data) = 0;
+			virtual void on_condition_received(std::string name, ctx::Json option, ctx::Json data) = 0;
 	};
 
 }	/* namespace ctx */

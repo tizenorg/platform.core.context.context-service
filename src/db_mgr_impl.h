@@ -18,7 +18,7 @@
 #define __CONTEXT_DB_MANAGER_IMPL_H__
 
 #include <vector>
-#include <json.h>
+#include <Json.h>
 #include <sqlite3.h>
 
 #include <EventDrivenThread.h>
@@ -46,7 +46,7 @@ namespace ctx {
 			unsigned int id;
 			int error;
 			db_listener_iface* listener;
-			std::vector<json>* result;
+			std::vector<Json>* result;
 		};
 
 		sqlite3 *db_handle;
@@ -58,10 +58,10 @@ namespace ctx {
 		void close();
 
 		std::string compose_create_query(const char* table_name, const char* columns, const char* option);
-		std::string compose_insert_query(const char* table_name, json& record);
+		std::string compose_insert_query(const char* table_name, Json& record);
 
 		void _execute(int query_type, unsigned int query_id, const char* query, db_listener_iface* listener);
-		void send_result(int query_type, unsigned int query_id, db_listener_iface* listener, int error, std::vector<json>* result);
+		void send_result(int query_type, unsigned int query_id, db_listener_iface* listener, int error, std::vector<Json>* result);
 
 		static int execution_result_cb(void *user_data, int dim, char **value, char **column);
 		static gboolean _send_result(gpointer data);
@@ -74,12 +74,12 @@ namespace ctx {
 		void release();
 
 		bool create_table(unsigned int query_id, const char* table_name, const char* columns, const char* option = NULL, db_listener_iface* listener = NULL);
-		bool insert(unsigned int query_id, const char* table_name, json& record, db_listener_iface* listener = NULL);
+		bool insert(unsigned int query_id, const char* table_name, Json& record, db_listener_iface* listener = NULL);
 		bool execute(unsigned int query_id, const char* query, db_listener_iface* listener);
 
 		bool create_table_sync(const char* table_name, const char* columns, const char* option = NULL);
-		bool insert_sync(const char* table_name, json& record, int64_t* row_id);
-		bool execute_sync(const char* query, std::vector<json>* records);
+		bool insert_sync(const char* table_name, Json& record, int64_t* row_id);
+		bool execute_sync(const char* query, std::vector<Json>* records);
 
 	};	/* class db_manager */
 }
