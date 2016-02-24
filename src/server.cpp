@@ -22,7 +22,6 @@
 #include <types_internal.h>
 #include "DBusServer.h"
 #include "db_mgr_impl.h"
-#include "timer_mgr_impl.h"
 #include "context_mgr_impl.h"
 #include "context_trigger/trigger.h"
 #include "server.h"
@@ -31,7 +30,6 @@ static GMainLoop *mainloop = NULL;
 static bool started = false;
 
 static ctx::context_manager_impl *context_mgr = NULL;
-static ctx::timer_manager_impl *timer_mgr = NULL;
 static ctx::db_manager_impl *database_mgr = NULL;
 static ctx::DBusServer *dbus_handle = NULL;
 static ctx::context_trigger *trigger = NULL;
@@ -57,13 +55,6 @@ void ctx::server::activate()
 	IF_FAIL_VOID(!started);
 
 	bool result = false;
-
-	_I("Init Timer Manager");
-	timer_mgr = new(std::nothrow) ctx::timer_manager_impl();
-	IF_FAIL_CATCH_TAG(timer_mgr, _E, "Memory allocation failed");
-	timer_manager::set_instance(timer_mgr);
-	result = timer_mgr->init();
-	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
 	_I("Init Database Manager");
 	database_mgr = new(std::nothrow) ctx::db_manager_impl();
@@ -115,17 +106,12 @@ void ctx::server::release()
 	if (database_mgr)
 		database_mgr->release();
 
-	_I("Release Timer Manager");
-	if (timer_mgr)
-		timer_mgr->release();
-
 	g_main_loop_unref(mainloop);
 
 	delete trigger;
 	delete context_mgr;
 	delete dbus_handle;
 	delete database_mgr;
-	delete timer_mgr;
 }
 
 static gboolean postpone_request_assignment(gpointer data)

@@ -17,7 +17,6 @@ SET(DEPS
 	capi-system-info
 	capi-appfw-app-manager
 	appsvc
-	alarm-service
 	notification
 	capi-system-system-settings
 	cynara-creds-gdbus

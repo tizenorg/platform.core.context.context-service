@@ -17,7 +17,7 @@
 #include <context_trigger.h>
 #include <context_trigger_types_internal.h>
 #include <types_internal.h>
-#include <timer_util.h>
+#include <TimerManager.h>
 #include "timer.h"
 
 #define TIMER_DAY_OF_WEEK "DayOfWeek"
@@ -29,22 +29,22 @@ static int arrange_day_of_week(ctx::Json day_info)
 
 	std::string key_op;
 	if (!day_info.get(NULL, CT_RULE_DATA_KEY_OPERATOR, &key_op)) {
-		result = ctx::timer_util::convert_day_of_week_string_to_int(TIMER_TYPES_EVERYDAY);
+		result = ctx::TimerManager::dowToInt(DOW_EVERYDAY);
 		return result;
 	}
 
 	if (key_op.compare("and") == 0) {
-		result = ctx::timer_util::convert_day_of_week_string_to_int(TIMER_TYPES_EVERYDAY);
+		result = ctx::TimerManager::dowToInt(DOW_EVERYDAY);
 	}
 
 	std::string tmp_d;
 	for (int i = 0; day_info.getAt(NULL, CT_RULE_DATA_VALUE_ARR, i, &tmp_d); i++) {
-		int dow = ctx::timer_util::convert_day_of_week_string_to_int(tmp_d);
+		int dow = ctx::TimerManager::dowToInt(tmp_d);
 		std::string op;
 		day_info.getAt(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, i, &op);
 
 		if (op.compare(CONTEXT_TRIGGER_NOT_EQUAL_TO) == 0) {
-			dow = ctx::timer_util::convert_day_of_week_string_to_int(TIMER_TYPES_EVERYDAY) & ~dow;
+			dow = ctx::TimerManager::dowToInt(DOW_EVERYDAY) & ~dow;
 		}
 
 		if (key_op.compare("and") == 0) {
@@ -82,10 +82,10 @@ void ctx::trigger_timer::handle_timer_event(ctx::Json& rule)
 			day_info.set(NULL, CT_RULE_DATA_KEY, TIMER_DAY_OF_WEEK);
 			day_info.set(NULL, CT_RULE_DATA_KEY_OPERATOR, "or");
 
-			for (int j = 0; j < MAX_DAY; j++) {
+			for (int j = 0; j < DAYS_PER_WEEK; j++) {
 				int d = 0x01 << j;
 				if (dow & d) {
-					std::string day = ctx::timer_util::convert_day_of_week_int_to_string(d);
+					std::string day = ctx::TimerManager::dowToStr(d);
 					day_info.append(NULL, CT_RULE_DATA_VALUE_ARR, day);
 					day_info.append(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, CONTEXT_TRIGGER_EQUAL_TO);
 

@@ -16,7 +16,6 @@ BuildRequires: pkgconfig(sqlite3)
 BuildRequires: pkgconfig(capi-system-info)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(appsvc)
-BuildRequires: pkgconfig(alarm-service)
 BuildRequires: pkgconfig(notification)
 BuildRequires: pkgconfig(capi-system-system-settings)
 
