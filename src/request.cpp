@@ -45,7 +45,7 @@ const ctx::credentials* ctx::request_info::get_credentials()
 	return NULL;
 }
 
-const char* ctx::request_info::get_app_id()
+const char* ctx::request_info::get_package_id()
 {
 	return NULL;
 }
@@ -60,7 +60,7 @@ const char* ctx::request_info::get_subject()
 	return _subject.c_str();
 }
 
-ctx::json& ctx::request_info::get_description()
+ctx::Json& ctx::request_info::get_description()
 {
 	return _description;
 }

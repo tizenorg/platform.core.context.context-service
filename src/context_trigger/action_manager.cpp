@@ -23,15 +23,15 @@
 #include <runtime_info.h>
 #include <system_settings.h>
 #include <context_trigger_types_internal.h>
-#include <json.h>
+#include <Json.h>
 #include "../DBusServer.h"
 #include "action_manager.h"
 
-static void trigger_action_app_control(ctx::json& action);
-static void trigger_action_notification(ctx::json& action, std::string app_id);	// TODO appid? creator?
-static void trigger_action_dbus_call(ctx::json& action);
+static void trigger_action_app_control(ctx::Json& action);
+static void trigger_action_notification(ctx::Json& action, std::string pkg_id);
+static void trigger_action_dbus_call(ctx::Json& action);
 
-void ctx::action_manager::trigger_action(ctx::json& action, std::string creator)
+void ctx::action_manager::trigger_action(ctx::Json& action, std::string pkg_id)
 {
 	std::string type;
 	action.get(NULL, CT_RULE_ACTION_TYPE, &type);
@@ -39,13 +39,13 @@ void ctx::action_manager::trigger_action(ctx::json& action, std::string creator)
 	if (type.compare(CT_RULE_ACTION_TYPE_APP_CONTROL) == 0) {
 		trigger_action_app_control(action);
 	} else if (type.compare(CT_RULE_ACTION_TYPE_NOTIFICATION) == 0) {
-		trigger_action_notification(action, creator);
+		trigger_action_notification(action, pkg_id);
 	} else if (type.compare(CT_RULE_ACTION_TYPE_DBUS_CALL) == 0) {
 		trigger_action_dbus_call(action);
 	}
 }
 
-void trigger_action_app_control(ctx::json& action)
+void trigger_action_app_control(ctx::Json& action)
 {
 	int error;
 	std::string appctl_str;
@@ -80,7 +80,7 @@ void trigger_action_app_control(ctx::json& action)
 	}
 }
 
-void trigger_action_notification(ctx::json& action, std::string app_id)	// TODO appid? creator?
+void trigger_action_notification(ctx::Json& action, std::string pkg_id)
 {
 	int error;
 	notification_h notification = notification_create(NOTIFICATION_TYPE_NOTI);
@@ -133,10 +133,10 @@ void trigger_action_notification(ctx::json& action, std::string app_id)	// TODO 
 		}
 	}
 
-	if (!app_id.empty()) {
-		error = notification_set_pkgname(notification, app_id.c_str());
+	if (!pkg_id.empty()) {
+		error = notification_set_pkgname(notification, pkg_id.c_str());
 		if (error != NOTIFICATION_ERROR_NONE) {
-			_E("Set pkgname(%s) failed(%d)", app_id.c_str(), error);
+			_E("Set package id(%s) failed(%#x)", pkg_id.c_str(), error);
 		}
 	}
 
@@ -186,7 +186,7 @@ void trigger_action_notification(ctx::json& action, std::string app_id)	// TODO 
 	}
 }
 
-void trigger_action_dbus_call(ctx::json& action)
+void trigger_action_dbus_call(ctx::Json& action)
 {
 	std::string bus_name, object, iface, method;
 	GVariant *param = NULL;

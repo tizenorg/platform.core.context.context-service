@@ -23,7 +23,7 @@
 
 namespace ctx {
 
-	class json;
+	class Json;
 	class credentials;
 	class request_info;
 
@@ -41,8 +41,8 @@ namespace ctx {
 		void read(request_info *request);
 		void write(request_info *request);
 
-		bool publish(ctx::json &option, int error, ctx::json &data_updated);
-		bool reply_to_read(ctx::json &option, int error, ctx::json &data_read);
+		bool publish(ctx::Json &option, int error, ctx::Json &data_updated);
+		bool reply_to_read(ctx::Json &option, int error, ctx::Json &data_read);
 
 	private:
 		const char *subject;
@@ -51,9 +51,9 @@ namespace ctx {
 		request_list_t read_requests;
 
 		context_provider_iface* get_provider(request_info *request);
-		request_list_t::iterator find_request(request_list_t &r_list, json &option);
+		request_list_t::iterator find_request(request_list_t &r_list, Json &option);
 		request_list_t::iterator find_request(request_list_t &r_list, std::string client, int req_id);
-		request_list_t::iterator find_request(request_list_t::iterator begin, request_list_t::iterator end, json &option);
+		request_list_t::iterator find_request(request_list_t::iterator begin, request_list_t::iterator end, Json &option);
 
 	};	/* class context_provider_handler */
 

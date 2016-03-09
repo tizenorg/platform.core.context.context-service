@@ -72,16 +72,16 @@ void ctx::context_monitor::destroy()
 	}
 }
 
-int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener)
+int ctx::context_monitor::subscribe(int rule_id, std::string subject, ctx::Json option, context_listener_iface* listener)
 {
 	int req_id = _subscribe(subject.c_str(), &option, listener);
-	IF_FAIL_RETURN_TAG(req_id > 0, ERR_OPERATION_FAILED, _E, "Subscribe event failed");
+	IF_FAIL_RETURN_TAG(req_id > 0, req_id, _E, "Subscribe event failed");
 	_D(YELLOW("Subscribe event(rule%d). req%d"), rule_id, req_id);
 
 	return ERR_NONE;
 }
 
-int ctx::context_monitor::_subscribe(const char* subject, json* option, context_listener_iface* listener)
+int ctx::context_monitor::_subscribe(const char* subject, Json* option, context_listener_iface* listener)
 {
 	IF_FAIL_RETURN(subject, ERR_INVALID_PARAMETER);
 
@@ -96,7 +96,7 @@ int ctx::context_monitor::_subscribe(const char* subject, json* option, context_
 
 	fact_request *req = new(std::nothrow) fact_request(REQ_SUBSCRIBE,
 			rid, subject, option ? option->str().c_str() : NULL, this);
-	IF_FAIL_RETURN_TAG(req, -1, _E, "Memory allocation failed");
+	IF_FAIL_RETURN_TAG(req, ERR_OUT_OF_MEMORY, _E, "Memory allocation failed");
 
 	_context_mgr->assign_request(req);
 	add_sub(REQ_SUBSCRIBE, rid, subject, option, listener);
@@ -104,13 +104,13 @@ int ctx::context_monitor::_subscribe(const char* subject, json* option, context_
 	if (last_err != ERR_NONE) {
 		remove_sub(REQ_SUBSCRIBE, rid);
 		_E("Subscription request failed: %#x", last_err);
-		return -1;
+		return last_err;
 	}
 
 	return rid;
 }
 
-int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::json option, context_listener_iface* listener)
+int ctx::context_monitor::unsubscribe(int rule_id, std::string subject, ctx::Json option, context_listener_iface* listener)
 {
 	int rid = find_sub(REQ_SUBSCRIBE, subject.c_str(), &option);
 	if (rid < 0) {
@@ -135,7 +135,7 @@ void ctx::context_monitor::_unsubscribe(const char *subject, int subscription_id
 	remove_sub(REQ_SUBSCRIBE, subscription_id);
 }
 
-int ctx::context_monitor::read(std::string subject, json option, context_listener_iface* listener)
+int ctx::context_monitor::read(std::string subject, Json option, context_listener_iface* listener)
 {
 	int req_id = _read(subject.c_str(), &option, listener);
 	IF_FAIL_RETURN_TAG(req_id > 0, ERR_OPERATION_FAILED, _E, "Read condition failed");
@@ -144,7 +144,7 @@ int ctx::context_monitor::read(std::string subject, json option, context_listene
 	return ERR_NONE;
 }
 
-int ctx::context_monitor::_read(const char* subject, json* option, context_listener_iface* listener)
+int ctx::context_monitor::_read(const char* subject, Json* option, context_listener_iface* listener)
 {
 	IF_FAIL_RETURN(subject, ERR_INVALID_PARAMETER);
 
@@ -184,12 +184,12 @@ bool ctx::context_monitor::is_allowed(const char *client, const char *subject)
 	return true;
 }
 
-int ctx::context_monitor::find_sub(request_type type, const char* subject, json* option)
+int ctx::context_monitor::find_sub(request_type type, const char* subject, Json* option)
 {
 	// @return	request id
 	subscr_map_t* map = (type == REQ_SUBSCRIBE)? &subscr_map : &read_map;
 
-	json opt_j;
+	Json opt_j;
 	if (option) {
 		opt_j = *option;
 	}
@@ -203,7 +203,7 @@ int ctx::context_monitor::find_sub(request_type type, const char* subject, json*
 	return -1;
 }
 
-bool ctx::context_monitor::add_sub(request_type type, int sid, const char* subject, json* option, context_listener_iface* listener)
+bool ctx::context_monitor::add_sub(request_type type, int sid, const char* subject, Json* option, context_listener_iface* listener)
 {
 	subscr_map_t* map = (type == REQ_SUBSCRIBE)? &subscr_map : &read_map;
 
@@ -215,11 +215,11 @@ bool ctx::context_monitor::add_sub(request_type type, int sid, const char* subje
 	return true;
 }
 
-void ctx::context_monitor::remove_sub(request_type type, const char* subject, json* option)
+void ctx::context_monitor::remove_sub(request_type type, const char* subject, Json* option)
 {
 	subscr_map_t* map = (type == REQ_SUBSCRIBE)? &subscr_map : &read_map;
 
-	json opt_j;
+	Json opt_j;
 	if (option) {
 		opt_j = *option;
 	}
@@ -278,7 +278,7 @@ int ctx::context_monitor::remove_listener(request_type type, int sid, context_li
 	return info->listener_list.size();
 }
 
-void ctx::context_monitor::reply_result(int req_id, int error, json* request_result)
+void ctx::context_monitor::reply_result(int req_id, int error, Json* request_result)
 {
 	_D("Request result received: %d", req_id);
 
@@ -286,7 +286,7 @@ void ctx::context_monitor::reply_result(int req_id, int error, json* request_res
 	last_err = error;
 }
 
-void ctx::context_monitor::reply_result(int req_id, int error, const char* subject, json* option, json* fact)
+void ctx::context_monitor::reply_result(int req_id, int error, const char* subject, Json* option, Json* fact)
 {
 	_D(YELLOW("Condition received: subject(%s), option(%s), fact(%s)"), subject, option->str().c_str(), fact->str().c_str());
 
@@ -301,7 +301,7 @@ void ctx::context_monitor::reply_result(int req_id, int error, const char* subje
 	remove_sub(REQ_READ, req_id);
 }
 
-void ctx::context_monitor::publish_fact(int req_id, int error, const char* subject, json* option, json* fact)
+void ctx::context_monitor::publish_fact(int req_id, int error, const char* subject, Json* option, Json* fact)
 {
 	_D(YELLOW("Event received: subject(%s), option(%s), fact(%s)"), subject, option->str().c_str(), fact->str().c_str());
 

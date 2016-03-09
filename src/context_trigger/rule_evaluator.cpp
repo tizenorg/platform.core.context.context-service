@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <json.h>
+#include <Json.h>
 #include <types_internal.h>
 #include <context_trigger_types_internal.h>
 #include "rule_evaluator.h"
@@ -66,14 +66,14 @@ bool ctx::rule_evaluator::compare_int(std::string operation, int rule_var, int f
 	}
 }
 
-bool ctx::rule_evaluator::replace_data_references(ctx::json& rule_data_arr, ctx::json event_fact_data)
+bool ctx::rule_evaluator::replace_data_references(ctx::Json& rule_data_arr, ctx::Json event_fact_data)
 {
 	std::string arr_string;
 	std::string event_reference_string;
 	int event_reference_int;
 
-	for (int i = 0; i < rule_data_arr.array_get_size(NULL, CT_RULE_DATA_VALUE_ARR); i++) {
-		if (!rule_data_arr.get_array_elem(NULL, CT_RULE_DATA_VALUE_ARR, i, &arr_string)) {
+	for (int i = 0; i < rule_data_arr.getSize(NULL, CT_RULE_DATA_VALUE_ARR); i++) {
+		if (!rule_data_arr.getAt(NULL, CT_RULE_DATA_VALUE_ARR, i, &arr_string)) {
 			continue;
 		}
 		if (arr_string.substr(0, 1) != EVENT_REFERENCE) {
@@ -82,9 +82,9 @@ bool ctx::rule_evaluator::replace_data_references(ctx::json& rule_data_arr, ctx:
 
 		std::string event_key = arr_string.substr(1, arr_string.length() - 1);
 		if (event_fact_data.get(NULL, event_key.c_str(), &event_reference_string)) {
-			rule_data_arr.array_set_at(NULL, CT_RULE_DATA_VALUE_ARR, i, event_reference_string);
+			rule_data_arr.setAt(NULL, CT_RULE_DATA_VALUE_ARR, i, event_reference_string);
 		} else if (event_fact_data.get(NULL, event_key.c_str(), &event_reference_int)) {
-			rule_data_arr.array_set_at(NULL, CT_RULE_DATA_VALUE_ARR, i, event_reference_int);
+			rule_data_arr.setAt(NULL, CT_RULE_DATA_VALUE_ARR, i, event_reference_int);
 		} else {
 			_W("Option %s not found in event_data", event_key.c_str());
 		}
@@ -93,10 +93,10 @@ bool ctx::rule_evaluator::replace_data_references(ctx::json& rule_data_arr, ctx:
 	return true;
 }
 
-bool ctx::rule_evaluator::replace_option_references(ctx::json& rule_option, ctx::json event_fact_data)
+bool ctx::rule_evaluator::replace_option_references(ctx::Json& rule_option, ctx::Json event_fact_data)
 {
 	std::list<std::string> key_list;
-	rule_option.get_keys(&key_list);
+	rule_option.getKeys(&key_list);
 
 	for (std::list<std::string>::iterator it = key_list.begin(); it != key_list.end(); ++it) {
 		std::string option_key = *it;
@@ -125,22 +125,22 @@ bool ctx::rule_evaluator::replace_option_references(ctx::json& rule_option, ctx:
 	return true;
 }
 
-bool ctx::rule_evaluator::replace_event_references(ctx::json& rule, ctx::json& fact)
+bool ctx::rule_evaluator::replace_event_references(ctx::Json& rule, ctx::Json& fact)
 {
-	ctx::json event_fact_data;
+	ctx::Json event_fact_data;
 	if (!fact.get(CONTEXT_FACT_EVENT, CONTEXT_FACT_DATA, &event_fact_data)) {
 		_E("No event data found, error");
 		return false;
 	}
 
-	ctx::json rule_condition;
-	for (int i = 0; rule.get_array_elem(NULL, CT_RULE_CONDITION, i, &rule_condition); i++) {
-		ctx::json rule_data_arr;
-		for (int j = 0; rule_condition.get_array_elem(NULL, CT_RULE_DATA_ARR, j, &rule_data_arr); j++) {
+	ctx::Json rule_condition;
+	for (int i = 0; rule.getAt(NULL, CT_RULE_CONDITION, i, &rule_condition); i++) {
+		ctx::Json rule_data_arr;
+		for (int j = 0; rule_condition.getAt(NULL, CT_RULE_DATA_ARR, j, &rule_data_arr); j++) {
 			replace_data_references(rule_data_arr, event_fact_data);
 		}
 
-		ctx::json rule_option;
+		ctx::Json rule_option;
 		if (rule_condition.get(NULL, CT_RULE_CONDITION_OPTION, &rule_option)) {
 			replace_option_references(rule_option, event_fact_data);
 		}
@@ -149,7 +149,7 @@ bool ctx::rule_evaluator::replace_event_references(ctx::json& rule, ctx::json& f
 	return true;
 }
 
-bool ctx::rule_evaluator::evaluate_data_string(ctx::json& rule_data_arr, std::string fact_value_str)
+bool ctx::rule_evaluator::evaluate_data_string(ctx::Json& rule_data_arr, std::string fact_value_str)
 {
 	std::string operate_internal;
 	rule_data_arr.get(NULL, CT_RULE_DATA_KEY_OPERATOR, &operate_internal);
@@ -159,10 +159,10 @@ bool ctx::rule_evaluator::evaluate_data_string(ctx::json& rule_data_arr, std::st
 	}
 
 	std::string operator_str;
-	for (int j = 0; rule_data_arr.get_array_elem(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, j, &operator_str); j++) {
+	for (int j = 0; rule_data_arr.getAt(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, j, &operator_str); j++) {
 		bool data_arr_vale_match;
 		std::string get_str_val;
-		rule_data_arr.get_array_elem(NULL, CT_RULE_DATA_VALUE_ARR, j, &get_str_val);
+		rule_data_arr.getAt(NULL, CT_RULE_DATA_VALUE_ARR, j, &get_str_val);
 		data_arr_vale_match = compare_string(operator_str, fact_value_str, get_str_val);
 
 		if (is_and && !data_arr_vale_match) {
@@ -174,7 +174,7 @@ bool ctx::rule_evaluator::evaluate_data_string(ctx::json& rule_data_arr, std::st
 	return is_and;
 }
 
-bool ctx::rule_evaluator::evaluate_data_int(ctx::json& rule_data_arr, int fact_value_int)
+bool ctx::rule_evaluator::evaluate_data_int(ctx::Json& rule_data_arr, int fact_value_int)
 {
 	std::string operate_internal;
 	rule_data_arr.get(NULL, CT_RULE_DATA_KEY_OPERATOR, &operate_internal);
@@ -184,10 +184,10 @@ bool ctx::rule_evaluator::evaluate_data_int(ctx::json& rule_data_arr, int fact_v
 	}
 
 	std::string operator_str;
-	for (int j = 0; rule_data_arr.get_array_elem(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, j, &operator_str); j++) {
+	for (int j = 0; rule_data_arr.getAt(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, j, &operator_str); j++) {
 		bool data_arr_vale_match;
 		int get_int_val;
-		if (!rule_data_arr.get_array_elem(NULL, CT_RULE_DATA_VALUE_ARR, j, &get_int_val)) {
+		if (!rule_data_arr.getAt(NULL, CT_RULE_DATA_VALUE_ARR, j, &get_int_val)) {
 			data_arr_vale_match = false;
 		}
 		data_arr_vale_match = compare_int(operator_str, fact_value_int, get_int_val);
@@ -201,10 +201,10 @@ bool ctx::rule_evaluator::evaluate_data_int(ctx::json& rule_data_arr, int fact_v
 	return is_and;
 }
 
-bool ctx::rule_evaluator::evaluate_item(ctx::json& rule_item, ctx::json& fact_item)
+bool ctx::rule_evaluator::evaluate_item(ctx::Json& rule_item, ctx::Json& fact_item)
 {
-	ctx::json rule_data_arr;
-	if (rule_item.array_get_size(NULL, CT_RULE_DATA_ARR) == 0) {
+	ctx::Json rule_data_arr;
+	if (rule_item.getSize(NULL, CT_RULE_DATA_ARR) == 0) {
 		return true;
 	}
 
@@ -215,7 +215,7 @@ bool ctx::rule_evaluator::evaluate_item(ctx::json& rule_item, ctx::json& fact_it
 		is_and = true;
 	}
 
-	for (int i = 0; rule_item.get_array_elem(NULL, CT_RULE_DATA_ARR, i, &rule_data_arr); i++) {
+	for (int i = 0; rule_item.getAt(NULL, CT_RULE_DATA_ARR, i, &rule_data_arr); i++) {
 		std::string data_key;
 		rule_data_arr.get(NULL, CT_RULE_DATA_KEY, &data_key);
 		std::string fact_value_str;
@@ -240,30 +240,30 @@ bool ctx::rule_evaluator::evaluate_item(ctx::json& rule_item, ctx::json& fact_it
 	return is_and;
 }
 
-bool ctx::rule_evaluator::check_rule_event(ctx::json& rule, ctx::json& fact)
+bool ctx::rule_evaluator::check_rule_event(ctx::Json& rule, ctx::Json& fact)
 {
-	ctx::json fact_item;
+	ctx::Json fact_item;
 	fact.get(NULL, CONTEXT_FACT_EVENT, &fact_item);
-	ctx::json rule_item;
+	ctx::Json rule_item;
 	rule.get(NULL, CT_RULE_EVENT, &rule_item);
 	return evaluate_item(rule_item, fact_item);
 }
 
-ctx::json ctx::rule_evaluator::find_condition_fact(ctx::json& rule_condition, ctx::json& fact)
+ctx::Json ctx::rule_evaluator::find_condition_fact(ctx::Json& rule_condition, ctx::Json& fact)
 {
-	ctx::json fact_condition;
+	ctx::Json fact_condition;
 	std::string item_name_rule_condition;
 	rule_condition.get(NULL, CT_RULE_CONDITION_ITEM, &item_name_rule_condition);
 
 	std::string item_name_fact_condition;
-	for (int i = 0; fact.get_array_elem(NULL, CONTEXT_FACT_CONDITION, i, &fact_condition); i++) {
+	for (int i = 0; fact.getAt(NULL, CONTEXT_FACT_CONDITION, i, &fact_condition); i++) {
 		fact_condition.get(NULL, CONTEXT_FACT_NAME, &item_name_fact_condition);
 		if (item_name_fact_condition != item_name_rule_condition) {
 			continue;
 		}
 
-		ctx::json rule_condition_option;
-		ctx::json fact_condition_option;
+		ctx::Json rule_condition_option;
+		ctx::Json fact_condition_option;
 		rule_condition.get(NULL, CT_RULE_CONDITION_OPTION, &rule_condition_option);
 		fact_condition.get(NULL, CONTEXT_FACT_OPTION, &fact_condition_option);
 		if (fact_condition_option == rule_condition_option) {
@@ -275,10 +275,10 @@ ctx::json ctx::rule_evaluator::find_condition_fact(ctx::json& rule_condition, ct
 	return EMPTY_JSON_OBJECT;
 }
 
-bool ctx::rule_evaluator::check_rule_condition(ctx::json& rule, ctx::json& fact)
+bool ctx::rule_evaluator::check_rule_condition(ctx::Json& rule, ctx::Json& fact)
 {
-	ctx::json rule_condition;
-	ctx::json fact_condition;
+	ctx::Json rule_condition;
+	ctx::Json fact_condition;
 
 	std::string operate;
 	rule.get(NULL, CT_RULE_OPERATOR, &operate);
@@ -287,7 +287,7 @@ bool ctx::rule_evaluator::check_rule_condition(ctx::json& rule, ctx::json& fact)
 		is_and = true;
 	}
 
-	for (int i = 0; rule.get_array_elem(NULL, CT_RULE_CONDITION, i, &rule_condition); i++) {
+	for (int i = 0; rule.getAt(NULL, CT_RULE_CONDITION, i, &rule_condition); i++) {
 		fact_condition = find_condition_fact(rule_condition, fact);
 		bool condition_satisfied;
 		if (fact_condition == EMPTY_JSON_OBJECT) {
@@ -306,15 +306,15 @@ bool ctx::rule_evaluator::check_rule_condition(ctx::json& rule, ctx::json& fact)
 	return is_and;
 }
 
-bool ctx::rule_evaluator::evaluate_rule(ctx::json rule, ctx::json fact)
+bool ctx::rule_evaluator::evaluate_rule(ctx::Json rule, ctx::Json fact)
 {
 	_D("Rule is %s ", rule.str().c_str());
 	_D("fact is %s ", fact.str().c_str());
 	rule_evaluator eval;
 	bool ret;
-	ctx::json temp_json;
+	ctx::Json temp_json;
 	if (fact.get(NULL, CT_RULE_CONDITION, &temp_json)) {
-		ctx::json rule_copy(rule.str());
+		ctx::Json rule_copy(rule.str());
 		if (!eval.replace_event_references(rule_copy, fact)) {
 			_W("Replace failed");
 		}

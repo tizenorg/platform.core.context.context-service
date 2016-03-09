@@ -19,7 +19,12 @@
 #include <context_trigger_types_internal.h>
 #include <db_mgr.h>
 #include "../context_mgr_impl.h"
+#include "rule_manager.h"
 #include "template_manager.h"
+
+ctx::template_manager *ctx::template_manager::_instance = NULL;
+ctx::context_manager_impl *ctx::template_manager::_context_mgr = NULL;
+ctx::rule_manager *ctx::template_manager::_rule_mgr = NULL;
 
 static std::string int_to_string(int i)
 {
@@ -29,8 +34,7 @@ static std::string int_to_string(int i)
 	return str;
 }
 
-ctx::template_manager::template_manager(ctx::context_manager_impl* ctx_mgr)
-: _context_mgr(ctx_mgr)
+ctx::template_manager::template_manager()
 {
 }
 
@@ -38,53 +42,113 @@ ctx::template_manager::~template_manager()
 {
 }
 
-bool ctx::template_manager::get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options)
+void ctx::template_manager::set_manager(ctx::context_manager_impl* ctx_mgr, ctx::rule_manager* rule_mgr)
 {
-	return _context_mgr->pop_trigger_item(subject, operation, attributes, options);
+	_context_mgr = ctx_mgr;
+	_rule_mgr = rule_mgr;
 }
 
-void ctx::template_manager::apply_templates(void)
+ctx::template_manager* ctx::template_manager::get_instance()
 {
-	// TODO remove templates if needed
+	IF_FAIL_RETURN_TAG(_context_mgr, NULL, _E, "Context manager is needed");
+	IF_FAIL_RETURN_TAG(_rule_mgr, NULL, _E, "Rule manager is needed");
+
+	IF_FAIL_RETURN(!_instance, _instance);
+
+	_instance = new(std::nothrow) template_manager();
+	IF_FAIL_RETURN_TAG(_instance, NULL, _E, "Memory alllocation failed");
+
+	return _instance;
+}
+
+void ctx::template_manager::destroy()
+{
+	_instance->apply_templates();
+
+	if (_instance) {
+		delete _instance;
+		_instance = NULL;
+	}
+}
+
+bool ctx::template_manager::init()
+{
+	std::string q = std::string("CREATE TABLE IF NOT EXISTS context_trigger_template ")
+			+ "(name TEXT DEFAULT '' NOT NULL PRIMARY KEY, operation INTEGER DEFAULT 3 NOT NULL, "
+			+ "attributes TEXT DEFAULT '' NOT NULL, options TEXT DEFAULT '' NOT NULL, owner TEXT DEFAULT '' NOT NULL)";
+
+	std::vector<Json> record;
+	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Create template table failed");
+
+	// Apply templates
+	apply_templates();
+
+	return true;
+}
+
+void ctx::template_manager::apply_templates()
+{
 	std::string subject;
 	int operation;
-	ctx::json attributes;
-	ctx::json options;
-	std::string q_update;
-	std::string q_insert = "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options) VALUES";
-	int cnt = 0;
+	ctx::Json attributes;
+	ctx::Json options;
+	std::string owner;
+	bool unregister;
+	std::string query;
+	query.clear();
 
-	while (get_fact_definition(subject, operation, attributes, options)) {
-		_D("Subject: %s, Ops: %d", subject.c_str(), operation);
-		_J("Attr", attributes);
-		_J("Opt", options);
-
-		q_update += "UPDATE context_trigger_template SET operation=" + int_to_string(operation)
-			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "' WHERE name='" + subject + "';";
-
-		q_insert += " ('" + subject + "', " + int_to_string(operation) + ", '" + attributes.str() + "', '" + options.str() + "'),";
-		cnt++;
+	while(_context_mgr->pop_trigger_item(subject, operation, attributes, options, owner, unregister)) {
+		if (unregister) {
+			query += remove_template(subject);
+			_rule_mgr->pause_rule_with_item(subject);
+		} else {
+			query += add_template(subject, operation, attributes, options, owner);
+			if (!owner.empty()) {
+				_rule_mgr->resume_rule_with_item(subject);
+			}
+		}
 	}
-	IF_FAIL_VOID(cnt > 0);
+	IF_FAIL_VOID(!query.empty());
 
-	q_insert.erase(q_insert.end() - 1, q_insert.end());
-	q_insert += ";";
-
-	bool ret = db_manager::execute(1, q_update.c_str(), NULL);
-	IF_FAIL_VOID_TAG(ret, _E, "Update item definition failed");
-
-	ret = db_manager::execute(2, q_insert.c_str(), NULL);
-	IF_FAIL_VOID_TAG(ret, _E, "Insert item definition failed");
+	std::vector<Json> record;
+	bool ret = db_manager::execute_sync(query.c_str(), &record);
+	IF_FAIL_VOID_TAG(ret, _E, "Update template db failed");
 }
 
-int ctx::template_manager::get_template(std::string &subject, ctx::json* tmpl)
+std::string ctx::template_manager::add_template(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner)
+{
+	_D("[Add template] Subject: %s, Ops: %d, Owner: %s", subject.c_str(), operation, owner.c_str());
+	_J("Attr", attributes);
+	_J("Opt", options);
+
+	std::string query = "UPDATE context_trigger_template SET operation=" + int_to_string(operation)
+			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "', owner='" + owner
+			+ "' WHERE name='" + subject + "'; ";
+
+	query += "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options, owner) VALUES ('"
+			+ subject + "', " + int_to_string(operation) + ", '" + attributes.str() + "', '" + options.str() + "', '"
+			+ owner + "'); ";
+
+	return query;
+}
+
+std::string ctx::template_manager::remove_template(std::string &subject)
+{
+	_D("[Remove template] Subject: %s", subject.c_str());
+	std::string query = "DELETE FROM context_trigger_template WHERE name = '" + subject + "'; ";
+
+	return query;
+}
+
+int ctx::template_manager::get_template(std::string &subject, ctx::Json* tmpl)
 {
 	// Update latest template information
 	apply_templates();
 
 	std::string q = "SELECT * FROM context_trigger_template WHERE name = '" + subject + "'";
 
-	std::vector<json> record;
+	std::vector<Json> record;
 	bool ret = db_manager::execute_sync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query template failed");
 	IF_FAIL_RETURN_TAG(record.size() > 0, ERR_NOT_SUPPORTED, _E, "Template(%s) not found", subject.c_str());
@@ -97,8 +161,8 @@ int ctx::template_manager::get_template(std::string &subject, ctx::json* tmpl)
 	tmpl->get(NULL, TYPE_OPTION_STR, &opt_str);
 	tmpl->get(NULL, TYPE_ATTR_STR, &attr_str);
 
-	ctx::json opt = opt_str;
-	ctx::json attr = attr_str;
+	ctx::Json opt = opt_str;
+	ctx::Json attr = attr_str;
 
 	tmpl->set(NULL, TYPE_OPTION_STR, opt);
 	tmpl->set(NULL, TYPE_ATTR_STR, attr);

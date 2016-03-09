@@ -17,23 +17,33 @@
 #ifndef __TEMPLATE_MANAGER_H__
 #define __TEMPLATE_MANAGER_H__
 
-#include <json.h>
+#include <Json.h>
 
 namespace ctx {
 
 	class context_manager_impl;
-
+	class rule_manager;
 	class template_manager {
 	public:
-		template_manager(ctx::context_manager_impl* ctx_mgr);
-		~template_manager();
+		static template_manager* get_instance();
+		static void set_manager(ctx::context_manager_impl* ctx_mgr, ctx::rule_manager* rule_mgr);
+		static void destroy();
 
-		void apply_templates(void);
-		bool get_fact_definition(std::string &subject, int &operation, ctx::json &attributes, ctx::json &options);
-		int get_template(std::string &subject, ctx::json* tmpl);
+		bool init();
+		void apply_templates();
+		int get_template(std::string &subject, ctx::Json* tmpl);
 
 	private:
-		context_manager_impl *_context_mgr;
+		template_manager();
+		template_manager(const template_manager& other);
+		~template_manager();
+
+		static template_manager *_instance;
+		static context_manager_impl *_context_mgr;
+		static rule_manager *_rule_mgr;
+
+		std::string add_template(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner);
+		std::string remove_template(std::string &subject);
 
 	};	/* class template_manager */
 

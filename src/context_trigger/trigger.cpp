@@ -17,13 +17,12 @@
 #include <types_internal.h>
 #include <context_trigger_types_internal.h>
 #include "trigger.h"
-#include "rule_manager.h"
 #include "context_monitor.h"
 #include "template_manager.h"
+#include "rule_manager.h"
 
 ctx::context_trigger::context_trigger()
 	: rule_mgr(NULL)
-	, tmpl_mgr(NULL)
 {
 }
 
@@ -45,14 +44,15 @@ void ctx::context_trigger::release()
 {
 	// Release the occupied resources.
 	// This function is called from the main thread during the service termination process.
-	_D("Context Trigger Release");
+
+	_D("Template Manager Destroy");
+	ctx::template_manager::destroy();
+
+	_D("Rule Manager Release");
 	delete rule_mgr;
 	rule_mgr = NULL;
 
-	_D("Template Manager Release");
-	delete tmpl_mgr;
-	tmpl_mgr = NULL;
-
+	_D("Context Monitor Destroy");
 	ctx::context_monitor::destroy();
 }
 
@@ -98,24 +98,33 @@ void ctx::context_trigger::process_request(ctx::request_info* request)
 
 void ctx::context_trigger::process_initialize(ctx::context_manager_impl* mgr)
 {
+	// Context Monitor
 	ctx::context_monitor::set_context_manager(mgr);
 
-	tmpl_mgr = new(std::nothrow) template_manager(mgr);
-	IF_FAIL_VOID_TAG(tmpl_mgr, _E, "Memory allocation failed");
-
-	rule_mgr = new(std::nothrow) rule_manager(tmpl_mgr);
+	// Rule Manager
+	rule_mgr = new(std::nothrow) rule_manager();
 	IF_FAIL_VOID_TAG(rule_mgr, _E, "Memory allocation failed");
 
-	bool ret = rule_mgr->init();
-	if (!ret) {
-		_E("Context trigger initialization failed.");
+	// Template Manager
+	ctx::template_manager::set_manager(mgr, rule_mgr);
+	ctx::template_manager* tmpl_mgr = ctx::template_manager::get_instance();
+	IF_FAIL_VOID_TAG(tmpl_mgr, _E, "Memory allocation failed");
+
+	// Initialization
+	if (!tmpl_mgr->init()) {
+		_E("Template manager initialization failed");
+		raise(SIGTERM);
+	}
+
+	if (!rule_mgr->init()) {
+		_E("Context trigger initialization failed");
 		raise(SIGTERM);
 	}
 }
 
 void ctx::context_trigger::add_rule(ctx::request_info* request)
 {
-	ctx::json rule_id;
+	ctx::Json rule_id;
 
 	const char* client = request->get_client();
 	if (client == NULL) {
@@ -123,9 +132,9 @@ void ctx::context_trigger::add_rule(ctx::request_info* request)
 		return;
 	}
 
-	const char* app_id = request->get_app_id();
+	const char* pkg_id = request->get_package_id();
 
-	int error = rule_mgr->add_rule(client, app_id, request->get_description(), &rule_id);
+	int error = rule_mgr->add_rule(client, pkg_id, request->get_description(), &rule_id);
 	_I("'%s' adds a rule (Error: %#x)", request->get_client(), error);
 
 	request->reply(error, rule_id);
@@ -136,16 +145,12 @@ void ctx::context_trigger::remove_rule(ctx::request_info* request)
 	int id;
 	int error;
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
+	const char* pkg_id = request->get_package_id();
 
-	ctx::json rule_id = request->get_description();
+	ctx::Json rule_id = request->get_description();
 	rule_id.get(NULL, CT_RULE_ID, &id);
 
-	error = rule_mgr->check_rule(app_id, id);
+	error = rule_mgr->check_rule((pkg_id)? pkg_id : "", id);
 	if (error != ERR_NONE) {
 		request->reply(error);
 		return;
@@ -167,16 +172,12 @@ void ctx::context_trigger::enable_rule(ctx::request_info* request)
 	int id;
 	int error;
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
+	const char* pkg_id = request->get_package_id();
 
-	ctx::json rule_id = request->get_description();
+	ctx::Json rule_id = request->get_description();
 	rule_id.get(NULL, CT_RULE_ID, &id);
 
-	error = rule_mgr->check_rule(app_id, id);
+	error = rule_mgr->check_rule((pkg_id)? pkg_id : "", id);
 	if (error != ERR_NONE) {
 		request->reply(error);
 		return;
@@ -198,16 +199,12 @@ void ctx::context_trigger::disable_rule(ctx::request_info* request)
 	int id;
 	int error;
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
+	const char* pkg_id = request->get_package_id();
 
-	ctx::json rule_id = request->get_description();
+	ctx::Json rule_id = request->get_description();
 	rule_id.get(NULL, CT_RULE_ID, &id);
 
-	error = rule_mgr->check_rule(app_id, id);
+	error = rule_mgr->check_rule((pkg_id)? pkg_id : "", id);
 	if (error != ERR_NONE) {
 		request->reply(error);
 		return;
@@ -228,20 +225,16 @@ void ctx::context_trigger::get_rule_by_id(ctx::request_info* request)
 {
 	int error;
 
-	ctx::json option = request->get_description();
+	ctx::Json option = request->get_description();
 	int id;
 	option.get(NULL, CT_RULE_ID, &id);
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
+	const char* pkg_id = request->get_package_id();
 
-	ctx::json read_data;
-	error = rule_mgr->get_rule_by_id(app_id, id, &read_data);
+	ctx::Json read_data;
+	error = rule_mgr->get_rule_by_id((pkg_id)? pkg_id : "", id, &read_data);
 
-	ctx::json dummy;
+	ctx::Json dummy;
 	request->reply(error, dummy, read_data);
 }
 
@@ -249,16 +242,12 @@ void ctx::context_trigger::get_rule_ids(ctx::request_info* request)
 {
 	int error;
 
-	const char* app_id = request->get_client();
-	if (app_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return;
-	}
+	const char* pkg_id = request->get_package_id();
 
-	ctx::json read_data;
-	error = rule_mgr->get_rule_ids(app_id, &read_data);
+	ctx::Json read_data;
+	error = rule_mgr->get_rule_ids((pkg_id)? pkg_id : "", &read_data);
 
-	ctx::json dummy;
+	ctx::Json dummy;
 	request->reply(error, dummy, read_data);
 }
 
@@ -266,13 +255,20 @@ void ctx::context_trigger::get_template(ctx::request_info* request)
 {
 	int error;
 
-	ctx::json option = request->get_description();
+	ctx::Json option = request->get_description();
 	std::string name;
 	option.get(NULL, SUBJECT_STR, &name);
 
-	ctx::json tmpl;
+	ctx::template_manager* tmpl_mgr = ctx::template_manager::get_instance();
+	if (!tmpl_mgr) {
+		_E("Memory allocation failed");
+		request->reply(ERR_OUT_OF_MEMORY);
+		return;
+	}
+
+	ctx::Json tmpl;
 	error = tmpl_mgr->get_template(name, &tmpl);
 
-	ctx::json dummy;
+	ctx::Json dummy;
 	request->reply(error, dummy, tmpl);
 }

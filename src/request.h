@@ -18,7 +18,7 @@
 #define __CONTEXT_REQUEST_INFO_H__
 
 #include <string>
-#include <json.h>
+#include <Json.h>
 
 namespace ctx {
 
@@ -33,22 +33,22 @@ namespace ctx {
 		int get_type();
 		int get_id();
 		const char* get_subject();
-		ctx::json& get_description();
+		ctx::Json& get_description();
 
 		virtual const credentials* get_credentials();
-		virtual const char* get_app_id();
+		virtual const char* get_package_id();
 		/* TODO: remove this get_client() */
 		virtual const char* get_client();
 		virtual bool reply(int error) = 0;
-		virtual bool reply(int error, ctx::json &request_result) = 0;
-		virtual bool reply(int error, ctx::json &request_result, ctx::json &data_read) = 0;
-		virtual bool publish(int error, ctx::json &data) = 0;
+		virtual bool reply(int error, ctx::Json &request_result) = 0;
+		virtual bool reply(int error, ctx::Json &request_result, ctx::Json &data_read) = 0;
+		virtual bool publish(int error, ctx::Json &data) = 0;
 
 	protected:
 		int _type;
 		int _req_id;
 		std::string _subject;
-		ctx::json _description;
+		ctx::Json _description;
 	};
 
 }	/* namespace ctx */

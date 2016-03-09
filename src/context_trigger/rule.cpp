@@ -24,10 +24,10 @@
 
 ctx::rule_manager *ctx::trigger_rule::rule_mgr = NULL;
 
-ctx::trigger_rule::trigger_rule(int i, ctx::json& d, const char* cr, rule_manager* rm)
+ctx::trigger_rule::trigger_rule(int i, ctx::Json& d, const char* p, rule_manager* rm)
 	: result(EMPTY_JSON_OBJECT)
 	, id(i)
-	, creator(cr)
+	, pkg_id(p)
 {
 	// Rule manager
 	if (!rule_mgr) {
@@ -38,20 +38,20 @@ ctx::trigger_rule::trigger_rule(int i, ctx::json& d, const char* cr, rule_manage
 	statement = d.str();
 
 	// Event
-	ctx::json e;
+	ctx::Json e;
 	d.get(NULL, CT_RULE_EVENT, &e);
 	event = new(std::nothrow) context_item_s(e);
 
 	// Condition
-	int cond_num = d.array_get_size(NULL, CT_RULE_CONDITION);
+	int cond_num = d.getSize(NULL, CT_RULE_CONDITION);
 	for (int j = 0; j < cond_num; j++) {
-		ctx::json c;
-		d.get_array_elem(NULL, CT_RULE_CONDITION, j, &c);
+		ctx::Json c;
+		d.getAt(NULL, CT_RULE_CONDITION, j, &c);
 		condition.push_back(new(std::nothrow) context_item_s(c));
 	}
 
 	// Action
-	ctx::json a;
+	ctx::Json a;
 	d.get(NULL, CT_RULE_ACTION, &a);
 	action = a.str();
 }
@@ -78,16 +78,20 @@ int ctx::trigger_rule::stop(void)
 {
 	// Unsubscribe event
 	int error = ctx::context_monitor::get_instance()->unsubscribe(id, event->name, event->option, this);
+	if (error == ERR_NOT_SUPPORTED) {
+		_E("Stop rule%d (event not supported)");
+		return ERR_NONE;
+	}
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to stop rule%d", id);
 
 	return error;
 }
 
-bool ctx::trigger_rule::set_condition_option_based_on_event(ctx::json& option)
+bool ctx::trigger_rule::set_condition_option_based_on_event(ctx::Json& option)
 {
 	// Set condition option if it references event data
 	std::list<std::string> option_keys;
-	option.get_keys(&option_keys);
+	option.getKeys(&option_keys);
 
 	for (std::list<std::string>::iterator it = option_keys.begin(); it != option_keys.end(); ++it) {
 		std::string opt_key = (*it);
@@ -116,16 +120,16 @@ bool ctx::trigger_rule::set_condition_option_based_on_event(ctx::json& option)
 	return true;
 }
 
-void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ctx::json data)
+void ctx::trigger_rule::on_event_received(std::string name, ctx::Json option, ctx::Json data)
 {
 	if (result != EMPTY_JSON_OBJECT) {
 		clear_result();
 	}
 
-	// Check if creator is uninstalled
-	if (ctx::rule_manager::is_uninstalled_package(creator)) {
-		_D("Creator(%s) of rule%d is uninstalled.", creator.c_str(), id);
-		g_idle_add(handle_uninstalled_rule, &id);
+	// Check if creator package is uninstalled
+	if (ctx::rule_manager::is_uninstalled_package(pkg_id)) {
+		_D("Creator(%s) of rule%d is uninstalled.", pkg_id.c_str(), id);
+		g_idle_add(handle_uninstalled_rule, &pkg_id);
 		return;
 	}
 
@@ -145,7 +149,7 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 
 	// Request read conditions
 	for (std::list<context_item_t>::iterator it = condition.begin(); it != condition.end(); ++it) {
-		ctx::json cond_option = (*it)->option.str();
+		ctx::Json cond_option = (*it)->option.str();
 		if (!set_condition_option_based_on_event(cond_option)) { // cond_option should be copy of original option.
 			clear_result();
 			return;
@@ -158,18 +162,18 @@ void ctx::trigger_rule::on_event_received(std::string name, ctx::json option, ct
 	// TODO timer set
 }
 
-void ctx::trigger_rule::on_condition_received(std::string name, ctx::json option, ctx::json data)
+void ctx::trigger_rule::on_condition_received(std::string name, ctx::Json option, ctx::Json data)
 {
 	_D("Rule%d received condition data", id);
 
 	// Set condition data
-	ctx::json item;
+	ctx::Json item;
 	item.set(NULL, CONTEXT_FACT_NAME, name);
 	item.set(NULL, CONTEXT_FACT_OPTION, option);
 	item.set(NULL, CONTEXT_FACT_DATA, data);
-	result.array_append(NULL, CONTEXT_FACT_CONDITION, item);
+	result.append(NULL, CONTEXT_FACT_CONDITION, item);
 
-	if (result.array_get_size(NULL, CONTEXT_FACT_CONDITION) == (int) condition.size()) {
+	if (result.getSize(NULL, CONTEXT_FACT_CONDITION) == (int) condition.size()) {
 		on_context_data_prepared();
 	}
 }
@@ -183,16 +187,15 @@ void ctx::trigger_rule::clear_result()
 void ctx::trigger_rule::on_context_data_prepared(void)
 {
 	if (ctx::rule_evaluator::evaluate_rule(statement, result)) {
-		ctx::action_manager::trigger_action(action, creator);
+		ctx::action_manager::trigger_action(action, pkg_id);
 	}
 	clear_result();
 }
 
 gboolean ctx::trigger_rule::handle_uninstalled_rule(gpointer data)
 {
-	int* rule_id = static_cast<int*>(data);
-	rule_mgr->disable_rule(*rule_id);
-	rule_mgr->remove_rule(*rule_id);
+	std::string* pkg_id = static_cast<std::string*>(data);
+	rule_mgr->handle_rule_of_uninstalled_package(*pkg_id);
 
 	return FALSE;
 }

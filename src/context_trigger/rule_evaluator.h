@@ -19,24 +19,24 @@
 
 namespace ctx {
 
-	class json;
+	class Json;
 
 	class rule_evaluator {
 	private:
 		rule_evaluator();
-		bool evaluate_item(ctx::json& rule_item, ctx::json& fact_item);
+		bool evaluate_item(ctx::Json& rule_item, ctx::Json& fact_item);
 		bool compare_int(std::string operation, int rule_var, int fact_var);
 		bool compare_string(std::string operation, std::string rule_var, std::string fact_var);
-		bool check_rule_event(ctx::json& rule, ctx::json& fact);
-		ctx::json find_condition_fact(ctx::json& rule_condition, ctx::json& fact);
-		bool check_rule_condition(ctx::json& rule, ctx::json& fact);
-		bool replace_data_references(ctx::json& rule_data_arr, ctx::json event_fact_data);
-		bool replace_option_references(ctx::json& rule_option, ctx::json event_fact_data);
-		bool replace_event_references(ctx::json& rule, ctx::json& fact);
-		bool evaluate_data_string(ctx::json& rule_data_arr, std::string fact_value_str);
-		bool evaluate_data_int(ctx::json& rule_data_arr, int fact_value_int);
+		bool check_rule_event(ctx::Json& rule, ctx::Json& fact);
+		ctx::Json find_condition_fact(ctx::Json& rule_condition, ctx::Json& fact);
+		bool check_rule_condition(ctx::Json& rule, ctx::Json& fact);
+		bool replace_data_references(ctx::Json& rule_data_arr, ctx::Json event_fact_data);
+		bool replace_option_references(ctx::Json& rule_option, ctx::Json event_fact_data);
+		bool replace_event_references(ctx::Json& rule, ctx::Json& fact);
+		bool evaluate_data_string(ctx::Json& rule_data_arr, std::string fact_value_str);
+		bool evaluate_data_int(ctx::Json& rule_data_arr, int fact_value_int);
 	public:
-		static bool evaluate_rule(ctx::json rule, ctx::json data);
+		static bool evaluate_rule(ctx::Json rule, ctx::Json data);
 	};
 
 }	/* namespace ctx */

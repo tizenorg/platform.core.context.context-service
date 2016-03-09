@@ -18,7 +18,7 @@
 #define __CONTEXT_CONTEXT_TRIGGER_FACT_H__
 
 #include <string>
-#include <json.h>
+#include <Json.h>
 
 namespace ctx {
 
@@ -27,25 +27,25 @@ namespace ctx {
 			int req_id;
 			int error;
 			std::string subject;
-			ctx::json option;
-			ctx::json data;
+			ctx::Json option;
+			ctx::Json data;
 
 		public:
 			context_fact();
-			context_fact(int id, int err, const char* s, ctx::json& o, ctx::json& d);
+			context_fact(int id, int err, const char* s, ctx::Json& o, ctx::Json& d);
 			~context_fact();
 
 			void set_req_id(int id);
 			void set_error(int err);
 			void set_subject(const char* s);
-			void set_option(ctx::json& o);
-			void set_data(ctx::json& d);
+			void set_option(ctx::Json& o);
+			void set_data(ctx::Json& d);
 
 			int get_req_id();
 			int get_error();
 			const char* get_subject();
-			ctx::json& get_option();
-			ctx::json& get_data();
+			ctx::Json& get_option();
+			ctx::Json& get_data();
 	};
 
 }	/* namespace ctx */

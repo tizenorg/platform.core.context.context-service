@@ -29,12 +29,12 @@ namespace ctx {
 		~client_request();
 
 		const credentials* get_credentials();
-		const char* get_app_id();
+		const char* get_package_id();
 		const char* get_client();
 		bool reply(int error);
-		bool reply(int error, ctx::json &request_result);
-		bool reply(int error, ctx::json &request_result, ctx::json &data_read);
-		bool publish(int error, ctx::json &data);
+		bool reply(int error, ctx::Json &request_result);
+		bool reply(int error, ctx::Json &request_result, ctx::Json &data_read);
+		bool publish(int error, ctx::Json &data);
 
 	private:
 		credentials *__credentials;
