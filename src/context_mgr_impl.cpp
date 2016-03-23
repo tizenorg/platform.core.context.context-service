@@ -26,6 +26,7 @@
 #include "request.h"
 #include "provider.h"
 #include "context_mgr_impl.h"
+#include "context_trigger/template_manager.h"
 
 /* Context Providers */
 #include <internal/device_context_provider.h>
@@ -53,6 +54,7 @@ struct trigger_item_format_s {
 };
 
 static std::list<trigger_item_format_s> __trigger_item_list;
+bool ctx::context_manager_impl::initialized = false;
 
 ctx::context_manager_impl::context_manager_impl()
 {
@@ -78,6 +80,8 @@ bool ctx::context_manager_impl::init()
 
 	ret = init_custom_context_provider();
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: custom-context-provider");
+
+	initialized = true;
 
 	return true;
 }
@@ -130,7 +134,14 @@ bool ctx::context_manager_impl::unregister_provider(const char *subject)
 bool ctx::context_manager_impl::register_trigger_item(const char *subject, int operation, ctx::Json attributes, ctx::Json options, const char* owner)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
-	__trigger_item_list.push_back(trigger_item_format_s(subject, operation, attributes, options, (owner)? owner : ""));
+
+	if (!initialized) {
+		__trigger_item_list.push_back(trigger_item_format_s(subject, operation, attributes, options, (owner)? owner : ""));
+	} else {
+		ctx::template_manager* tmpl_mgr = ctx::template_manager::get_instance();
+		IF_FAIL_RETURN_TAG(tmpl_mgr, false, _E, "Memory allocation failed");
+		tmpl_mgr->register_template(subject, operation, attributes, options, owner);
+	}
 
 	return true;
 }
@@ -138,7 +149,14 @@ bool ctx::context_manager_impl::register_trigger_item(const char *subject, int o
 bool ctx::context_manager_impl::unregister_trigger_item(const char *subject)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
-	__trigger_item_list.push_back(trigger_item_format_s(subject));
+
+	if (!initialized) {
+		__trigger_item_list.push_back(trigger_item_format_s(subject));
+	} else {
+		ctx::template_manager* tmpl_mgr = ctx::template_manager::get_instance();
+		IF_FAIL_RETURN_TAG(tmpl_mgr, false, _E, "Memory allocation failed");
+		tmpl_mgr->unregister_template(subject);
+	}
 
 	return true;
 }

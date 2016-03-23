@@ -56,7 +56,6 @@ namespace ctx {
 			bool rule_equals(ctx::Json& lrule, ctx::Json& rrule);
 			int get_uninstalled_app(void);
 			int clear_rule_of_uninstalled_package(bool is_init = false);
-			void apply_templates(void);
 
 			std::set<std::string> uninstalled_packages;
 
