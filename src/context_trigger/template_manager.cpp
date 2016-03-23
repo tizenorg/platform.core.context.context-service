@@ -100,21 +100,48 @@ void ctx::template_manager::apply_templates()
 
 	while(_context_mgr->pop_trigger_item(subject, operation, attributes, options, owner, unregister)) {
 		if (unregister) {
-			query += remove_template(subject);
-			_rule_mgr->pause_rule_with_item(subject);
+			unregister_template(subject);
 		} else {
-			query += add_template(subject, operation, attributes, options, owner);
-			if (!owner.empty()) {
-				_rule_mgr->resume_rule_with_item(subject);
-			}
+			register_template(subject, operation, attributes, options, owner);
 		}
 	}
-	IF_FAIL_VOID(!query.empty());
+}
+
+void ctx::template_manager::register_template(std::string subject, int operation, ctx::Json attributes, ctx::Json options, std::string owner)
+{
+	_D("[Add template] Subject: %s, Ops: %d, Owner: %s", subject.c_str(), operation, owner.c_str());
+	_J("Attr", attributes);
+	_J("Opt", options);
+
+	std::string query = "UPDATE context_trigger_template SET operation=" + int_to_string(operation)
+			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "', owner='" + owner
+			+ "' WHERE name='" + subject + "'; ";
+
+	query += "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options, owner) VALUES ('"
+			+ subject + "', " + int_to_string(operation) + ", '" + attributes.str() + "', '" + options.str() + "', '"
+			+ owner + "'); ";
 
 	std::vector<Json> record;
 	bool ret = db_manager::execute_sync(query.c_str(), &record);
 	IF_FAIL_VOID_TAG(ret, _E, "Update template db failed");
+
+	if (!owner.empty()) {
+		_rule_mgr->resume_rule_with_item(subject);
+	}
 }
+
+void ctx::template_manager::unregister_template(std::string subject)
+{
+	_D("[Remove template] Subject: %s", subject.c_str());
+	std::string query = "DELETE FROM context_trigger_template WHERE name = '" + subject + "'; ";
+
+	std::vector<Json> record;
+	bool ret = db_manager::execute_sync(query.c_str(), &record);
+	IF_FAIL_VOID_TAG(ret, _E, "Update template db failed");
+
+	_rule_mgr->pause_rule_with_item(subject);
+}
+
 
 std::string ctx::template_manager::add_template(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner)
 {
@@ -144,8 +171,6 @@ std::string ctx::template_manager::remove_template(std::string &subject)
 int ctx::template_manager::get_template(std::string &subject, ctx::Json* tmpl)
 {
 	// Update latest template information
-	apply_templates();
-
 	std::string q = "SELECT * FROM context_trigger_template WHERE name = '" + subject + "'";
 
 	std::vector<Json> record;

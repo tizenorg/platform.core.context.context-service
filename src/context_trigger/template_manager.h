@@ -32,6 +32,8 @@ namespace ctx {
 		bool init();
 		void apply_templates();
 		int get_template(std::string &subject, ctx::Json* tmpl);
+		void register_template(std::string subject, int operation, ctx::Json attributes, ctx::Json options, std::string owner);
+		void unregister_template(std::string subject);
 
 	private:
 		template_manager();

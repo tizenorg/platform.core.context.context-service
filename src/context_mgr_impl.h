@@ -53,6 +53,7 @@ namespace ctx {
 
 	private:
 		std::map<std::string, context_provider_handler*> provider_handle_map;
+		static bool initialized;
 
 		static gboolean thread_switcher(gpointer data);
 		void _publish(const char *subject, ctx::Json &option, int error, ctx::Json &data_updated);

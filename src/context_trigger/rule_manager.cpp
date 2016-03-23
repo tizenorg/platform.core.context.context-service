@@ -20,7 +20,6 @@
 #include <db_mgr.h>
 #include <package_manager.h>
 #include "rule_manager.h"
-#include "template_manager.h"
 #include "context_monitor.h"
 #include "rule.h"
 #include "timer.h"
@@ -502,7 +501,6 @@ int ctx::rule_manager::verify_rule(ctx::Json& rule, const char* creator)
 
 int ctx::rule_manager::add_rule(std::string creator, const char* pkg_id, ctx::Json rule, ctx::Json* rule_id)
 {
-	apply_templates();
 	bool ret;
 	int64_t rid;
 
@@ -547,7 +545,6 @@ int ctx::rule_manager::add_rule(std::string creator, const char* pkg_id, ctx::Js
 
 int ctx::rule_manager::remove_rule(int rule_id)
 {
-	apply_templates();
 	bool ret;
 
 	// Delete rule from DB
@@ -565,7 +562,6 @@ int ctx::rule_manager::remove_rule(int rule_id)
 
 int ctx::rule_manager::enable_rule(int rule_id)
 {
-	apply_templates();
 	int error;
 	std::string query;
 	std::vector<Json> rule_record;
@@ -616,7 +612,6 @@ CATCH:
 
 int ctx::rule_manager::disable_rule(int rule_id)
 {
-	apply_templates();
 	bool ret;
 	int error;
 
@@ -716,7 +711,6 @@ bool ctx::rule_manager::is_rule_enabled(int rule_id)
 
 int ctx::rule_manager::get_rule_by_id(std::string pkg_id, int rule_id, ctx::Json* request_result)
 {
-	apply_templates();
 	std::string q = "SELECT description FROM context_trigger_rule WHERE (package_id = '";
 	q += pkg_id;
 	q += "') and (row_id = ";
@@ -771,11 +765,4 @@ int ctx::rule_manager::get_rule_ids(std::string pkg_id, ctx::Json* request_resul
 	}
 
 	return ERR_NONE;
-}
-
-void ctx::rule_manager::apply_templates()
-{
-	ctx::template_manager* tmpl_mgr = ctx::template_manager::get_instance();
-	IF_FAIL_VOID_TAG(tmpl_mgr, _E, "Memory allocation failed");
-	tmpl_mgr->apply_templates();
 }
