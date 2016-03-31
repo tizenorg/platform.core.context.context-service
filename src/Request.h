@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_REQUEST_INFO_H__
-#define __CONTEXT_REQUEST_INFO_H__
+#ifndef _CONTEXT_REQUEST_INFO_H_
+#define _CONTEXT_REQUEST_INFO_H_
 
 #include <string>
 #include <Json.h>
@@ -25,32 +25,32 @@ namespace ctx {
 	/* Forward declaration */
 	class credentials;
 
-	class request_info {
+	class RequestInfo {
 	public:
-		request_info(int type, int req_id, const char *subj, const char *desc);
-		virtual ~request_info();
+		RequestInfo(int type, int reqId, const char *subj, const char *desc);
+		virtual ~RequestInfo();
 
-		int get_type();
-		int get_id();
-		const char* get_subject();
-		ctx::Json& get_description();
+		int getType();
+		int getId();
+		const char* getSubject();
+		ctx::Json& getDescription();
 
-		virtual const credentials* get_credentials();
-		virtual const char* get_package_id();
-		/* TODO: remove this get_client() */
-		virtual const char* get_client();
+		virtual const credentials* getCredentials();
+		virtual const char* getPackageId();
+		/* TODO: remove this getClient() */
+		virtual const char* getClient();
 		virtual bool reply(int error) = 0;
-		virtual bool reply(int error, ctx::Json &request_result) = 0;
-		virtual bool reply(int error, ctx::Json &request_result, ctx::Json &data_read) = 0;
+		virtual bool reply(int error, ctx::Json &requestResult) = 0;
+		virtual bool reply(int error, ctx::Json &requestResult, ctx::Json &dataRead) = 0;
 		virtual bool publish(int error, ctx::Json &data) = 0;
 
 	protected:
 		int _type;
-		int _req_id;
+		int _reqId;
 		std::string _subject;
 		ctx::Json _description;
 	};
 
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_REQUEST_INFO_H__ */
+#endif	/* End of _CONTEXT_REQUEST_INFO_H_ */

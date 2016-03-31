@@ -25,44 +25,44 @@
 #include <context_trigger_types_internal.h>
 #include <Json.h>
 #include "../DBusServer.h"
-#include "action_manager.h"
+#include "ActionManager.h"
 
-static void trigger_action_app_control(ctx::Json& action);
-static void trigger_action_notification(ctx::Json& action, std::string pkg_id);
-static void trigger_action_dbus_call(ctx::Json& action);
+static void __triggerActionAppControl(ctx::Json& action);
+static void __triggerActionNotification(ctx::Json& action, std::string pkgId);
+static void __triggerActionDbusCall(ctx::Json& action);
 
-void ctx::action_manager::trigger_action(ctx::Json& action, std::string pkg_id)
+void ctx::trigger::action_manager::triggerAction(ctx::Json& action, std::string pkgId)
 {
 	std::string type;
 	action.get(NULL, CT_RULE_ACTION_TYPE, &type);
 
 	if (type.compare(CT_RULE_ACTION_TYPE_APP_CONTROL) == 0) {
-		trigger_action_app_control(action);
+		__triggerActionAppControl(action);
 	} else if (type.compare(CT_RULE_ACTION_TYPE_NOTIFICATION) == 0) {
-		trigger_action_notification(action, pkg_id);
+		__triggerActionNotification(action, pkgId);
 	} else if (type.compare(CT_RULE_ACTION_TYPE_DBUS_CALL) == 0) {
-		trigger_action_dbus_call(action);
+		__triggerActionDbusCall(action);
 	}
 }
 
-void trigger_action_app_control(ctx::Json& action)
+void __triggerActionAppControl(ctx::Json& action)
 {
 	int error;
-	std::string appctl_str;
-	action.get(NULL, CT_RULE_ACTION_APP_CONTROL, &appctl_str);
+	std::string appctlStr;
+	action.get(NULL, CT_RULE_ACTION_APP_CONTROL, &appctlStr);
 
-	char* str = static_cast<char*>(malloc(appctl_str.length()));
+	char* str = static_cast<char*>(malloc(appctlStr.length()));
 	if (str == NULL) {
 		_E("Memory allocation failed");
 		return;
 	}
-	appctl_str.copy(str, appctl_str.length(), 0);
+	appctlStr.copy(str, appctlStr.length(), 0);
 	bundle_raw* encoded = reinterpret_cast<unsigned char*>(str);
-	bundle* appctl_bundle = bundle_decode(encoded, appctl_str.length());
+	bundle* appctlBundle = bundle_decode(encoded, appctlStr.length());
 
 	app_control_h app = NULL;
 	app_control_create(&app);
-	app_control_import_from_bundle(app, appctl_bundle);
+	app_control_import_from_bundle(app, appctlBundle);
 
 	error = app_control_send_launch_request(app, NULL, NULL);
 	if (error != APP_CONTROL_ERROR_NONE) {
@@ -70,7 +70,7 @@ void trigger_action_app_control(ctx::Json& action)
 	} else {
 		_D("Launch request succeeded");
 	}
-	bundle_free(appctl_bundle);
+	bundle_free(appctlBundle);
 	free(str);
 	app_control_destroy(app);
 
@@ -80,7 +80,7 @@ void trigger_action_app_control(ctx::Json& action)
 	}
 }
 
-void trigger_action_notification(ctx::Json& action, std::string pkg_id)
+void __triggerActionNotification(ctx::Json& action, std::string pkgId)
 {
 	int error;
 	notification_h notification = notification_create(NOTIFICATION_TYPE_NOTI);
@@ -100,32 +100,32 @@ void trigger_action_notification(ctx::Json& action, std::string pkg_id)
 		}
 	}
 
-	std::string image_path;
-	if (action.get(NULL, CT_RULE_ACTION_NOTI_ICON_PATH, &image_path)) {
-		error = notification_set_image(notification, NOTIFICATION_IMAGE_TYPE_ICON, image_path.c_str());
+	std::string imagePath;
+	if (action.get(NULL, CT_RULE_ACTION_NOTI_ICON_PATH, &imagePath)) {
+		error = notification_set_image(notification, NOTIFICATION_IMAGE_TYPE_ICON, imagePath.c_str());
 		if (error != NOTIFICATION_ERROR_NONE) {
 			_E("Set notification icon image failed(%d)", error);
 		}
 	}
 
-	std::string appctl_str;
+	std::string appctlStr;
 	char* str = NULL;
 	bundle_raw* encoded = NULL;
-	bundle* appctl_bundle = NULL;
+	bundle* appctlBundle = NULL;
 	app_control_h app = NULL;
-	if (action.get(NULL, CT_RULE_ACTION_APP_CONTROL, &appctl_str)) {
-		str = static_cast<char*>(malloc(appctl_str.length()));
+	if (action.get(NULL, CT_RULE_ACTION_APP_CONTROL, &appctlStr)) {
+		str = static_cast<char*>(malloc(appctlStr.length()));
 		if (str == NULL) {
 			_E("Memory allocation failed");
 			notification_free(notification);
 			return;
 		}
-		appctl_str.copy(str, appctl_str.length(), 0);
+		appctlStr.copy(str, appctlStr.length(), 0);
 		encoded = reinterpret_cast<unsigned char*>(str);
-		appctl_bundle = bundle_decode(encoded, appctl_str.length());
+		appctlBundle = bundle_decode(encoded, appctlStr.length());
 
 		app_control_create(&app);
-		app_control_import_from_bundle(app, appctl_bundle);
+		app_control_import_from_bundle(app, appctlBundle);
 
 		error = notification_set_launch_option(notification, NOTIFICATION_LAUNCH_OPTION_APP_CONTROL, app);
 		if (error != NOTIFICATION_ERROR_NONE) {
@@ -133,10 +133,10 @@ void trigger_action_notification(ctx::Json& action, std::string pkg_id)
 		}
 	}
 
-	if (!pkg_id.empty()) {
-		error = notification_set_pkgname(notification, pkg_id.c_str());
+	if (!pkgId.empty()) {
+		error = notification_set_pkgname(notification, pkgId.c_str());
 		if (error != NOTIFICATION_ERROR_NONE) {
-			_E("Set package id(%s) failed(%#x)", pkg_id.c_str(), error);
+			_E("Set package id(%s) failed(%#x)", pkgId.c_str(), error);
 		}
 	}
 
@@ -173,7 +173,7 @@ void trigger_action_notification(ctx::Json& action, std::string pkg_id)
 		_D("Post notification succeeded");
 	}
 
-	bundle_free(appctl_bundle);
+	bundle_free(appctlBundle);
 	free(str);
 	notification_free(notification);
 	if (app) {
@@ -186,13 +186,13 @@ void trigger_action_notification(ctx::Json& action, std::string pkg_id)
 	}
 }
 
-void trigger_action_dbus_call(ctx::Json& action)
+void __triggerActionDbusCall(ctx::Json& action)
 {
-	std::string bus_name, object, iface, method;
+	std::string busName, object, iface, method;
 	GVariant *param = NULL;
 
-	action.get(NULL, CT_RULE_ACTION_DBUS_NAME, &bus_name);
-	IF_FAIL_VOID_TAG(!bus_name.empty(), _E, "No target bus name");
+	action.get(NULL, CT_RULE_ACTION_DBUS_NAME, &busName);
+	IF_FAIL_VOID_TAG(!busName.empty(), _E, "No target bus name");
 
 	action.get(NULL, CT_RULE_ACTION_DBUS_OBJECT, &object);
 	IF_FAIL_VOID_TAG(!object.empty(), _E, "No object path");
@@ -205,5 +205,5 @@ void trigger_action_dbus_call(ctx::Json& action)
 
 	action.get(NULL, CT_RULE_ACTION_DBUS_PARAMETER, &param);
 
-	ctx::DBusServer::call(bus_name, object, iface, method, param);
+	ctx::DBusServer::call(busName, object, iface, method, param);
 }

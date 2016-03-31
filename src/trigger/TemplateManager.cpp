@@ -19,14 +19,17 @@
 #include <context_trigger_types_internal.h>
 #include <db_mgr.h>
 #include "../context_mgr_impl.h"
-#include "rule_manager.h"
-#include "template_manager.h"
+#include "RuleManager.h"
+#include "TemplateManager.h"
 
-ctx::template_manager *ctx::template_manager::_instance = NULL;
-ctx::context_manager_impl *ctx::template_manager::_context_mgr = NULL;
-ctx::rule_manager *ctx::template_manager::_rule_mgr = NULL;
+using namespace ctx;
+using namespace ctx::trigger;
 
-static std::string int_to_string(int i)
+TemplateManager *TemplateManager::__instance = NULL;
+context_manager_impl *TemplateManager::__contextMgr = NULL;
+RuleManager *TemplateManager::__ruleMgr = NULL;
+
+static std::string __intToString(int i)
 {
 	std::ostringstream convert;
 	convert << i;
@@ -34,44 +37,44 @@ static std::string int_to_string(int i)
 	return str;
 }
 
-ctx::template_manager::template_manager()
+TemplateManager::TemplateManager()
 {
 }
 
-ctx::template_manager::~template_manager()
+TemplateManager::~TemplateManager()
 {
 }
 
-void ctx::template_manager::set_manager(ctx::context_manager_impl* ctx_mgr, ctx::rule_manager* rule_mgr)
+void TemplateManager::setManager(context_manager_impl* ctxMgr, RuleManager* ruleMgr)
 {
-	_context_mgr = ctx_mgr;
-	_rule_mgr = rule_mgr;
+	__contextMgr = ctxMgr;
+	__ruleMgr = ruleMgr;
 }
 
-ctx::template_manager* ctx::template_manager::get_instance()
+TemplateManager* TemplateManager::getInstance()
 {
-	IF_FAIL_RETURN_TAG(_context_mgr, NULL, _E, "Context manager is needed");
-	IF_FAIL_RETURN_TAG(_rule_mgr, NULL, _E, "Rule manager is needed");
+	IF_FAIL_RETURN_TAG(__contextMgr, NULL, _E, "Context manager is needed");
+	IF_FAIL_RETURN_TAG(__ruleMgr, NULL, _E, "Rule manager is needed");
 
-	IF_FAIL_RETURN(!_instance, _instance);
+	IF_FAIL_RETURN(!__instance, __instance);
 
-	_instance = new(std::nothrow) template_manager();
-	IF_FAIL_RETURN_TAG(_instance, NULL, _E, "Memory alllocation failed");
+	__instance = new(std::nothrow) TemplateManager();
+	IF_FAIL_RETURN_TAG(__instance, NULL, _E, "Memory alllocation failed");
 
-	return _instance;
+	return __instance;
 }
 
-void ctx::template_manager::destroy()
+void TemplateManager::destroy()
 {
-	_instance->apply_templates();
+	__instance->applyTemplates();
 
-	if (_instance) {
-		delete _instance;
-		_instance = NULL;
+	if (__instance) {
+		delete __instance;
+		__instance = NULL;
 	}
 }
 
-bool ctx::template_manager::init()
+bool TemplateManager::init()
 {
 	std::string q = std::string("CREATE TABLE IF NOT EXISTS context_trigger_template ")
 			+ "(name TEXT DEFAULT '' NOT NULL PRIMARY KEY, operation INTEGER DEFAULT 3 NOT NULL, "
@@ -82,43 +85,43 @@ bool ctx::template_manager::init()
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create template table failed");
 
 	// Apply templates
-	apply_templates();
+	applyTemplates();
 
 	return true;
 }
 
-void ctx::template_manager::apply_templates()
+void TemplateManager::applyTemplates()
 {
 	std::string subject;
 	int operation;
-	ctx::Json attributes;
-	ctx::Json options;
+	Json attributes;
+	Json options;
 	std::string owner;
 	bool unregister;
 	std::string query;
 	query.clear();
 
-	while(_context_mgr->pop_trigger_item(subject, operation, attributes, options, owner, unregister)) {
+	while(__contextMgr->pop_trigger_item(subject, operation, attributes, options, owner, unregister)) {
 		if (unregister) {
-			unregister_template(subject);
+			unregisterTemplate(subject);
 		} else {
-			register_template(subject, operation, attributes, options, owner);
+			registerTemplate(subject, operation, attributes, options, owner);
 		}
 	}
 }
 
-void ctx::template_manager::register_template(std::string subject, int operation, ctx::Json attributes, ctx::Json options, std::string owner)
+void TemplateManager::registerTemplate(std::string subject, int operation, Json attributes, Json options, std::string owner)
 {
 	_D("[Add template] Subject: %s, Ops: %d, Owner: %s", subject.c_str(), operation, owner.c_str());
 	_J("Attr", attributes);
 	_J("Opt", options);
 
-	std::string query = "UPDATE context_trigger_template SET operation=" + int_to_string(operation)
+	std::string query = "UPDATE context_trigger_template SET operation=" + __intToString(operation)
 			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "', owner='" + owner
 			+ "' WHERE name='" + subject + "'; ";
 
 	query += "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options, owner) VALUES ('"
-			+ subject + "', " + int_to_string(operation) + ", '" + attributes.str() + "', '" + options.str() + "', '"
+			+ subject + "', " + __intToString(operation) + ", '" + attributes.str() + "', '" + options.str() + "', '"
 			+ owner + "'); ";
 
 	std::vector<Json> record;
@@ -126,11 +129,11 @@ void ctx::template_manager::register_template(std::string subject, int operation
 	IF_FAIL_VOID_TAG(ret, _E, "Update template db failed");
 
 	if (!owner.empty()) {
-		_rule_mgr->resume_rule_with_item(subject);
+		__ruleMgr->resumeRuleWithItem(subject);
 	}
 }
 
-void ctx::template_manager::unregister_template(std::string subject)
+void TemplateManager::unregisterTemplate(std::string subject)
 {
 	_D("[Remove template] Subject: %s", subject.c_str());
 	std::string query = "DELETE FROM context_trigger_template WHERE name = '" + subject + "'; ";
@@ -139,28 +142,28 @@ void ctx::template_manager::unregister_template(std::string subject)
 	bool ret = db_manager::execute_sync(query.c_str(), &record);
 	IF_FAIL_VOID_TAG(ret, _E, "Update template db failed");
 
-	_rule_mgr->pause_rule_with_item(subject);
+	__ruleMgr->pauseRuleWithItem(subject);
 }
 
 
-std::string ctx::template_manager::add_template(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner)
+std::string TemplateManager::__addTemplate(std::string &subject, int &operation, Json &attributes, Json &options, std::string &owner)
 {
 	_D("[Add template] Subject: %s, Ops: %d, Owner: %s", subject.c_str(), operation, owner.c_str());
 	_J("Attr", attributes);
 	_J("Opt", options);
 
-	std::string query = "UPDATE context_trigger_template SET operation=" + int_to_string(operation)
+	std::string query = "UPDATE context_trigger_template SET operation=" + __intToString(operation)
 			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "', owner='" + owner
 			+ "' WHERE name='" + subject + "'; ";
 
 	query += "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options, owner) VALUES ('"
-			+ subject + "', " + int_to_string(operation) + ", '" + attributes.str() + "', '" + options.str() + "', '"
+			+ subject + "', " + __intToString(operation) + ", '" + attributes.str() + "', '" + options.str() + "', '"
 			+ owner + "'); ";
 
 	return query;
 }
 
-std::string ctx::template_manager::remove_template(std::string &subject)
+std::string TemplateManager::__removeTemplate(std::string &subject)
 {
 	_D("[Remove template] Subject: %s", subject.c_str());
 	std::string query = "DELETE FROM context_trigger_template WHERE name = '" + subject + "'; ";
@@ -168,7 +171,7 @@ std::string ctx::template_manager::remove_template(std::string &subject)
 	return query;
 }
 
-int ctx::template_manager::get_template(std::string &subject, ctx::Json* tmpl)
+int TemplateManager::getTemplate(std::string &subject, Json* tmpl)
 {
 	// Update latest template information
 	std::string q = "SELECT * FROM context_trigger_template WHERE name = '" + subject + "'";
@@ -181,13 +184,13 @@ int ctx::template_manager::get_template(std::string &subject, ctx::Json* tmpl)
 
 	(*tmpl) = *record.begin();
 
-	std::string opt_str;
-	std::string attr_str;
-	tmpl->get(NULL, TYPE_OPTION_STR, &opt_str);
-	tmpl->get(NULL, TYPE_ATTR_STR, &attr_str);
+	std::string optStr;
+	std::string attrStr;
+	tmpl->get(NULL, TYPE_OPTION_STR, &optStr);
+	tmpl->get(NULL, TYPE_ATTR_STR, &attrStr);
 
-	ctx::Json opt = opt_str;
-	ctx::Json attr = attr_str;
+	Json opt = optStr;
+	Json attr = attrStr;
 
 	tmpl->set(NULL, TYPE_OPTION_STR, opt);
 	tmpl->set(NULL, TYPE_ATTR_STR, attr);

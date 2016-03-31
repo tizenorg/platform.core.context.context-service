@@ -14,34 +14,34 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_CLIENT_REQUEST_H__
-#define __CONTEXT_CLIENT_REQUEST_H__
+#ifndef _CONTEXT_CLIENT_REQUEST_H_
+#define _CONTEXT_CLIENT_REQUEST_H_
 
 #include <gio/gio.h>
-#include "request.h"
+#include "Request.h"
 
 namespace ctx {
 
-	class client_request : public request_info {
+	class ClientRequest : public RequestInfo {
 	public:
-		client_request(int type, int req_id, const char *subj, const char *desc,
+		ClientRequest(int type, int reqId, const char *subj, const char *desc,
 				credentials *creds, const char *sender, GDBusMethodInvocation *inv);
-		~client_request();
+		~ClientRequest();
 
-		const credentials* get_credentials();
-		const char* get_package_id();
-		const char* get_client();
+		const credentials* getCredentials();
+		const char* getPackageId();
+		const char* getClient();
 		bool reply(int error);
-		bool reply(int error, ctx::Json &request_result);
-		bool reply(int error, ctx::Json &request_result, ctx::Json &data_read);
+		bool reply(int error, ctx::Json &requestResult);
+		bool reply(int error, ctx::Json &requestResult, ctx::Json &dataRead);
 		bool publish(int error, ctx::Json &data);
 
 	private:
 		credentials *__credentials;
-		std::string __dbus_sender;
+		std::string __dbusSender;
 		GDBusMethodInvocation *__invocation;
 	};
 
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_CLIENT_REQUEST_H__ */
+#endif	/* End of _CONTEXT_CLIENT_REQUEST_H_ */

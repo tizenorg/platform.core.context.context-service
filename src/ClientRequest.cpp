@@ -20,18 +20,18 @@
 #include <types_internal.h>
 #include "DBusServer.h"
 #include "access_control/peer_creds.h"
-#include "client_request.h"
+#include "ClientRequest.h"
 
-ctx::client_request::client_request(int type, int req_id, const char *subj, const char *desc,
-		ctx::credentials *creds, const char *sender, GDBusMethodInvocation *inv)
-	: request_info(type, req_id, subj, desc)
-	, __credentials(creds)
-	, __dbus_sender(sender)
-	, __invocation(inv)
+ctx::ClientRequest::ClientRequest(int type, int reqId, const char *subj, const char *desc,
+		ctx::credentials *creds, const char *sender, GDBusMethodInvocation *inv) :
+	RequestInfo(type, reqId, subj, desc),
+	__credentials(creds),
+	__dbusSender(sender),
+	__invocation(inv)
 {
 }
 
-ctx::client_request::~client_request()
+ctx::ClientRequest::~ClientRequest()
 {
 	if (__invocation)
 		g_dbus_method_invocation_return_value(__invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
@@ -39,12 +39,12 @@ ctx::client_request::~client_request()
 	delete __credentials;
 }
 
-const ctx::credentials* ctx::client_request::get_credentials()
+const ctx::credentials* ctx::ClientRequest::getCredentials()
 {
 	return __credentials;
 }
 
-const char* ctx::client_request::get_package_id()
+const char* ctx::ClientRequest::getPackageId()
 {
 	if (__credentials)
 		return __credentials->package_id;
@@ -52,7 +52,7 @@ const char* ctx::client_request::get_package_id()
 	return NULL;
 }
 
-const char* ctx::client_request::get_client()
+const char* ctx::ClientRequest::getClient()
 {
 	if (__credentials)
 		return __credentials->client;
@@ -60,7 +60,7 @@ const char* ctx::client_request::get_client()
 	return NULL;
 }
 
-bool ctx::client_request::reply(int error)
+bool ctx::ClientRequest::reply(int error)
 {
 	IF_FAIL_RETURN(__invocation, true);
 
@@ -71,12 +71,12 @@ bool ctx::client_request::reply(int error)
 	return true;
 }
 
-bool ctx::client_request::reply(int error, ctx::Json& request_result)
+bool ctx::ClientRequest::reply(int error, ctx::Json& requestResult)
 {
 	IF_FAIL_RETURN(__invocation, true);
 	IF_FAIL_RETURN(_type != REQ_READ_SYNC, true);
 
-	std::string result = request_result.str();
+	std::string result = requestResult.str();
 	IF_FAIL_RETURN(!result.empty(), false);
 
 	_I("Reply %#x", error);
@@ -88,14 +88,14 @@ bool ctx::client_request::reply(int error, ctx::Json& request_result)
 	return true;
 }
 
-bool ctx::client_request::reply(int error, ctx::Json& request_result, ctx::Json& data_read)
+bool ctx::ClientRequest::reply(int error, ctx::Json& requestResult, ctx::Json& dataRead)
 {
 	if (__invocation == NULL) {
-		return publish(error, data_read);
+		return publish(error, dataRead);
 	}
 
-	std::string result = request_result.str();
-	std::string data = data_read.str();
+	std::string result = requestResult.str();
+	std::string data = dataRead.str();
 	IF_FAIL_RETURN(!result.empty() && !data.empty(), false);
 
 	_I("Reply %#x", error);
@@ -108,8 +108,8 @@ bool ctx::client_request::reply(int error, ctx::Json& request_result, ctx::Json&
 	return true;
 }
 
-bool ctx::client_request::publish(int error, ctx::Json& data)
+bool ctx::ClientRequest::publish(int error, ctx::Json& data)
 {
-	DBusServer::publish(__dbus_sender, _req_id, _subject, error, data.str());
+	DBusServer::publish(__dbusSender, _reqId, _subject, error, data.str());
 	return true;
 }

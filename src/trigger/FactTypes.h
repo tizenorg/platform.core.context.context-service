@@ -14,22 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_CONTEXT_LISTENER_INTERFACE_H__
-#define __CONTEXT_CONTEXT_LISTENER_INTERFACE_H__
+#ifndef _CONTEXT_TRIGGER_FACT_TYPES_H_
+#define _CONTEXT_TRIGGER_FACT_TYPES_H_
 
-namespace ctx {
-	/* Forward Declaration */
-	class Json;
+#define CONTEXT_FACT_EVENT "EVENT"
+#define CONTEXT_FACT_CONDITION "CONDITION"
+#define CONTEXT_FACT_NAME "NAME"
+#define CONTEXT_FACT_OPTION "OPTION"
+#define CONTEXT_FACT_DATA "DATA"
 
-	class context_listener_iface {
-		public:
-			virtual ~context_listener_iface() {}
-
-			virtual void on_event_received(std::string name, ctx::Json option, ctx::Json data) = 0;
-
-			virtual void on_condition_received(std::string name, ctx::Json option, ctx::Json data) = 0;
-	};
-
-}	/* namespace ctx */
-
-#endif	/* End of __CONTEXT_CONTEXT_LISTENER_INTERFACE_H__ */
+#endif	/* End of _CONTEXT_TRIGGER_FACT_TYPES_H_ */

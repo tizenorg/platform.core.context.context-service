@@ -19,7 +19,7 @@
 
 #include <types_internal.h>
 #include "server.h"
-#include "client_request.h"
+#include "ClientRequest.h"
 #include "access_control/peer_creds.h"
 #include "DBusServer.h"
 
@@ -77,7 +77,7 @@ void DBusServer::__processRequest(const char *sender, GVariant *param, GDBusMeth
 		return;
 	}
 
-	client_request *request = new(std::nothrow) client_request(reqType, reqId, subject, input, creds, sender, invocation);
+	ClientRequest *request = new(std::nothrow) ClientRequest(reqType, reqId, subject, input, creds, sender, invocation);
 	if (!request) {
 		_E("Memory allocation failed");
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
