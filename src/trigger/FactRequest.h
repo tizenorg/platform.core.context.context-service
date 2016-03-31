@@ -14,30 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_TRIGGER_FACT_REQUEST_H__
-#define __CONTEXT_TRIGGER_FACT_REQUEST_H__
+#ifndef _CONTEXT_TRIGGER_FACT_REQUEST_H_
+#define _CONTEXT_TRIGGER_FACT_REQUEST_H_
 
-#include "context_monitor.h"
-#include "../request.h"
+#include "ContextMonitor.h"
+#include "../Request.h"
 
 namespace ctx {
 
-	class fact_request : public request_info {
-	public:
-		fact_request(int type, int req_id, const char* subj, const char* desc, context_monitor* ctx_monitor);
-		~fact_request();
+namespace trigger {
 
-		const char* get_client();
+	class FactRequest : public RequestInfo {
+	public:
+		FactRequest(int type, int reqId, const char* subj, const char* desc, ContextMonitor* ctxMonitor);
+		~FactRequest();
+
+		const char* getClient();
 		bool reply(int error);
-		bool reply(int error, ctx::Json& request_result);
-		bool reply(int error, ctx::Json& request_result, ctx::Json& data_read);
+		bool reply(int error, ctx::Json& requestResult);
+		bool reply(int error, ctx::Json& requestResult, ctx::Json& dataRead);
 		bool publish(int error, ctx::Json& data);
 
 	private:
-		context_monitor *_ctx_monitor;
-		bool replied;
+		ContextMonitor *__ctxMonitor;
+		bool __replied;
 	};
 
+}	/* namespace trigger */
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_TRIGGER_FACT_REQUEST_H__ */
+#endif	/* End of _CONTEXT_TRIGGER_FACT_REQUEST_H_ */

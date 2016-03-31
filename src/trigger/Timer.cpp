@@ -18,33 +18,36 @@
 #include <context_trigger_types_internal.h>
 #include <types_internal.h>
 #include <TimerManager.h>
-#include "timer.h"
+#include "Timer.h"
 
 #define TIMER_DAY_OF_WEEK "DayOfWeek"
 #define TIMER_TIME_OF_DAY "TimeOfDay"
 
-static int arrange_day_of_week(ctx::Json day_info)
+using namespace ctx;
+using namespace ctx::trigger;
+
+static int __arrangeDayOfWeek(Json dayInfo)
 {
 	int result = 0;
 
 	std::string key_op;
-	if (!day_info.get(NULL, CT_RULE_DATA_KEY_OPERATOR, &key_op)) {
-		result = ctx::TimerManager::dowToInt(DOW_EVERYDAY);
+	if (!dayInfo.get(NULL, CT_RULE_DATA_KEY_OPERATOR, &key_op)) {
+		result = TimerManager::dowToInt(DOW_EVERYDAY);
 		return result;
 	}
 
 	if (key_op.compare("and") == 0) {
-		result = ctx::TimerManager::dowToInt(DOW_EVERYDAY);
+		result = TimerManager::dowToInt(DOW_EVERYDAY);
 	}
 
 	std::string tmp_d;
-	for (int i = 0; day_info.getAt(NULL, CT_RULE_DATA_VALUE_ARR, i, &tmp_d); i++) {
-		int dow = ctx::TimerManager::dowToInt(tmp_d);
+	for (int i = 0; dayInfo.getAt(NULL, CT_RULE_DATA_VALUE_ARR, i, &tmp_d); i++) {
+		int dow = TimerManager::dowToInt(tmp_d);
 		std::string op;
-		day_info.getAt(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, i, &op);
+		dayInfo.getAt(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, i, &op);
 
 		if (op.compare(CONTEXT_TRIGGER_NOT_EQUAL_TO) == 0) {
-			dow = ctx::TimerManager::dowToInt(DOW_EVERYDAY) & ~dow;
+			dow = TimerManager::dowToInt(DOW_EVERYDAY) & ~dow;
 		}
 
 		if (key_op.compare("and") == 0) {
@@ -58,42 +61,42 @@ static int arrange_day_of_week(ctx::Json day_info)
 	return result;
 }
 
-void ctx::trigger_timer::handle_timer_event(ctx::Json& rule)
+void timer::handleTimerEvent(Json& rule)
 {
-	ctx::Json event;
+	Json event;
 	rule.get(NULL, CT_RULE_EVENT, &event);
 
-	std::string e_name;
-	event.get(NULL, CT_RULE_EVENT_ITEM, &e_name);
-	if (e_name.compare(CT_EVENT_TIME) != 0 ) {
+	std::string eventName;
+	event.get(NULL, CT_RULE_EVENT_ITEM, &eventName);
+	if (eventName.compare(CT_EVENT_TIME) != 0) {
 		return;
 	}
 
-	ctx::Json day_info;
-	ctx::Json it;
+	Json dayInfo;
+	Json it;
 	int dow;
 	for (int i = 0; event.getAt(NULL, CT_RULE_DATA_ARR, i, &it); i++) {
 		std::string key;
 		it.get(NULL, CT_RULE_DATA_KEY, &key);
 
 		if (key.compare(TIMER_DAY_OF_WEEK) == 0) {
-			dow = arrange_day_of_week(it);
+			dow = __arrangeDayOfWeek(it);
 
-			day_info.set(NULL, CT_RULE_DATA_KEY, TIMER_DAY_OF_WEEK);
-			day_info.set(NULL, CT_RULE_DATA_KEY_OPERATOR, "or");
+			dayInfo.set(NULL, CT_RULE_DATA_KEY, TIMER_DAY_OF_WEEK);
+			dayInfo.set(NULL, CT_RULE_DATA_KEY_OPERATOR, "or");
 
 			for (int j = 0; j < DAYS_PER_WEEK; j++) {
 				int d = 0x01 << j;
 				if (dow & d) {
-					std::string day = ctx::TimerManager::dowToStr(d);
-					day_info.append(NULL, CT_RULE_DATA_VALUE_ARR, day);
-					day_info.append(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, CONTEXT_TRIGGER_EQUAL_TO);
+					std::string day = TimerManager::dowToStr(d);
+					dayInfo.append(NULL, CT_RULE_DATA_VALUE_ARR, day);
+					dayInfo.append(NULL, CT_RULE_DATA_VALUE_OPERATOR_ARR, CONTEXT_TRIGGER_EQUAL_TO);
 
 					// Set option
 					event.append(CT_RULE_EVENT_OPTION, TIMER_DAY_OF_WEEK, day);
 				}
 			}
-			event.setAt(NULL, CT_RULE_DATA_ARR, i, day_info);
+			event.setAt(NULL, CT_RULE_DATA_ARR, i, dayInfo);
 		} else if (key.compare(TIMER_TIME_OF_DAY) == 0) {
 			int time;
 			for (int j = 0; it.getAt(NULL, CT_RULE_DATA_VALUE_ARR, j, &time); j++) {

@@ -23,7 +23,7 @@
 #include "DBusServer.h"
 #include "db_mgr_impl.h"
 #include "context_mgr_impl.h"
-#include "context_trigger/trigger.h"
+#include "trigger/Trigger.h"
 #include "server.h"
 
 static GMainLoop *mainloop = NULL;
@@ -32,7 +32,7 @@ static bool started = false;
 static ctx::context_manager_impl *context_mgr = NULL;
 static ctx::db_manager_impl *database_mgr = NULL;
 static ctx::DBusServer *dbus_handle = NULL;
-static ctx::context_trigger *trigger = NULL;
+static ctx::trigger::Trigger *context_trigger = NULL;
 
 /* TODO: re-organize activation & deactivation processes */
 void ctx::server::initialize()
@@ -71,9 +71,9 @@ void ctx::server::activate()
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
 	_I("Init Context Trigger");
-	trigger = new(std::nothrow) ctx::context_trigger();
-	IF_FAIL_CATCH_TAG(trigger, _E, "Memory allocation failed");
-	result = trigger->init(context_mgr);
+	context_trigger = new(std::nothrow) ctx::trigger::Trigger();
+	IF_FAIL_CATCH_TAG(context_trigger, _E, "Memory allocation failed");
+	result = context_trigger->init(context_mgr);
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
 	started = true;
@@ -91,8 +91,8 @@ void ctx::server::release()
 {
 	_I(CYAN("Terminating Context-Service"));
 	_I("Release Context Trigger");
-	if (trigger)
-		trigger->release();
+	if (context_trigger)
+		context_trigger->release();
 
 	_I("Release Analyzer Manager");
 	if (context_mgr)
@@ -108,7 +108,7 @@ void ctx::server::release()
 
 	g_main_loop_unref(mainloop);
 
-	delete trigger;
+	delete context_trigger;
 	delete context_mgr;
 	delete dbus_handle;
 	delete database_mgr;
@@ -116,11 +116,11 @@ void ctx::server::release()
 
 static gboolean postpone_request_assignment(gpointer data)
 {
-	ctx::server::send_request(static_cast<ctx::request_info*>(data));
+	ctx::server::send_request(static_cast<ctx::RequestInfo*>(data));
 	return FALSE;
 }
 
-void ctx::server::send_request(ctx::request_info* request)
+void ctx::server::send_request(ctx::RequestInfo* request)
 {
 	if (!started) {
 		_W("Service not ready...");
@@ -128,7 +128,7 @@ void ctx::server::send_request(ctx::request_info* request)
 		return;
 	}
 
-	if (!trigger->assign_request(request)) {
+	if (!context_trigger->assignRequest(request)) {
 		context_mgr->assign_request(request);
 	}
 }
