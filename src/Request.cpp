@@ -16,51 +16,51 @@
 
 #include <glib.h>
 #include <types_internal.h>
-#include "request.h"
+#include "Request.h"
 
-ctx::request_info::request_info(int type, int req_id, const char* subj, const char* desc)
-	: _type(type)
-	, _req_id(req_id)
-	, _subject(subj)
-	, _description(desc)
+ctx::RequestInfo::RequestInfo(int type, int reqId, const char* subj, const char* desc) :
+	_type(type),
+	_reqId(reqId),
+	_subject(subj),
+	_description(desc)
 {
 }
 
-ctx::request_info::~request_info()
+ctx::RequestInfo::~RequestInfo()
 {
 }
 
-int ctx::request_info::get_type()
+int ctx::RequestInfo::getType()
 {
 	return _type;
 }
 
-int ctx::request_info::get_id()
+int ctx::RequestInfo::getId()
 {
-	return _req_id;
+	return _reqId;
 }
 
-const ctx::credentials* ctx::request_info::get_credentials()
-{
-	return NULL;
-}
-
-const char* ctx::request_info::get_package_id()
+const ctx::credentials* ctx::RequestInfo::getCredentials()
 {
 	return NULL;
 }
 
-const char* ctx::request_info::get_client()
+const char* ctx::RequestInfo::getPackageId()
 {
 	return NULL;
 }
 
-const char* ctx::request_info::get_subject()
+const char* ctx::RequestInfo::getClient()
+{
+	return NULL;
+}
+
+const char* ctx::RequestInfo::getSubject()
 {
 	return _subject.c_str();
 }
 
-ctx::Json& ctx::request_info::get_description()
+ctx::Json& ctx::RequestInfo::getDescription()
 {
 	return _description;
 }

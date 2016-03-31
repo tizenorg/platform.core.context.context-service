@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_ACTION_MANAGER_H__
-#define __CONTEXT_ACTION_MANAGER_H__
+#ifndef _CONTEXT_TRIGGER_ACTION_MANAGER_H_
+#define _CONTEXT_TRIGGER_ACTION_MANAGER_H_
 
 namespace ctx {
-
+	/* Forward Declaration */
 	class Json;
+
+namespace trigger {
 
 	namespace action_manager {
 
-		void trigger_action(ctx::Json& action, std::string pkg_id);
+			void triggerAction(Json& action, std::string pkgId);
 
-	}
+	}	/* namespace action_manager */
 
+}	/* namespace trigger*/
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_ACTION_MANAGER_H__ */
+#endif	/* End of _CONTEXT_TRIGGER_ACTION_MANAGER_H_ */

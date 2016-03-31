@@ -23,10 +23,10 @@
 #include <provider_iface.h>
 #include "server.h"
 #include "access_control/privilege.h"
-#include "request.h"
+#include "Request.h"
 #include "provider.h"
 #include "context_mgr_impl.h"
-#include "context_trigger/template_manager.h"
+#include "trigger/TemplateManager.h"
 
 /* Context Providers */
 #include <internal/device_context_provider.h>
@@ -138,9 +138,9 @@ bool ctx::context_manager_impl::register_trigger_item(const char *subject, int o
 	if (!initialized) {
 		__trigger_item_list.push_back(trigger_item_format_s(subject, operation, attributes, options, (owner)? owner : ""));
 	} else {
-		ctx::template_manager* tmpl_mgr = ctx::template_manager::get_instance();
-		IF_FAIL_RETURN_TAG(tmpl_mgr, false, _E, "Memory allocation failed");
-		tmpl_mgr->register_template(subject, operation, attributes, options, owner);
+		ctx::trigger::TemplateManager* tmplMgr = ctx::trigger::TemplateManager::getInstance();
+		IF_FAIL_RETURN_TAG(tmplMgr, false, _E, "Memory allocation failed");
+		tmplMgr->registerTemplate(subject, operation, attributes, options, owner);
 	}
 
 	return true;
@@ -153,9 +153,9 @@ bool ctx::context_manager_impl::unregister_trigger_item(const char *subject)
 	if (!initialized) {
 		__trigger_item_list.push_back(trigger_item_format_s(subject));
 	} else {
-		ctx::template_manager* tmpl_mgr = ctx::template_manager::get_instance();
-		IF_FAIL_RETURN_TAG(tmpl_mgr, false, _E, "Memory allocation failed");
-		tmpl_mgr->unregister_template(subject);
+		ctx::trigger::TemplateManager* tmplMgr = ctx::trigger::TemplateManager::getInstance();
+		IF_FAIL_RETURN_TAG(tmplMgr, false, _E, "Memory allocation failed");
+		tmplMgr->unregisterTemplate(subject);
 	}
 
 	return true;
@@ -178,14 +178,14 @@ bool ctx::context_manager_impl::pop_trigger_item(std::string &subject, int &oper
 	return true;
 }
 
-void ctx::context_manager_impl::assign_request(ctx::request_info* request)
+void ctx::context_manager_impl::assign_request(ctx::RequestInfo* request)
 {
 	if (handle_custom_request(request)) {
 		delete request;
 		return;
 	}
 
-	auto it = provider_handle_map.find(request->get_subject());
+	auto it = provider_handle_map.find(request->getSubject());
 	if (it == provider_handle_map.end()) {
 		_W("Unsupported subject");
 		request->reply(ERR_NOT_SUPPORTED);
@@ -193,14 +193,14 @@ void ctx::context_manager_impl::assign_request(ctx::request_info* request)
 		return;
 	}
 
-	if (!it->second->is_allowed(request->get_credentials())) {
+	if (!it->second->is_allowed(request->getCredentials())) {
 		_W("Permission denied");
 		request->reply(ERR_PERMISSION_DENIED);
 		delete request;
 		return;
 	}
 
-	switch (request->get_type()) {
+	switch (request->getType()) {
 	case REQ_SUBSCRIBE:
 		it->second->subscribe(request);
 		break;
@@ -319,20 +319,20 @@ bool ctx::context_manager_impl::reply_to_read(const char* subject, ctx::Json& op
 	return true;
 }
 
-bool ctx::context_manager_impl::handle_custom_request(ctx::request_info* request)
+bool ctx::context_manager_impl::handle_custom_request(ctx::RequestInfo* request)
 {
-	std::string subject = request->get_subject();
+	std::string subject = request->getSubject();
 	IF_FAIL_RETURN(	subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_ADD ||
 					subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_REMOVE ||
 					subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_PUBLISH, false);
 
-	const char* pkg_id = request->get_package_id();
+	const char* pkg_id = request->getPackageId();
 	if (pkg_id == NULL) {
 		request->reply(ERR_OPERATION_FAILED);
 		return true;
 	}
 
-	ctx::Json desc = request->get_description();
+	ctx::Json desc = request->getDescription();
 	std::string name;
 	desc.get(NULL, CT_CUSTOM_NAME, &name);
 	std::string subj = pkg_id + std::string("::") + name;

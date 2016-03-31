@@ -19,14 +19,14 @@
 
 namespace ctx {
 
-	class request_info;
+	class RequestInfo;
 
 	class server {
 	public:
 		static void initialize();
 		static void activate();
 		static void release();
-		static void send_request(request_info* request);
+		static void send_request(RequestInfo* request);
 
 	};
 

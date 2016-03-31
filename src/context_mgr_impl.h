@@ -27,7 +27,7 @@ namespace ctx {
 
 	/* Forward declaration */
 	class credentials;
-	class request_info;
+	class RequestInfo;
 	class context_provider_handler;
 
 	class context_manager_impl : public context_manager_iface {
@@ -38,7 +38,7 @@ namespace ctx {
 		bool init();
 		void release();
 
-		void assign_request(ctx::request_info *request);
+		void assign_request(ctx::RequestInfo *request);
 		bool is_supported(const char *subject);
 		bool is_allowed(const credentials *creds, const char *subject);
 		bool pop_trigger_item(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner, bool& unregister);
@@ -60,7 +60,7 @@ namespace ctx {
 		void _reply_to_read(const char *subject, ctx::Json &option, int error, ctx::Json &data_read);
 
 		/* For custom request */
-		bool handle_custom_request(ctx::request_info* request);
+		bool handle_custom_request(ctx::RequestInfo* request);
 	};	/* class context_manager_impl */
 
 }	/* namespace ctx */

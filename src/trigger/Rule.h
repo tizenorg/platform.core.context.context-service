@@ -14,23 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_TRIGGER_RULE_H__
-#define __CONTEXT_TRIGGER_RULE_H__
+#ifndef _CONTEXT_TRIGGER_RULE_H_
+#define _CONTEXT_TRIGGER_RULE_H_
 
 #include <string>
 #include <Json.h>
-#include "context_listener_iface.h"
+#include "IContextListener.h"
 
 namespace ctx {
 
-	class rule_manager;
+namespace trigger {
 
-	class trigger_rule : public context_listener_iface {
+	class RuleManager;
+
+	class Rule : public IContextListener {
 		private:
-			struct context_item_s {
+			struct ContextItem {
 				std::string name;
 				ctx::Json option;
-				context_item_s(ctx::Json item) {
+				ContextItem(ctx::Json item) {
 					std::string n;
 					item.get(NULL, CT_RULE_EVENT_ITEM, &n);
 					name = n;
@@ -41,36 +43,36 @@ namespace ctx {
 				}
 			};
 
-			typedef struct context_item_s* context_item_t;
-			ctx::Json statement;
-			context_item_t event;
-			std::list<context_item_t> condition;
-			ctx::Json action;
-			ctx::Json result;
+			ctx::Json __statement;
+			ContextItem* __event;
+			std::list<ContextItem*> __condition;
+			ctx::Json __action;
+			ctx::Json __result;
 
-			static rule_manager* rule_mgr;
+			static RuleManager* __ruleMgr;
 
-			void clear_result(void);
-			bool set_condition_option_based_on_event(ctx::Json& option);
-			void on_context_data_prepared(void);
+			void __clearResult(void);
+			bool __setConditionOptionBasedOnEvent(ctx::Json& option);
+			void __onContextDataPrepared(void);
 
-			static gboolean handle_uninstalled_rule(gpointer data);
+			static gboolean __handleUninstalledRule(gpointer data);
 
 		public:
 			int id;
-			std::string pkg_id;
+			std::string pkgId;
 
-			trigger_rule(int i, ctx::Json& d, const char* p, rule_manager* rm);
-			~trigger_rule();
+			Rule(int i, ctx::Json& d, const char* p, RuleManager* rm);
+			~Rule();
 
 			int start(void);
 			int stop(void);
 
-			void on_event_received(std::string name, ctx::Json option, ctx::Json data);
-			void on_condition_received(std::string name, ctx::Json option, ctx::Json data);
+			void onEventReceived(std::string name, ctx::Json option, ctx::Json data);
+			void onConditionReceived(std::string name, ctx::Json option, ctx::Json data);
 
 	};
 
+}	/* namespace trigger */
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_TRIGGER_RULE_H__ */
+#endif	/* End of _CONTEXT_TRIGGER_RULE_H_ */

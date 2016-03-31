@@ -14,22 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_CONTEXT_LISTENER_INTERFACE_H__
-#define __CONTEXT_CONTEXT_LISTENER_INTERFACE_H__
+#ifndef _CONTEXT_TRIGGER_I_CONTEXT_LISTENER_H_
+#define _CONTEXT_TRIGGER_I_CONTEXT_LISTENER_H_
 
 namespace ctx {
 	/* Forward Declaration */
 	class Json;
 
-	class context_listener_iface {
+namespace trigger {
+
+	class IContextListener {
 		public:
-			virtual ~context_listener_iface() {}
+			virtual ~IContextListener() {}
 
-			virtual void on_event_received(std::string name, ctx::Json option, ctx::Json data) = 0;
+			virtual void onEventReceived(std::string name, Json option, Json data) = 0;
 
-			virtual void on_condition_received(std::string name, ctx::Json option, ctx::Json data) = 0;
-	};
+			virtual void onConditionReceived(std::string name, Json option, Json data) = 0;
+		};
 
+}	/* namespace trigger */
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_CONTEXT_LISTENER_INTERFACE_H__ */
+#endif	/* End of _CONTEXT_TRIGGER_I_CONTEXT_LISTENER_H_ */

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_FACT_TYPES_H__
-#define __CONTEXT_FACT_TYPES_H__
+#ifndef _CONTEXT_TRIGGER_FACT_TYPES_H_
+#define _CONTEXT_TRIGGER_FACT_TYPES_H_
 
 #define CONTEXT_FACT_EVENT "EVENT"
 #define CONTEXT_FACT_CONDITION "CONDITION"
@@ -23,4 +23,4 @@
 #define CONTEXT_FACT_OPTION "OPTION"
 #define CONTEXT_FACT_DATA "DATA"
 
-#endif	//__CONTEXT_FACT_TYPES_H__
+#endif	/* End of _CONTEXT_TRIGGER_FACT_TYPES_H_ */

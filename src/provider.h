@@ -25,21 +25,21 @@ namespace ctx {
 
 	class Json;
 	class credentials;
-	class request_info;
+	class RequestInfo;
 
 	class context_provider_handler {
 	public:
-		typedef std::list<request_info*> request_list_t;
+		typedef std::list<RequestInfo*> request_list_t;
 
 		context_provider_handler(const char *subj, context_provider_info &prvd);
 		~context_provider_handler();
 
 		bool is_allowed(const credentials *creds);
 
-		void subscribe(request_info *request);
-		void unsubscribe(request_info *request);
-		void read(request_info *request);
-		void write(request_info *request);
+		void subscribe(RequestInfo *request);
+		void unsubscribe(RequestInfo *request);
+		void read(RequestInfo *request);
+		void write(RequestInfo *request);
 
 		bool publish(ctx::Json &option, int error, ctx::Json &data_updated);
 		bool reply_to_read(ctx::Json &option, int error, ctx::Json &data_read);
@@ -50,7 +50,7 @@ namespace ctx {
 		request_list_t subscribe_requests;
 		request_list_t read_requests;
 
-		context_provider_iface* get_provider(request_info *request);
+		context_provider_iface* get_provider(RequestInfo *request);
 		request_list_t::iterator find_request(request_list_t &r_list, Json &option);
 		request_list_t::iterator find_request(request_list_t &r_list, std::string client, int req_id);
 		request_list_t::iterator find_request(request_list_t::iterator begin, request_list_t::iterator end, Json &option);
