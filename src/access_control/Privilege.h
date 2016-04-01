@@ -14,28 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_PEER_CREDENTIALS_H__
-#define __CONTEXT_PEER_CREDENTIALS_H__
+#ifndef _CONTEXT_PRIVILEGE_MANAGER_H_
+#define _CONTEXT_PRIVILEGE_MANAGER_H_
 
-#include <sys/types.h>
-#include <gio/gio.h>
 #include <string>
+
+#define PRIV_ALARM_SET "alarm.set"
 
 namespace ctx {
 
-	class credentials {
-	public:
-		char *package_id;
-		char *client;	/* default: smack label */
-		char *session;
-		char *user;		/* default: UID */
-		credentials(char *_package_id, char *_client, char *_session, char *_user);
-		~credentials();
-	};
+	/* Forward declaration */
+	class Credentials;
 
-	namespace peer_creds {
-		bool get(GDBusConnection *connection, const char *unique_name, credentials **creds);
-	}
+	namespace privilege_manager {
+
+		bool isAllowed(const Credentials *creds, const char *privilege);
+
+	}	/* namespace privilege_manager */
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_PEER_CREDENTIALS_H__ */
+#endif	/* End of _CONTEXT_PRIVILEGE_MANAGER_H_ */
