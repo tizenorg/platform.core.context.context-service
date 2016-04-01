@@ -23,7 +23,7 @@
 namespace ctx {
 
 	/* Forward declaration */
-	class credentials;
+	class Credentials;
 
 	class RequestInfo {
 	public:
@@ -35,7 +35,7 @@ namespace ctx {
 		const char* getSubject();
 		ctx::Json& getDescription();
 
-		virtual const credentials* getCredentials();
+		virtual const Credentials* getCredentials();
 		virtual const char* getPackageId();
 		/* TODO: remove this getClient() */
 		virtual const char* getClient();

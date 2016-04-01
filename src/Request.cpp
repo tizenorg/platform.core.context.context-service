@@ -40,7 +40,7 @@ int ctx::RequestInfo::getId()
 	return _reqId;
 }
 
-const ctx::credentials* ctx::RequestInfo::getCredentials()
+const ctx::Credentials* ctx::RequestInfo::getCredentials()
 {
 	return NULL;
 }

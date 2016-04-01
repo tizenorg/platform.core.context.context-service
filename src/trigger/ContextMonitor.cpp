@@ -15,7 +15,7 @@
  */
 
 #include <types_internal.h>
-#include "../access_control/privilege.h"
+#include "../access_control/Privilege.h"
 #include "../context_mgr_impl.h"
 #include "ContextMonitor.h"
 #include "IContextListener.h"

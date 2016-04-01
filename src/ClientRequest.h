@@ -25,10 +25,10 @@ namespace ctx {
 	class ClientRequest : public RequestInfo {
 	public:
 		ClientRequest(int type, int reqId, const char *subj, const char *desc,
-				credentials *creds, const char *sender, GDBusMethodInvocation *inv);
+				Credentials *creds, const char *sender, GDBusMethodInvocation *inv);
 		~ClientRequest();
 
-		const credentials* getCredentials();
+		const Credentials* getCredentials();
 		const char* getPackageId();
 		const char* getClient();
 		bool reply(int error);
@@ -37,7 +37,7 @@ namespace ctx {
 		bool publish(int error, ctx::Json &data);
 
 	private:
-		credentials *__credentials;
+		Credentials *__credentials;
 		std::string __dbusSender;
 		GDBusMethodInvocation *__invocation;
 	};

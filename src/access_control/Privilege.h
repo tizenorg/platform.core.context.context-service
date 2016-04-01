@@ -24,11 +24,11 @@
 namespace ctx {
 
 	/* Forward declaration */
-	class credentials;
+	class Credentials;
 
 	namespace privilege_manager {
 
-		bool is_allowed(const credentials *creds, const char *privilege);
+		bool isAllowed(const Credentials *creds, const char *privilege);
 
 	}	/* namespace ctx::privilege_manager */
 }	/* namespace ctx */

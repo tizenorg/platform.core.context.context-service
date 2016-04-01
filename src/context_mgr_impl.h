@@ -26,7 +26,7 @@
 namespace ctx {
 
 	/* Forward declaration */
-	class credentials;
+	class Credentials;
 	class RequestInfo;
 	class context_provider_handler;
 
@@ -40,7 +40,7 @@ namespace ctx {
 
 		void assign_request(ctx::RequestInfo *request);
 		bool is_supported(const char *subject);
-		bool is_allowed(const credentials *creds, const char *subject);
+		bool is_allowed(const Credentials *creds, const char *subject);
 		bool pop_trigger_item(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner, bool& unregister);
 
 		/* From the interface class */

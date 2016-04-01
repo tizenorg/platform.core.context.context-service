@@ -23,18 +23,18 @@
 
 namespace ctx {
 
-	class credentials {
+	class Credentials {
 	public:
-		char *package_id;
+		char *packageId;
 		char *client;	/* default: smack label */
 		char *session;
 		char *user;		/* default: UID */
-		credentials(char *_package_id, char *_client, char *_session, char *_user);
-		~credentials();
+		Credentials(char *_packageId, char *_client, char *_session, char *_user);
+		~Credentials();
 	};
 
 	namespace peer_creds {
-		bool get(GDBusConnection *connection, const char *unique_name, credentials **creds);
+		bool get(GDBusConnection *connection, const char *uniqueName, Credentials **creds);
 	}
 }	/* namespace ctx */
 
