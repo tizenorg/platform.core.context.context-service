@@ -24,7 +24,7 @@
 namespace ctx {
 
 	class Json;
-	class credentials;
+	class Credentials;
 	class RequestInfo;
 
 	class context_provider_handler {
@@ -34,7 +34,7 @@ namespace ctx {
 		context_provider_handler(const char *subj, context_provider_info &prvd);
 		~context_provider_handler();
 
-		bool is_allowed(const credentials *creds);
+		bool is_allowed(const Credentials *creds);
 
 		void subscribe(RequestInfo *request);
 		void unsubscribe(RequestInfo *request);
