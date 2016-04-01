@@ -22,7 +22,7 @@
 #include <Json.h>
 #include <provider_iface.h>
 #include "server.h"
-#include "access_control/privilege.h"
+#include "access_control/Privilege.h"
 #include "Request.h"
 #include "provider.h"
 #include "context_mgr_impl.h"
@@ -230,7 +230,7 @@ bool ctx::context_manager_impl::is_supported(const char *subject)
 	return (it != provider_handle_map.end());
 }
 
-bool ctx::context_manager_impl::is_allowed(const ctx::credentials *creds, const char *subject)
+bool ctx::context_manager_impl::is_allowed(const ctx::Credentials *creds, const char *subject)
 {
 	IF_FAIL_RETURN(creds, true);	/* In case internal requests */
 	auto it = provider_handle_map.find(subject);

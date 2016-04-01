@@ -20,7 +20,7 @@
 #include <types_internal.h>
 #include "server.h"
 #include "ClientRequest.h"
-#include "access_control/peer_creds.h"
+#include "access_control/PeerCreds.h"
 #include "DBusServer.h"
 
 using namespace ctx;
@@ -69,7 +69,7 @@ void DBusServer::__processRequest(const char *sender, GVariant *param, GDBusMeth
 	_I("[%d] ReqId: %d, Subject: %s", reqType, reqId, subject);
 	_SI("Input: %s", input);
 
-	credentials *creds = NULL;
+	Credentials *creds = NULL;
 
 	if (!peer_creds::get(__connection, sender, &creds)) {
 		_E("Peer credentialing failed");

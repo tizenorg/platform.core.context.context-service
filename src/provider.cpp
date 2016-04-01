@@ -17,7 +17,7 @@
 #include <glib.h>
 #include <types_internal.h>
 #include <Json.h>
-#include "access_control/privilege.h"
+#include "access_control/Privilege.h"
 #include "server.h"
 #include "Request.h"
 #include "provider.h"
@@ -43,10 +43,10 @@ ctx::context_provider_handler::~context_provider_handler()
 	provider_info.destroy(provider_info.data);
 }
 
-bool ctx::context_provider_handler::is_allowed(const ctx::credentials *creds)
+bool ctx::context_provider_handler::is_allowed(const ctx::Credentials *creds)
 {
 	IF_FAIL_RETURN(creds, true);	/* In case of internal requests */
-	return privilege_manager::is_allowed(creds, provider_info.privilege);
+	return privilege_manager::isAllowed(creds, provider_info.privilege);
 }
 
 ctx::context_provider_iface* ctx::context_provider_handler::get_provider(ctx::RequestInfo *request)

@@ -19,11 +19,11 @@
 #include <app_manager.h>
 #include <types_internal.h>
 #include "DBusServer.h"
-#include "access_control/peer_creds.h"
+#include "access_control/PeerCreds.h"
 #include "ClientRequest.h"
 
 ctx::ClientRequest::ClientRequest(int type, int reqId, const char *subj, const char *desc,
-		ctx::credentials *creds, const char *sender, GDBusMethodInvocation *inv) :
+		ctx::Credentials *creds, const char *sender, GDBusMethodInvocation *inv) :
 	RequestInfo(type, reqId, subj, desc),
 	__credentials(creds),
 	__dbusSender(sender),
@@ -39,7 +39,7 @@ ctx::ClientRequest::~ClientRequest()
 	delete __credentials;
 }
 
-const ctx::credentials* ctx::ClientRequest::getCredentials()
+const ctx::Credentials* ctx::ClientRequest::getCredentials()
 {
 	return __credentials;
 }
@@ -47,7 +47,7 @@ const ctx::credentials* ctx::ClientRequest::getCredentials()
 const char* ctx::ClientRequest::getPackageId()
 {
 	if (__credentials)
-		return __credentials->package_id;
+		return __credentials->packageId;
 
 	return NULL;
 }
