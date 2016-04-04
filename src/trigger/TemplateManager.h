@@ -21,7 +21,7 @@
 
 namespace ctx {
 
-	class context_manager_impl;
+	class ContextManagerImpl;
 
 namespace trigger {
 
@@ -30,7 +30,7 @@ namespace trigger {
 	class TemplateManager {
 	public:
 		static TemplateManager* getInstance();
-		static void setManager(context_manager_impl* ctxMgr, RuleManager* ruleMgr);
+		static void setManager(ContextManagerImpl* ctxMgr, RuleManager* ruleMgr);
 		static void destroy();
 
 		bool init();
@@ -45,7 +45,7 @@ namespace trigger {
 		~TemplateManager();
 
 		static TemplateManager *__instance;
-		static context_manager_impl *__contextMgr;
+		static ContextManagerImpl *__contextMgr;
 		static RuleManager *__ruleMgr;
 
 		std::string __addTemplate(std::string &subject, int &operation, Json &attributes, Json &options, std::string &owner);

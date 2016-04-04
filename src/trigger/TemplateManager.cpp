@@ -18,7 +18,7 @@
 #include <types_internal.h>
 #include <context_trigger_types_internal.h>
 #include <db_mgr.h>
-#include "../context_mgr_impl.h"
+#include "../ContextManagerImpl.h"
 #include "RuleManager.h"
 #include "TemplateManager.h"
 
@@ -26,7 +26,7 @@ using namespace ctx;
 using namespace ctx::trigger;
 
 TemplateManager *TemplateManager::__instance = NULL;
-context_manager_impl *TemplateManager::__contextMgr = NULL;
+ContextManagerImpl *TemplateManager::__contextMgr = NULL;
 RuleManager *TemplateManager::__ruleMgr = NULL;
 
 static std::string __intToString(int i)
@@ -45,7 +45,7 @@ TemplateManager::~TemplateManager()
 {
 }
 
-void TemplateManager::setManager(context_manager_impl* ctxMgr, RuleManager* ruleMgr)
+void TemplateManager::setManager(ContextManagerImpl* ctxMgr, RuleManager* ruleMgr)
 {
 	__contextMgr = ctxMgr;
 	__ruleMgr = ruleMgr;
@@ -101,7 +101,7 @@ void TemplateManager::applyTemplates()
 	std::string query;
 	query.clear();
 
-	while(__contextMgr->pop_trigger_item(subject, operation, attributes, options, owner, unregister)) {
+	while(__contextMgr->popTriggerItem(subject, operation, attributes, options, owner, unregister)) {
 		if (unregister) {
 			unregisterTemplate(subject);
 		} else {

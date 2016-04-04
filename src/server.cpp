@@ -22,14 +22,14 @@
 #include <types_internal.h>
 #include "DBusServer.h"
 #include "db_mgr_impl.h"
-#include "context_mgr_impl.h"
+#include "ContextManagerImpl.h"
 #include "trigger/Trigger.h"
 #include "server.h"
 
 static GMainLoop *mainloop = NULL;
 static bool started = false;
 
-static ctx::context_manager_impl *context_mgr = NULL;
+static ctx::ContextManagerImpl *context_mgr = NULL;
 static ctx::db_manager_impl *database_mgr = NULL;
 static ctx::DBusServer *dbus_handle = NULL;
 static ctx::trigger::Trigger *context_trigger = NULL;
@@ -64,9 +64,9 @@ void ctx::server::activate()
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
 	_I("Init Context Manager");
-	context_mgr = new(std::nothrow) ctx::context_manager_impl();
+	context_mgr = new(std::nothrow) ctx::ContextManagerImpl();
 	IF_FAIL_CATCH_TAG(context_mgr, _E, "Memory allocation failed");
-	context_manager::set_instance(context_mgr);
+	context_manager::setInstance(context_mgr);
 	result = context_mgr->init();
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
@@ -129,7 +129,7 @@ void ctx::server::send_request(ctx::RequestInfo* request)
 	}
 
 	if (!context_trigger->assignRequest(request)) {
-		context_mgr->assign_request(request);
+		context_mgr->assignRequest(request);
 	}
 }
 

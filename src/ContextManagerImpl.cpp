@@ -20,12 +20,11 @@
 #include <types_internal.h>
 #include <context_trigger_types_internal.h>
 #include <Json.h>
-#include <provider_iface.h>
 #include "server.h"
 #include "access_control/Privilege.h"
 #include "Request.h"
-#include "provider.h"
-#include "context_mgr_impl.h"
+#include "ProviderHandler.h"
+#include "ContextManagerImpl.h"
 #include "trigger/TemplateManager.h"
 
 /* Context Providers */
@@ -34,38 +33,43 @@
 #include <internal/place_context_provider.h>
 #include <internal/custom_context_provider.h>
 
-struct trigger_item_format_s {
+struct TriggerItemFormat {
 	std::string subject;
 	int operation;
 	ctx::Json attributes;
 	ctx::Json options;
 	std::string owner;
 	bool unregister;
-	trigger_item_format_s(std::string subj, int ops, ctx::Json attr, ctx::Json opt, std::string own)
-		: subject(subj), operation(ops), attributes(attr), options(opt), owner(own)
+	TriggerItemFormat(std::string subj, int ops, ctx::Json attr, ctx::Json opt, std::string own) :
+		subject(subj),
+		operation(ops),
+		attributes(attr),
+		options(opt),
+		owner(own)
 	{
 		unregister = false;
 	}
 
-	trigger_item_format_s(std::string subj)
-		: subject(subj) {
+	TriggerItemFormat(std::string subj) :
+		subject(subj)
+	{
 		unregister = true;
 	}
 };
 
-static std::list<trigger_item_format_s> __trigger_item_list;
-bool ctx::context_manager_impl::initialized = false;
+static std::list<TriggerItemFormat> __triggerItemList;
+bool ctx::ContextManagerImpl::__initialized = false;
 
-ctx::context_manager_impl::context_manager_impl()
+ctx::ContextManagerImpl::ContextManagerImpl()
 {
 }
 
-ctx::context_manager_impl::~context_manager_impl()
+ctx::ContextManagerImpl::~ContextManagerImpl()
 {
 	release();
 }
 
-bool ctx::context_manager_impl::init()
+bool ctx::ContextManagerImpl::init()
 {
 	bool ret;
 
@@ -81,35 +85,35 @@ bool ctx::context_manager_impl::init()
 	ret = init_custom_context_provider();
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: custom-context-provider");
 
-	initialized = true;
+	__initialized = true;
 
 	return true;
 }
 
-void ctx::context_manager_impl::release()
+void ctx::ContextManagerImpl::release()
 {
-	for (auto it = provider_handle_map.begin(); it != provider_handle_map.end(); ++it) {
+	for (auto it = __providerHandleMap.begin(); it != __providerHandleMap.end(); ++it) {
 		delete it->second;
 	}
-	provider_handle_map.clear();
+	__providerHandleMap.clear();
 }
 
-bool ctx::context_manager_impl::register_provider(const char *subject, ctx::context_provider_info &provider_info)
+bool ctx::ContextManagerImpl::registerProvider(const char *subject, ctx::ContextProviderInfo &providerInfo)
 {
-	if (provider_handle_map.find(subject) != provider_handle_map.end()) {
+	if (__providerHandleMap.find(subject) != __providerHandleMap.end()) {
 		_E("The provider for the subject '%s' is already registered.", subject);
 		return false;
 	}
 
-	_SI("Subj: %s, Priv: %s", subject, provider_info.privilege);
-	provider_handle_map[subject] = NULL;
+	_SI("Subj: %s, Priv: %s", subject, providerInfo.privilege);
+	__providerHandleMap[subject] = NULL;
 
-	auto it = provider_handle_map.find(subject);
-	context_provider_handler *handle = new(std::nothrow) context_provider_handler(it->first.c_str(), provider_info);
+	auto it = __providerHandleMap.find(subject);
+	ProviderHandler *handle = new(std::nothrow) ProviderHandler(it->first.c_str(), providerInfo);
 
 	if (!handle) {
 		_E("Memory allocation failed");
-		provider_handle_map.erase(it);
+		__providerHandleMap.erase(it);
 		return false;
 	}
 
@@ -117,26 +121,26 @@ bool ctx::context_manager_impl::register_provider(const char *subject, ctx::cont
 	return true;
 }
 
-bool ctx::context_manager_impl::unregister_provider(const char *subject)
+bool ctx::ContextManagerImpl::unregisterProvider(const char *subject)
 {
-	auto it = provider_handle_map.find(subject);
-	if (it == provider_handle_map.end()) {
+	auto it = __providerHandleMap.find(subject);
+	if (it == __providerHandleMap.end()) {
 		_E("The provider for the subject '%s' is not found.", subject);
 		return false;
 	}
 
 	delete it->second;
-	provider_handle_map.erase(it);
+	__providerHandleMap.erase(it);
 
 	return true;
 }
 
-bool ctx::context_manager_impl::register_trigger_item(const char *subject, int operation, ctx::Json attributes, ctx::Json options, const char* owner)
+bool ctx::ContextManagerImpl::registerTriggerItem(const char *subject, int operation, ctx::Json attributes, ctx::Json options, const char* owner)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 
-	if (!initialized) {
-		__trigger_item_list.push_back(trigger_item_format_s(subject, operation, attributes, options, (owner)? owner : ""));
+	if (!__initialized) {
+		__triggerItemList.push_back(TriggerItemFormat(subject, operation, attributes, options, (owner)? owner : ""));
 	} else {
 		ctx::trigger::TemplateManager* tmplMgr = ctx::trigger::TemplateManager::getInstance();
 		IF_FAIL_RETURN_TAG(tmplMgr, false, _E, "Memory allocation failed");
@@ -146,12 +150,12 @@ bool ctx::context_manager_impl::register_trigger_item(const char *subject, int o
 	return true;
 }
 
-bool ctx::context_manager_impl::unregister_trigger_item(const char *subject)
+bool ctx::ContextManagerImpl::unregisterTriggerItem(const char *subject)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 
-	if (!initialized) {
-		__trigger_item_list.push_back(trigger_item_format_s(subject));
+	if (!__initialized) {
+		__triggerItemList.push_back(TriggerItemFormat(subject));
 	} else {
 		ctx::trigger::TemplateManager* tmplMgr = ctx::trigger::TemplateManager::getInstance();
 		IF_FAIL_RETURN_TAG(tmplMgr, false, _E, "Memory allocation failed");
@@ -161,12 +165,12 @@ bool ctx::context_manager_impl::unregister_trigger_item(const char *subject)
 	return true;
 }
 
-bool ctx::context_manager_impl::pop_trigger_item(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string& owner, bool& unregister)
+bool ctx::ContextManagerImpl::popTriggerItem(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string& owner, bool& unregister)
 {
-	IF_FAIL_RETURN(!__trigger_item_list.empty(), false);
+	IF_FAIL_RETURN(!__triggerItemList.empty(), false);
 
-	trigger_item_format_s format = __trigger_item_list.front();
-	__trigger_item_list.pop_front();
+	TriggerItemFormat format = __triggerItemList.front();
+	__triggerItemList.pop_front();
 
 	subject = format.subject;
 	operation = format.operation;
@@ -178,22 +182,22 @@ bool ctx::context_manager_impl::pop_trigger_item(std::string &subject, int &oper
 	return true;
 }
 
-void ctx::context_manager_impl::assign_request(ctx::RequestInfo* request)
+void ctx::ContextManagerImpl::assignRequest(ctx::RequestInfo* request)
 {
-	if (handle_custom_request(request)) {
+	if (__handleCustomRequest(request)) {
 		delete request;
 		return;
 	}
 
-	auto it = provider_handle_map.find(request->getSubject());
-	if (it == provider_handle_map.end()) {
+	auto it = __providerHandleMap.find(request->getSubject());
+	if (it == __providerHandleMap.end()) {
 		_W("Unsupported subject");
 		request->reply(ERR_NOT_SUPPORTED);
 		delete request;
 		return;
 	}
 
-	if (!it->second->is_allowed(request->getCredentials())) {
+	if (!it->second->isAllowed(request->getCredentials())) {
 		_W("Permission denied");
 		request->reply(ERR_PERMISSION_DENIED);
 		delete request;
@@ -224,51 +228,51 @@ void ctx::context_manager_impl::assign_request(ctx::RequestInfo* request)
 	}
 }
 
-bool ctx::context_manager_impl::is_supported(const char *subject)
+bool ctx::ContextManagerImpl::isSupported(const char *subject)
 {
-	auto it = provider_handle_map.find(subject);
-	return (it != provider_handle_map.end());
+	auto it = __providerHandleMap.find(subject);
+	return (it != __providerHandleMap.end());
 }
 
-bool ctx::context_manager_impl::is_allowed(const ctx::Credentials *creds, const char *subject)
+bool ctx::ContextManagerImpl::isAllowed(const ctx::Credentials *creds, const char *subject)
 {
 	IF_FAIL_RETURN(creds, true);	/* In case internal requests */
-	auto it = provider_handle_map.find(subject);
-	IF_FAIL_RETURN(it != provider_handle_map.end(), false);
-	return it->second->is_allowed(creds);
+	auto it = __providerHandleMap.find(subject);
+	IF_FAIL_RETURN(it != __providerHandleMap.end(), false);
+	return it->second->isAllowed(creds);
 }
 
-void ctx::context_manager_impl::_publish(const char* subject, ctx::Json &option, int error, ctx::Json &data_updated)
+void ctx::ContextManagerImpl::__publish(const char* subject, ctx::Json &option, int error, ctx::Json &dataUpdated)
 {
 	_I("Publishing '%s'", subject);
 	_J("Option", option);
 
-	auto it = provider_handle_map.find(subject);
-	IF_FAIL_VOID(it != provider_handle_map.end());
+	auto it = __providerHandleMap.find(subject);
+	IF_FAIL_VOID(it != __providerHandleMap.end());
 
-	it->second->publish(option, error, data_updated);
+	it->second->publish(option, error, dataUpdated);
 }
 
-void ctx::context_manager_impl::_reply_to_read(const char* subject, ctx::Json &option, int error, ctx::Json &data_read)
+void ctx::ContextManagerImpl::__replyToRead(const char* subject, ctx::Json &option, int error, ctx::Json &dataRead)
 {
 	_I("Sending data of '%s'", subject);
 	_J("Option", option);
-	_J("Data", data_read);
+	_J("Data", dataRead);
 
-	auto it = provider_handle_map.find(subject);
-	IF_FAIL_VOID(it != provider_handle_map.end());
+	auto it = __providerHandleMap.find(subject);
+	IF_FAIL_VOID(it != __providerHandleMap.end());
 
-	it->second->reply_to_read(option, error, data_read);
+	it->second->replyToRead(option, error, dataRead);
 }
 
-struct published_data_s {
+struct PublishedData {
 	int type;
-	ctx::context_manager_impl *mgr;
+	ctx::ContextManagerImpl *mgr;
 	std::string subject;
 	int error;
 	ctx::Json option;
 	ctx::Json data;
-	published_data_s(int t, ctx::context_manager_impl *m, const char* s, ctx::Json& o, int e, ctx::Json& d)
+	PublishedData(int t, ctx::ContextManagerImpl *m, const char* s, ctx::Json& o, int e, ctx::Json& d)
 		: type(t), mgr(m), subject(s), error(e)
 	{
 		option = o.str();
@@ -276,16 +280,16 @@ struct published_data_s {
 	}
 };
 
-gboolean ctx::context_manager_impl::thread_switcher(gpointer data)
+gboolean ctx::ContextManagerImpl::__threadSwitcher(gpointer data)
 {
-	published_data_s *tuple = static_cast<published_data_s*>(data);
+	PublishedData *tuple = static_cast<PublishedData*>(data);
 
 	switch (tuple->type) {
 	case REQ_SUBSCRIBE:
-		tuple->mgr->_publish(tuple->subject.c_str(), tuple->option, tuple->error, tuple->data);
+		tuple->mgr->__publish(tuple->subject.c_str(), tuple->option, tuple->error, tuple->data);
 		break;
 	case REQ_READ:
-		tuple->mgr->_reply_to_read(tuple->subject.c_str(), tuple->option, tuple->error, tuple->data);
+		tuple->mgr->__replyToRead(tuple->subject.c_str(), tuple->option, tuple->error, tuple->data);
 		break;
 	default:
 		_W("Invalid type");
@@ -295,31 +299,31 @@ gboolean ctx::context_manager_impl::thread_switcher(gpointer data)
 	return FALSE;
 }
 
-bool ctx::context_manager_impl::publish(const char* subject, ctx::Json& option, int error, ctx::Json& data_updated)
+bool ctx::ContextManagerImpl::publish(const char* subject, ctx::Json& option, int error, ctx::Json& dataUpdated)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 
-	published_data_s *tuple = new(std::nothrow) published_data_s(REQ_SUBSCRIBE, this, subject, option, error, data_updated);
+	PublishedData *tuple = new(std::nothrow) PublishedData(REQ_SUBSCRIBE, this, subject, option, error, dataUpdated);
 	IF_FAIL_RETURN_TAG(tuple, false, _E, "Memory allocation failed");
 
-	g_idle_add(thread_switcher, tuple);
+	g_idle_add(__threadSwitcher, tuple);
 
 	return true;
 }
 
-bool ctx::context_manager_impl::reply_to_read(const char* subject, ctx::Json& option, int error, ctx::Json& data_read)
+bool ctx::ContextManagerImpl::replyToRead(const char* subject, ctx::Json& option, int error, ctx::Json& dataRead)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 
-	published_data_s *tuple = new(std::nothrow) published_data_s(REQ_READ, this, subject, option, error, data_read);
+	PublishedData *tuple = new(std::nothrow) PublishedData(REQ_READ, this, subject, option, error, dataRead);
 	IF_FAIL_RETURN_TAG(tuple, false, _E, "Memory allocation failed");
 
-	g_idle_add(thread_switcher, tuple);
+	g_idle_add(__threadSwitcher, tuple);
 
 	return true;
 }
 
-bool ctx::context_manager_impl::handle_custom_request(ctx::RequestInfo* request)
+bool ctx::ContextManagerImpl::__handleCustomRequest(ctx::RequestInfo* request)
 {
 	std::string subject = request->getSubject();
 	IF_FAIL_RETURN(	subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_ADD ||
@@ -342,9 +346,9 @@ bool ctx::context_manager_impl::handle_custom_request(ctx::RequestInfo* request)
 		ctx::Json tmpl;
 		desc.get(NULL, CT_CUSTOM_ATTRIBUTES, &tmpl);
 
-		error = ctx::custom_context_provider::add_item(subj, name, tmpl, pkg_id);
+		error = ctx::custom_context_provider::addItem(subj, name, tmpl, pkg_id);
 	} else if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_REMOVE) {
-		error = ctx::custom_context_provider::remove_item(subj);
+		error = ctx::custom_context_provider::removeItem(subj);
 		if (error == ERR_NONE) {
 			ctx::Json data;
 			data.set(NULL, CT_CUSTOM_SUBJECT, subj);
@@ -354,7 +358,7 @@ bool ctx::context_manager_impl::handle_custom_request(ctx::RequestInfo* request)
 		ctx::Json fact;
 		desc.get(NULL, CT_CUSTOM_FACT, &fact);
 
-		error = ctx::custom_context_provider::publish_data(subj, fact);
+		error = ctx::custom_context_provider::publishData(subj, fact);
 	}
 
 	request->reply(error);

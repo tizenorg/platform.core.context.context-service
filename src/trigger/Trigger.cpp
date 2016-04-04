@@ -33,7 +33,7 @@ Trigger::~Trigger()
 {
 }
 
-bool Trigger::init(context_manager_impl* ctxMgr)
+bool Trigger::init(ContextManagerImpl* ctxMgr)
 {
 	// Do the necessary initialization process.
 	// This function is called from the main thread during the service launching process.
@@ -99,7 +99,7 @@ void Trigger::__processRequest(RequestInfo* request)
 	}
 }
 
-void Trigger::__processInitialize(context_manager_impl* mgr)
+void Trigger::__processInitialize(ContextManagerImpl* mgr)
 {
 	// Context Monitor
 	ContextMonitor::setContextManager(mgr);

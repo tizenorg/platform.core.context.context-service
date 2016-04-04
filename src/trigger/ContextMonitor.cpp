@@ -16,7 +16,7 @@
 
 #include <types_internal.h>
 #include "../access_control/Privilege.h"
-#include "../context_mgr_impl.h"
+#include "../ContextManagerImpl.h"
 #include "ContextMonitor.h"
 #include "IContextListener.h"
 #include "FactRequest.h"
@@ -28,7 +28,7 @@ static int __lastRid;
 static int __lastErr;
 
 ContextMonitor *ContextMonitor::__instance = NULL;
-context_manager_impl *ContextMonitor::__contextMgr = NULL;
+ContextManagerImpl *ContextMonitor::__contextMgr = NULL;
 
 static int __generateReqId()
 {
@@ -50,7 +50,7 @@ ContextMonitor::~ContextMonitor()
 {
 }
 
-void ContextMonitor::setContextManager(context_manager_impl* ctx_mgr)
+void ContextMonitor::setContextManager(ContextManagerImpl* ctx_mgr)
 {
 	__contextMgr = ctx_mgr;
 }
@@ -101,7 +101,7 @@ int ContextMonitor::__subscribe(const char* subject, Json* option, IContextListe
 			rid, subject, option ? option->str().c_str() : NULL, this);
 	IF_FAIL_RETURN_TAG(req, ERR_OUT_OF_MEMORY, _E, "Memory allocation failed");
 
-	__contextMgr->assign_request(req);
+	__contextMgr->assignRequest(req);
 	__addSub(REQ_SUBSCRIBE, rid, subject, option, listener);
 
 	if (__lastErr != ERR_NONE) {
@@ -134,7 +134,7 @@ void ContextMonitor::__unsubscribe(const char *subject, int subscriptionId)
 	FactRequest *req = new(std::nothrow) FactRequest(REQ_UNSUBSCRIBE, subscriptionId, subject, NULL, NULL);
 	IF_FAIL_VOID_TAG(req, _E, "Memory allocation failed");
 
-	__contextMgr->assign_request(req);
+	__contextMgr->assignRequest(req);
 	__removeSub(REQ_SUBSCRIBE, subscriptionId);
 }
 
@@ -164,7 +164,7 @@ int ContextMonitor::__read(const char* subject, Json* option, IContextListener* 
 			rid, subject, option ? option->str().c_str() : NULL, this);
 	IF_FAIL_RETURN_TAG(req, -1, _E, "Memory allocation failed");
 
-	__contextMgr->assign_request(req);
+	__contextMgr->assignRequest(req);
 	__addSub(REQ_READ, rid, subject, option, listener);
 
 	if (__lastErr != ERR_NONE) {
@@ -177,7 +177,7 @@ int ContextMonitor::__read(const char* subject, Json* option, IContextListener* 
 
 bool ContextMonitor::isSupported(std::string subject)
 {
-	return __contextMgr->is_supported(subject.c_str());
+	return __contextMgr->isSupported(subject.c_str());
 }
 
 bool ContextMonitor::isAllowed(const char *client, const char *subject)
