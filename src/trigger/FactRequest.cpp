@@ -40,7 +40,7 @@ const char* FactRequest::getClient()
 bool FactRequest::reply(int error)
 {
 	IF_FAIL_RETURN(!__replied && __ctxMonitor, true);
-	__ctxMonitor->replyResult(_reqId, error);
+	__ctxMonitor->replyResult(__reqId, error);
 	__replied = (error != ERR_NONE);
 	return true;
 }
@@ -48,7 +48,7 @@ bool FactRequest::reply(int error)
 bool FactRequest::reply(int error, Json& requestResult)
 {
 	IF_FAIL_RETURN(!__replied && __ctxMonitor, true);
-	__ctxMonitor->replyResult(_reqId, error, &requestResult);
+	__ctxMonitor->replyResult(__reqId, error, &requestResult);
 	__replied = (error != ERR_NONE);
 	return true;
 }
@@ -56,13 +56,13 @@ bool FactRequest::reply(int error, Json& requestResult)
 bool FactRequest::reply(int error, Json& requestResult, Json& dataRead)
 {
 	IF_FAIL_RETURN(!__replied && __ctxMonitor, true);
-	__ctxMonitor->replyResult(_reqId, error, _subject.c_str(), &getDescription(), &dataRead);
+	__ctxMonitor->replyResult(__reqId, error, __subject.c_str(), &getDescription(), &dataRead);
 	return (__replied = true);
 }
 
 bool FactRequest::publish(int error, Json& data)
 {
 	IF_FAIL_RETURN(__ctxMonitor, true);
-	__ctxMonitor->publishFact(_reqId, error, _subject.c_str(), &getDescription(), &data);
+	__ctxMonitor->publishFact(__reqId, error, __subject.c_str(), &getDescription(), &data);
 	return true;
 }

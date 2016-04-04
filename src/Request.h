@@ -45,10 +45,10 @@ namespace ctx {
 		virtual bool publish(int error, ctx::Json &data) = 0;
 
 	protected:
-		int _type;
-		int _reqId;
-		std::string _subject;
-		ctx::Json _description;
+		int __type;
+		int __reqId;
+		std::string __subject;
+		ctx::Json __description;
 	};
 
 }	/* namespace ctx */

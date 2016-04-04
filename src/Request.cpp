@@ -19,10 +19,10 @@
 #include "Request.h"
 
 ctx::RequestInfo::RequestInfo(int type, int reqId, const char* subj, const char* desc) :
-	_type(type),
-	_reqId(reqId),
-	_subject(subj),
-	_description(desc)
+	__type(type),
+	__reqId(reqId),
+	__subject(subj),
+	__description(desc)
 {
 }
 
@@ -32,12 +32,12 @@ ctx::RequestInfo::~RequestInfo()
 
 int ctx::RequestInfo::getType()
 {
-	return _type;
+	return __type;
 }
 
 int ctx::RequestInfo::getId()
 {
-	return _reqId;
+	return __reqId;
 }
 
 const ctx::Credentials* ctx::RequestInfo::getCredentials()
@@ -57,10 +57,10 @@ const char* ctx::RequestInfo::getClient()
 
 const char* ctx::RequestInfo::getSubject()
 {
-	return _subject.c_str();
+	return __subject.c_str();
 }
 
 ctx::Json& ctx::RequestInfo::getDescription()
 {
-	return _description;
+	return __description;
 }

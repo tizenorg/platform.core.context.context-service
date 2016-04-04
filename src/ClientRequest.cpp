@@ -74,7 +74,7 @@ bool ctx::ClientRequest::reply(int error)
 bool ctx::ClientRequest::reply(int error, ctx::Json& requestResult)
 {
 	IF_FAIL_RETURN(__invocation, true);
-	IF_FAIL_RETURN(_type != REQ_READ_SYNC, true);
+	IF_FAIL_RETURN(__type != REQ_READ_SYNC, true);
 
 	std::string result = requestResult.str();
 	IF_FAIL_RETURN(!result.empty(), false);
@@ -110,6 +110,6 @@ bool ctx::ClientRequest::reply(int error, ctx::Json& requestResult, ctx::Json& d
 
 bool ctx::ClientRequest::publish(int error, ctx::Json& data)
 {
-	DBusServer::publish(__dbusSender, _reqId, _subject, error, data.str());
+	DBusServer::publish(__dbusSender, __reqId, __subject, error, data.str());
 	return true;
 }
