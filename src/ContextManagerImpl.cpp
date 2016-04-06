@@ -28,10 +28,10 @@
 #include "trigger/TemplateManager.h"
 
 /* Context Providers */
-#include <internal/device_context_provider.h>
-#include <internal/statistics_context_provider.h>
-#include <internal/place_context_provider.h>
-#include <internal/custom_context_provider.h>
+#include <internal/DeviceContextProvider.h>
+#include <internal/StatisticsContextProvider.h>
+#include <internal/PlaceContextProvider.h>
+#include <internal/CustomContextProvider.h>
 
 struct TriggerItemFormat {
 	std::string subject;
@@ -73,17 +73,17 @@ bool ctx::ContextManagerImpl::init()
 {
 	bool ret;
 
-	ret = init_device_context_provider();
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: device-context-provider");
+	ret = initDeviceContextProvider();
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: DeviceContextProvider");
 
-	ret = init_statistics_context_provider();
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: statistics-context-provider");
+	ret = initStatisticsContextProvider();
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: StatisticsContextProvider");
 
-	ret = init_place_context_provider();
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: place-context-provider");
+	ret = initPlaceContextProvider();
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: PlaceContextProvider");
 
-	ret = init_custom_context_provider();
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: custom-context-provider");
+	ret = initCustomContextProvider();
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: CustomContextProvider");
 
 	__initialized = true;
 
