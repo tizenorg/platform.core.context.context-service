@@ -14,22 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_SERVER_H__
-#define __CONTEXT_SERVER_H__
+#ifndef _CONTEXT_TRIGGER_TIMER_H_
+#define _CONTEXT_TRIGGER_TIMER_H_
+
+#include <Json.h>
 
 namespace ctx {
+namespace trigger {
+	namespace timer {
 
-	class RequestInfo;
+		void handleTimerEvent(ctx::Json& rule);
 
-	class server {
-	public:
-		static void initialize();
-		static void activate();
-		static void release();
-		static void send_request(RequestInfo* request);
+	}	/* namespace timer */
 
-	};
-
+}	/* namespace trigger */
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_SERVER_H__ */
+#endif	/* End of _CONTEXT_TRIGGER_TIMER_H_ */

@@ -14,22 +14,30 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_SERVER_H__
-#define __CONTEXT_SERVER_H__
+#ifndef _CONTEXT_PEER_CREDENTIALS_H_
+#define _CONTEXT_PEER_CREDENTIALS_H_
+
+#include <sys/types.h>
+#include <gio/gio.h>
+#include <string>
 
 namespace ctx {
 
-	class RequestInfo;
-
-	class server {
+	class Credentials {
 	public:
-		static void initialize();
-		static void activate();
-		static void release();
-		static void send_request(RequestInfo* request);
-
+		char *packageId;
+		char *client;	/* default: smack label */
+		char *session;
+		char *user;		/* default: UID */
+		Credentials(char *_packageId, char *_client, char *_session, char *_user);
+		~Credentials();
 	};
 
+	namespace peer_creds {
+
+		bool get(GDBusConnection *connection, const char *uniqueName, Credentials **creds);
+
+	}	/* namespace peer_creds */
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_SERVER_H__ */
+#endif	/* End of _CONTEXT_PEER_CREDENTIALS_H_ */

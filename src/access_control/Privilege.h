@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_SERVER_H__
-#define __CONTEXT_SERVER_H__
+#ifndef _CONTEXT_PRIVILEGE_MANAGER_H_
+#define _CONTEXT_PRIVILEGE_MANAGER_H_
+
+#include <string>
+
+#define PRIV_ALARM_SET "alarm.set"
 
 namespace ctx {
 
-	class RequestInfo;
+	/* Forward declaration */
+	class Credentials;
 
-	class server {
-	public:
-		static void initialize();
-		static void activate();
-		static void release();
-		static void send_request(RequestInfo* request);
+	namespace privilege_manager {
 
-	};
+		bool isAllowed(const Credentials *creds, const char *privilege);
 
+	}	/* namespace privilege_manager */
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_SERVER_H__ */
+#endif	/* End of _CONTEXT_PRIVILEGE_MANAGER_H_ */

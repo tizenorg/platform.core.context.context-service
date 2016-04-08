@@ -19,8 +19,8 @@
 
 #include <types_internal.h>
 #include "server.h"
-#include "client_request.h"
-#include "access_control/peer_creds.h"
+#include "ClientRequest.h"
+#include "access_control/PeerCreds.h"
 #include "DBusServer.h"
 
 using namespace ctx;
@@ -69,7 +69,7 @@ void DBusServer::__processRequest(const char *sender, GVariant *param, GDBusMeth
 	_I("[%d] ReqId: %d, Subject: %s", reqType, reqId, subject);
 	_SI("Input: %s", input);
 
-	credentials *creds = NULL;
+	Credentials *creds = NULL;
 
 	if (!peer_creds::get(__connection, sender, &creds)) {
 		_E("Peer credentialing failed");
@@ -77,7 +77,7 @@ void DBusServer::__processRequest(const char *sender, GVariant *param, GDBusMeth
 		return;
 	}
 
-	client_request *request = new(std::nothrow) client_request(reqType, reqId, subject, input, creds, sender, invocation);
+	ClientRequest *request = new(std::nothrow) ClientRequest(reqType, reqId, subject, input, creds, sender, invocation);
 	if (!request) {
 		_E("Memory allocation failed");
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));

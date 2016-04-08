@@ -31,7 +31,8 @@ INCLUDE_DIRECTORIES(
 	/usr/include
 	/usr/include/glib-2.0
 )
-ADD_DEFINITIONS(-g -O2 -Wall -fPIC -fvisibility=hidden -Wl,--as-needed)
+ADD_DEFINITIONS(-O2 -Wall -fPIC -fdata-sections -ffunction-sections -fvisibility=hidden)
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIC -Wl,--as-needed -Wl,--gc-section -Wl,--print-gc-section")
 
 # Building Daemon
 pkg_check_modules(daemon_pkg REQUIRED ${DEPS})

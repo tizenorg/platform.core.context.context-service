@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_SERVER_H__
-#define __CONTEXT_SERVER_H__
+#ifndef _CONTEXT_TRIGGER_ACTION_MANAGER_H_
+#define _CONTEXT_TRIGGER_ACTION_MANAGER_H_
 
 namespace ctx {
+	/* Forward Declaration */
+	class Json;
 
-	class RequestInfo;
+namespace trigger {
 
-	class server {
-	public:
-		static void initialize();
-		static void activate();
-		static void release();
-		static void send_request(RequestInfo* request);
+	namespace action_manager {
 
-	};
+			void triggerAction(Json& action, std::string pkgId);
 
+	}	/* namespace action_manager */
+
+}	/* namespace trigger*/
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_SERVER_H__ */
+#endif	/* End of _CONTEXT_TRIGGER_ACTION_MANAGER_H_ */

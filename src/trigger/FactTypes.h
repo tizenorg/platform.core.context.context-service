@@ -14,22 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_SERVER_H__
-#define __CONTEXT_SERVER_H__
+#ifndef _CONTEXT_TRIGGER_FACT_TYPES_H_
+#define _CONTEXT_TRIGGER_FACT_TYPES_H_
 
-namespace ctx {
+#define CONTEXT_FACT_EVENT "EVENT"
+#define CONTEXT_FACT_CONDITION "CONDITION"
+#define CONTEXT_FACT_NAME "NAME"
+#define CONTEXT_FACT_OPTION "OPTION"
+#define CONTEXT_FACT_DATA "DATA"
 
-	class RequestInfo;
-
-	class server {
-	public:
-		static void initialize();
-		static void activate();
-		static void release();
-		static void send_request(RequestInfo* request);
-
-	};
-
-}	/* namespace ctx */
-
-#endif	/* End of __CONTEXT_SERVER_H__ */
+#endif	/* End of _CONTEXT_TRIGGER_FACT_TYPES_H_ */

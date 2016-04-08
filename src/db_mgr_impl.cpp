@@ -59,9 +59,17 @@ void ctx::db_manager_impl::release()
 bool ctx::db_manager_impl::open()
 {
 	sqlite3 *db = NULL;
-	int r = sqlite3_open(CONTEXT_DB_PATH, &db);
+	char *err = NULL;
+	int ret;
 
-	IF_FAIL_RETURN_TAG(r == SQLITE_OK, false, _E, "Path: %s / Error: %s", CONTEXT_DB_PATH, sqlite3_errmsg(db));
+	ret = sqlite3_open(CONTEXT_DB_PATH, &db);
+	IF_FAIL_RETURN_TAG(ret == SQLITE_OK, false, _E, "Path: %s / Error: %s", CONTEXT_DB_PATH, sqlite3_errmsg(db));
+
+	ret = sqlite3_exec(db, "PRAGMA journal_mode = WAL", NULL, NULL, &err);
+	if (ret != SQLITE_OK) {
+		_E("Setting journal mode failed: %s", err);
+		sqlite3_free(err);
+	}
 
 	db_handle = db;
 	return true;
