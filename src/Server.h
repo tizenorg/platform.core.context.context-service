@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_SERVER_H__
-#define __CONTEXT_SERVER_H__
+#ifndef _CONTEXT_SERVER_H_
+#define _CONTEXT_SERVER_H_
 
 namespace ctx {
 
 	class RequestInfo;
 
-	class server {
+	class Server {
 	public:
 		static void initialize();
 		static void activate();
 		static void release();
-		static void send_request(RequestInfo* request);
+		static void sendRequest(RequestInfo* request);
 
 	};
 
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_SERVER_H__ */
+#endif	/* End of _CONTEXT_SERVER_H_ */

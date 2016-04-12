@@ -29,7 +29,7 @@ namespace ctx {
 		char *client;	/* default: smack label */
 		char *session;
 		char *user;		/* default: UID */
-		Credentials(char *_packageId, char *_client, char *_session, char *_user);
+		Credentials(char *pkgId, char *cli, char *sess, char *usr);
 		~Credentials();
 	};
 

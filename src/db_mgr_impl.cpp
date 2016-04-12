@@ -21,7 +21,7 @@
 #include <list>
 #include <tzplatform_config.h>
 #include <ScopeMutex.h>
-#include "server.h"
+#include "Server.h"
 #include "db_mgr_impl.h"
 
 #define CONTEXT_DB_PATH tzplatform_mkpath(TZ_USER_DB, ".context-service.db")

@@ -54,7 +54,7 @@ namespace ctx {
 		GDBusConnection *__connection;
 		GDBusNodeInfo *__nodeInfo;
 
-		friend class server;
+		friend class Server;
 
 	};	/* class ctx::DBusServer */
 

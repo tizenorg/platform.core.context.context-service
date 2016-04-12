@@ -18,7 +18,7 @@
 #include <app_manager.h>
 
 #include <types_internal.h>
-#include "server.h"
+#include "Server.h"
 #include "ClientRequest.h"
 #include "access_control/PeerCreds.h"
 #include "DBusServer.h"
@@ -85,7 +85,7 @@ void DBusServer::__processRequest(const char *sender, GVariant *param, GDBusMeth
 		return;
 	}
 
-	server::send_request(request);
+	Server::sendRequest(request);
 }
 
 void DBusServer::__onRequestReceived(GDBusConnection *conn, const gchar *sender,
@@ -124,7 +124,7 @@ void DBusServer::__onBusAcquired(GDBusConnection *conn, const gchar *name, gpoin
 void DBusServer::__onNameAcquired(GDBusConnection *conn, const gchar *name, gpointer userData)
 {
 	_SI("Dbus name acquired: %s", name);
-	server::activate();
+	Server::activate();
 }
 
 void DBusServer::__onNameLost(GDBusConnection *conn, const gchar *name, gpointer userData)

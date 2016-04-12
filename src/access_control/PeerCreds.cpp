@@ -21,11 +21,11 @@
 #include <types_internal.h>
 #include "PeerCreds.h"
 
-ctx::Credentials::Credentials(char *_packageId, char *_client, char *_session, char *_user) :
-	packageId(_packageId),
-	client(_client),
-	session(_session),
-	user(_user)
+ctx::Credentials::Credentials(char *pkgId, char *cli, char *sess, char *usr) :
+	packageId(pkgId),
+	client(cli),
+	session(sess),
+	user(usr)
 {
 }
 

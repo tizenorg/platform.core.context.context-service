@@ -20,7 +20,7 @@
 #include <types_internal.h>
 #include <context_trigger_types_internal.h>
 #include <Json.h>
-#include "server.h"
+#include "Server.h"
 #include "access_control/Privilege.h"
 #include "Request.h"
 #include "ProviderHandler.h"

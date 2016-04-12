@@ -24,56 +24,56 @@
 #include "db_mgr_impl.h"
 #include "ContextManagerImpl.h"
 #include "trigger/Trigger.h"
-#include "server.h"
+#include "Server.h"
 
 static GMainLoop *mainloop = NULL;
 static bool started = false;
 
-static ctx::ContextManagerImpl *context_mgr = NULL;
-static ctx::db_manager_impl *database_mgr = NULL;
-static ctx::DBusServer *dbus_handle = NULL;
-static ctx::trigger::Trigger *context_trigger = NULL;
+static ctx::ContextManagerImpl *__contextMgr = NULL;
+static ctx::db_manager_impl *__databaseMgr = NULL;
+static ctx::DBusServer *__dbusHandle = NULL;
+static ctx::trigger::Trigger *__contextTrigger = NULL;
 
 /* TODO: re-organize activation & deactivation processes */
-void ctx::server::initialize()
+void ctx::Server::initialize()
 {
 	_I("Init MainLoop");
 	mainloop = g_main_loop_new(NULL, FALSE);
 
 	_I("Init Dbus Connection");
-	dbus_handle = new(std::nothrow) ctx::DBusServer();
-	IF_FAIL_VOID_TAG(dbus_handle, _E, "Memory allocation failed");
-	IF_FAIL_VOID_TAG(dbus_handle->__init(), _E, "Initialization Failed");
+	__dbusHandle = new(std::nothrow) ctx::DBusServer();
+	IF_FAIL_VOID_TAG(__dbusHandle, _E, "Memory allocation failed");
+	IF_FAIL_VOID_TAG(__dbusHandle->__init(), _E, "Initialization Failed");
 
 	// Start the main loop
 	_I(CYAN("Launching Context-Service"));
 	g_main_loop_run(mainloop);
 }
 
-void ctx::server::activate()
+void ctx::Server::activate()
 {
 	IF_FAIL_VOID(!started);
 
 	bool result = false;
 
 	_I("Init Database Manager");
-	database_mgr = new(std::nothrow) ctx::db_manager_impl();
-	IF_FAIL_CATCH_TAG(database_mgr, _E, "Memory allocation failed");
-	db_manager::set_instance(database_mgr);
-	result = database_mgr->init();
+	__databaseMgr = new(std::nothrow) ctx::db_manager_impl();
+	IF_FAIL_CATCH_TAG(__databaseMgr, _E, "Memory allocation failed");
+	db_manager::set_instance(__databaseMgr);
+	result = __databaseMgr->init();
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
 	_I("Init Context Manager");
-	context_mgr = new(std::nothrow) ctx::ContextManagerImpl();
-	IF_FAIL_CATCH_TAG(context_mgr, _E, "Memory allocation failed");
-	context_manager::setInstance(context_mgr);
-	result = context_mgr->init();
+	__contextMgr = new(std::nothrow) ctx::ContextManagerImpl();
+	IF_FAIL_CATCH_TAG(__contextMgr, _E, "Memory allocation failed");
+	context_manager::setInstance(__contextMgr);
+	result = __contextMgr->init();
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
 	_I("Init Context Trigger");
-	context_trigger = new(std::nothrow) ctx::trigger::Trigger();
-	IF_FAIL_CATCH_TAG(context_trigger, _E, "Memory allocation failed");
-	result = context_trigger->init(context_mgr);
+	__contextTrigger = new(std::nothrow) ctx::trigger::Trigger();
+	IF_FAIL_CATCH_TAG(__contextTrigger, _E, "Memory allocation failed");
+	result = __contextTrigger->init(__contextMgr);
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
 	started = true;
@@ -87,53 +87,53 @@ CATCH:
 	g_main_loop_quit(mainloop);
 }
 
-void ctx::server::release()
+void ctx::Server::release()
 {
 	_I(CYAN("Terminating Context-Service"));
 	_I("Release Context Trigger");
-	if (context_trigger)
-		context_trigger->release();
+	if (__contextTrigger)
+		__contextTrigger->release();
 
 	_I("Release Analyzer Manager");
-	if (context_mgr)
-		context_mgr->release();
+	if (__contextMgr)
+		__contextMgr->release();
 
 	_I("Release Dbus Connection");
-	if (dbus_handle)
-		dbus_handle->__release();
+	if (__dbusHandle)
+		__dbusHandle->__release();
 
 	_I("Close the Database");
-	if (database_mgr)
-		database_mgr->release();
+	if (__databaseMgr)
+		__databaseMgr->release();
 
 	g_main_loop_unref(mainloop);
 
-	delete context_trigger;
-	delete context_mgr;
-	delete dbus_handle;
-	delete database_mgr;
+	delete __contextTrigger;
+	delete __contextMgr;
+	delete __dbusHandle;
+	delete __databaseMgr;
 }
 
-static gboolean postpone_request_assignment(gpointer data)
+static gboolean __postponeRequestAssignment(gpointer data)
 {
-	ctx::server::send_request(static_cast<ctx::RequestInfo*>(data));
+	ctx::Server::sendRequest(static_cast<ctx::RequestInfo*>(data));
 	return FALSE;
 }
 
-void ctx::server::send_request(ctx::RequestInfo* request)
+void ctx::Server::sendRequest(ctx::RequestInfo* request)
 {
 	if (!started) {
 		_W("Service not ready...");
-		g_idle_add(postpone_request_assignment, request);
+		g_idle_add(__postponeRequestAssignment, request);
 		return;
 	}
 
-	if (!context_trigger->assignRequest(request)) {
-		context_mgr->assignRequest(request);
+	if (!__contextTrigger->assignRequest(request)) {
+		__contextMgr->assignRequest(request);
 	}
 }
 
-static void signal_handler(int signo)
+static void __signalHandler(int signo)
 {
 	_I("SIGNAL %d received", signo);
 
@@ -143,22 +143,22 @@ static void signal_handler(int signo)
 
 int main(int argc, char* argv[])
 {
-	static struct sigaction signal_action;
-	signal_action.sa_handler = signal_handler;
-	sigemptyset(&signal_action.sa_mask);
+	static struct sigaction signalAction;
+	signalAction.sa_handler = __signalHandler;
+	sigemptyset(&signalAction.sa_mask);
 
-	sigaction(SIGINT, &signal_action, NULL);
-	sigaction(SIGHUP, &signal_action, NULL);
-	sigaction(SIGTERM, &signal_action, NULL);
-	sigaction(SIGQUIT, &signal_action, NULL);
-	sigaction(SIGABRT, &signal_action, NULL);
+	sigaction(SIGINT, &signalAction, NULL);
+	sigaction(SIGHUP, &signalAction, NULL);
+	sigaction(SIGTERM, &signalAction, NULL);
+	sigaction(SIGQUIT, &signalAction, NULL);
+	sigaction(SIGABRT, &signalAction, NULL);
 
 #if !defined(GLIB_VERSION_2_36)
 	g_type_init();
 #endif
 
-	ctx::server::initialize();
-	ctx::server::release();
+	ctx::Server::initialize();
+	ctx::Server::release();
 
 	return EXIT_SUCCESS;
 }

@@ -18,7 +18,7 @@
 #include <types_internal.h>
 #include <Json.h>
 #include "access_control/Privilege.h"
-#include "server.h"
+#include "Server.h"
 #include "Request.h"
 #include "ProviderHandler.h"
 
