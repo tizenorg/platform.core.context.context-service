@@ -21,7 +21,6 @@
 
 #include <types_internal.h>
 #include "DBusServer.h"
-#include "db_mgr_impl.h"
 #include "ContextManagerImpl.h"
 #include "trigger/Trigger.h"
 #include "Server.h"
@@ -30,7 +29,6 @@ static GMainLoop *mainloop = NULL;
 static bool started = false;
 
 static ctx::ContextManagerImpl *__contextMgr = NULL;
-static ctx::db_manager_impl *__databaseMgr = NULL;
 static ctx::DBusServer *__dbusHandle = NULL;
 static ctx::trigger::Trigger *__contextTrigger = NULL;
 
@@ -55,13 +53,6 @@ void ctx::Server::activate()
 	IF_FAIL_VOID(!started);
 
 	bool result = false;
-
-	_I("Init Database Manager");
-	__databaseMgr = new(std::nothrow) ctx::db_manager_impl();
-	IF_FAIL_CATCH_TAG(__databaseMgr, _E, "Memory allocation failed");
-	db_manager::set_instance(__databaseMgr);
-	result = __databaseMgr->init();
-	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
 	_I("Init Context Manager");
 	__contextMgr = new(std::nothrow) ctx::ContextManagerImpl();
@@ -102,16 +93,11 @@ void ctx::Server::release()
 	if (__dbusHandle)
 		__dbusHandle->__release();
 
-	_I("Close the Database");
-	if (__databaseMgr)
-		__databaseMgr->release();
-
 	g_main_loop_unref(mainloop);
 
 	delete __contextTrigger;
 	delete __contextMgr;
 	delete __dbusHandle;
-	delete __databaseMgr;
 }
 
 static gboolean __postponeRequestAssignment(gpointer data)

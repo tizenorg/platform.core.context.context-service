@@ -11,9 +11,7 @@ MESSAGE("Sources: ${SRCS}")
 
 # Dependencies
 SET(DEPS
-	libtzplatform-config
 	vconf
-	sqlite3
 	capi-system-info
 	capi-appfw-app-manager
 	appsvc

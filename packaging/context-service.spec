@@ -10,9 +10,7 @@ Source2:	org.tizen.context.conf
 
 BuildRequires: cmake
 BuildRequires: sed
-BuildRequires: pkgconfig(libtzplatform-config)
 BuildRequires: pkgconfig(vconf)
-BuildRequires: pkgconfig(sqlite3)
 BuildRequires: pkgconfig(capi-system-info)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(appsvc)

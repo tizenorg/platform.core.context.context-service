@@ -16,7 +16,6 @@
 
 #include <sstream>
 #include <context_trigger_types_internal.h>
-#include <db_mgr.h>
 #include <package_manager.h>
 #include <Json.h>
 #include "RuleManager.h"
@@ -65,7 +64,7 @@ bool RuleManager::init()
 	std::string q1 = std::string("status INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL,")
 			+ "package_id TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '',"
 			+ "details TEXT DEFAULT '' NOT NULL";
-	ret = db_manager::create_table(1, RULE_TABLE, q1.c_str(), NULL, NULL);
+	ret = __dbManager.createTableSync(RULE_TABLE, q1.c_str(), NULL);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create rule table failed");
 
 	// Before re-enable rules, handle uninstalled app's rules
@@ -90,7 +89,7 @@ int RuleManager::__getUninstalledApp(void)
 	std::string q1 = "SELECT DISTINCT package_id FROM context_trigger_rule";
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q1.c_str(), &record);
+	bool ret = __dbManager.executeSync(q1.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, -1, _E, "Query package ids of registered rules failed");
 
 	std::vector<Json>::iterator vecEnd = record.end();
@@ -154,7 +153,7 @@ int RuleManager::__clearRuleOfUninstalledPackage(bool isInit)
 		q1 += ")";
 
 		std::vector<Json> record;
-		ret = db_manager::execute_sync(q1.c_str(), &record);
+		ret = __dbManager.executeSync(q1.c_str(), &record);
 		IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to query enabled rules of uninstalled packages");
 
 		std::vector<Json>::iterator vecEnd = record.end();
@@ -171,7 +170,7 @@ int RuleManager::__clearRuleOfUninstalledPackage(bool isInit)
 	// Delete rules of uninstalled packages from DB
 	std::string q2 = "DELETE FROM context_trigger_rule WHERE " + pkgList;
 	std::vector<Json> dummy;
-	ret = db_manager::execute_sync(q2.c_str(), &dummy);
+	ret = __dbManager.executeSync(q2.c_str(), &dummy);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to remove rules from db");
 	_D("Uninstalled packages' rules are deleted from db");
 
@@ -184,7 +183,7 @@ int RuleManager::pauseRuleWithItem(std::string& subject)
 {
 	std::string q = "SELECT row_id FROM context_trigger_rule WHERE (status=2) AND (details LIKE '%\"ITEM_NAME\":\"" + subject + "\"%');";
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to query row_ids to be paused");
 	IF_FAIL_RETURN(record.size() > 0, ERR_NONE);
 
@@ -206,7 +205,7 @@ int RuleManager::resumeRuleWithItem(std::string& subject)
 {
 	std::string q = "SELECT row_id FROM context_trigger_rule WHERE (status=1) AND (details LIKE '%\"ITEM_NAME\":\"" + subject + "\"%');";
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query paused rule ids failed");
 	IF_FAIL_RETURN(record.size() > 0, ERR_NONE);
 
@@ -231,7 +230,7 @@ bool RuleManager::__reenableRule(void)
 	std::string q = "SELECT row_id FROM context_trigger_rule WHERE status = 2";
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Query row_ids of enabled rules failed");
 	IF_FAIL_RETURN_TAG(record.size() > 0, true, _D, "No rule to re-enable");
 
@@ -258,7 +257,7 @@ bool RuleManager::__reenableRule(void)
 	// For rules which is failed to re-enable
 	std::string qUpdate = "UPDATE context_trigger_rule SET status = 1 WHERE " + qRowId;
 	std::vector<Json> record2;
-	ret = db_manager::execute_sync(qUpdate.c_str(), &record2);
+	ret = __dbManager.executeSync(qUpdate.c_str(), &record2);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Failed to update rules as paused");
 
 	return true;
@@ -422,7 +421,7 @@ int64_t RuleManager::__getDuplicatedRuleId(std::string pkgId, Json& rule)
 	q += "'";
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Query row_id, details by package id failed");
 
 	Json rDetails;
@@ -451,7 +450,7 @@ int64_t RuleManager::__getDuplicatedRuleId(std::string pkgId, Json& rule)
 				std::string qUpdate = "UPDATE context_trigger_rule SET description='" + rDesc + "' WHERE row_id = " + __intToString(rowId);
 
 				std::vector<Json> dummy;
-				ret = db_manager::execute_sync(qUpdate.c_str(), &dummy);
+				ret = __dbManager.executeSync(qUpdate.c_str(), &dummy);
 				if (ret) {
 					_D("Rule%lld description is updated", rowId);
 				} else {
@@ -535,7 +534,7 @@ int RuleManager::addRule(std::string creator, const char* pkgId, Json rule, Json
 	trigger::timer::handleTimerEvent(details);
 
 	record.set(NULL, "details", details.str());
-	ret = db_manager::insert_sync(RULE_TABLE, record, &rid);
+	ret = __dbManager.insertSync(RULE_TABLE, record, &rid);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Insert rule to db failed");
 
 	// Save rule id
@@ -555,7 +554,7 @@ int RuleManager::removeRule(int ruleId)
 	query += __intToString(ruleId);
 
 	std::vector<Json> record;
-	ret = db_manager::execute_sync(query.c_str(), &record);
+	ret = __dbManager.executeSync(query.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Remove rule from db failed");
 
 	_D("Remove rule%d succeeded", ruleId);
@@ -579,7 +578,7 @@ int RuleManager::enableRule(int ruleId)
 	// Get rule Json by rule id;
 	query = "SELECT details, package_id FROM context_trigger_rule WHERE row_id = ";
 	query += idStr;
-	error = (db_manager::execute_sync(query.c_str(), &record))? ERR_NONE : ERR_OPERATION_FAILED;
+	error = (__dbManager.executeSync(query.c_str(), &record))? ERR_NONE : ERR_OPERATION_FAILED;
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Query rule by rule id failed");
 
 	record[0].get(NULL, "details", &tmp);
@@ -597,7 +596,7 @@ int RuleManager::enableRule(int ruleId)
 	// Update db to set 'enabled'
 	query = "UPDATE context_trigger_rule SET status = 2 WHERE row_id = ";
 	query += idStr;
-	error = (db_manager::execute_sync(query.c_str(), &dummy))? ERR_NONE : ERR_OPERATION_FAILED;
+	error = (__dbManager.executeSync(query.c_str(), &dummy))? ERR_NONE : ERR_OPERATION_FAILED;
 	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Update db failed");
 
 	// Add rule instance to __ruleMap
@@ -637,7 +636,7 @@ int RuleManager::disableRule(int ruleId)
 	std::string query = "UPDATE context_trigger_rule SET status = 0 WHERE row_id = ";
 	query += __intToString(ruleId);
 	std::vector<Json> record;
-	ret = db_manager::execute_sync(query.c_str(), &record);
+	ret = __dbManager.executeSync(query.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Update db failed");
 
 	_D(YELLOW("Disable Rule%d succeeded"), ruleId);
@@ -662,7 +661,7 @@ int RuleManager::pauseRule(int ruleId)
 
 	query += __intToString(ruleId);
 	std::vector<Json> record;
-	ret = db_manager::execute_sync(query.c_str(), &record);
+	ret = __dbManager.executeSync(query.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Update db failed");
 
 	// Remove rule instance from __ruleMap
@@ -680,7 +679,7 @@ int RuleManager::checkRule(std::string pkgId, int ruleId)
 	q += __intToString(ruleId);
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Query package id by rule id failed");
 
 	if (record.size() == 0) {
@@ -703,7 +702,7 @@ bool RuleManager::isRuleEnabled(int ruleId)
 	q += __intToString(ruleId);
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Query enabled by rule id failed");
 
 	int status;
@@ -721,7 +720,7 @@ int RuleManager::getRuleById(std::string pkgId, int ruleId, Json* requestResult)
 	q += ")";
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Query rule by rule id failed");
 
 	if (record.size() == 0) {
@@ -748,7 +747,7 @@ int RuleManager::getRuleIds(std::string pkgId, Json* requestResult)
 	q += "')";
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query rules failed");
 
 	std::vector<Json>::iterator vecEnd = record.end();

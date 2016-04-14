@@ -18,6 +18,7 @@
 #define _CONTEXT_TRIGGER_TEMPLATE_MANAGER_H_
 
 #include <Json.h>
+#include <DatabaseManager.h>
 
 namespace ctx {
 
@@ -47,6 +48,8 @@ namespace trigger {
 		static TemplateManager *__instance;
 		static ContextManagerImpl *__contextMgr;
 		static RuleManager *__ruleMgr;
+
+		DatabaseManager __dbManager;
 
 		std::string __addTemplate(std::string &subject, int &operation, Json &attributes, Json &options, std::string &owner);
 		std::string __removeTemplate(std::string &subject);
