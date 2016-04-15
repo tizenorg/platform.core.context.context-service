@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <types_internal.h>
+#include <Types.h>
 #include <context_trigger_types_internal.h>
 #include "Trigger.h"
 #include "ContextMonitor.h"

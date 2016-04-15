@@ -19,7 +19,7 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include <types_internal.h>
+#include <Types.h>
 #include "DBusServer.h"
 #include "ContextManagerImpl.h"
 #include "trigger/Trigger.h"

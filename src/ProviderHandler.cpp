@@ -15,7 +15,7 @@
  */
 
 #include <glib.h>
-#include <types_internal.h>
+#include <Types.h>
 #include <Json.h>
 #include "access_control/Privilege.h"
 #include "Server.h"

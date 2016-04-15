@@ -16,7 +16,7 @@
 
 #include <context_trigger.h>
 #include <context_trigger_types_internal.h>
-#include <types_internal.h>
+#include <Types.h>
 #include <TimerManager.h>
 #include "Timer.h"
 

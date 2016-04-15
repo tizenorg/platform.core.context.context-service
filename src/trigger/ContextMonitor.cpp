@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <types_internal.h>
+#include <Types.h>
 #include "../access_control/Privilege.h"
 #include "../ContextManagerImpl.h"
 #include "ContextMonitor.h"
@@ -187,7 +187,7 @@ bool ContextMonitor::isAllowed(const char *client, const char *subject)
 	return true;
 }
 
-int ContextMonitor::__findSub(request_type type, const char* subject, Json* option)
+int ContextMonitor::__findSub(RequestType type, const char* subject, Json* option)
 {
 	// @return	request id
 	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
@@ -206,7 +206,7 @@ int ContextMonitor::__findSub(request_type type, const char* subject, Json* opti
 	return -1;
 }
 
-bool ContextMonitor::__addSub(request_type type, int sid, const char* subject, Json* option, IContextListener* listener)
+bool ContextMonitor::__addSub(RequestType type, int sid, const char* subject, Json* option, IContextListener* listener)
 {
 	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
 
@@ -218,7 +218,7 @@ bool ContextMonitor::__addSub(request_type type, int sid, const char* subject, J
 	return true;
 }
 
-void ContextMonitor::__removeSub(request_type type, const char* subject, Json* option)
+void ContextMonitor::__removeSub(RequestType type, const char* subject, Json* option)
 {
 	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
 
@@ -236,7 +236,7 @@ void ContextMonitor::__removeSub(request_type type, const char* subject, Json* o
 	}
 }
 
-void ContextMonitor::__removeSub(request_type type, int sid)
+void ContextMonitor::__removeSub(RequestType type, int sid)
 {
 	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
 
@@ -249,7 +249,7 @@ void ContextMonitor::__removeSub(request_type type, int sid)
 	return;
 }
 
-int ContextMonitor::__addListener(request_type type, int sid, IContextListener* listener)
+int ContextMonitor::__addListener(RequestType type, int sid, IContextListener* listener)
 {
 	// @return	number of listeners for the corresponding sid
 	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
@@ -262,7 +262,7 @@ int ContextMonitor::__addListener(request_type type, int sid, IContextListener* 
 	return info->listenerList.size();
 }
 
-int ContextMonitor::__removeListener(request_type type, int sid, IContextListener* listener)
+int ContextMonitor::__removeListener(RequestType type, int sid, IContextListener* listener)
 {
 	// @return	number of listeners for the corresponding sid
 	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;

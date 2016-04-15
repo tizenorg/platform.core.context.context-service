@@ -17,7 +17,8 @@
 #include <glib.h>
 #include <list>
 
-#include <types_internal.h>
+#include <Types.h>
+#include <DBusTypes.h>
 #include <context_trigger_types_internal.h>
 #include <Json.h>
 #include "Server.h"

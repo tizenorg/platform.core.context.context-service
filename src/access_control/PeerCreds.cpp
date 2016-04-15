@@ -18,7 +18,7 @@
 #include <cynara-session.h>
 #include <app_manager.h>
 #include <package_manager.h>
-#include <types_internal.h>
+#include <Types.h>
 #include "PeerCreds.h"
 
 ctx::Credentials::Credentials(char *pkgId, char *cli, char *sess, char *usr) :

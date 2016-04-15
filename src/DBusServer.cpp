@@ -17,7 +17,8 @@
 #include <signal.h>
 #include <app_manager.h>
 
-#include <types_internal.h>
+#include <Types.h>
+#include <DBusTypes.h>
 #include "Server.h"
 #include "ClientRequest.h"
 #include "access_control/PeerCreds.h"

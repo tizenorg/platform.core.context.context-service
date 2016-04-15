@@ -15,7 +15,7 @@
  */
 
 #include <glib.h>
-#include <types_internal.h>
+#include <Types.h>
 #include "Request.h"
 
 ctx::RequestInfo::RequestInfo(int type, int reqId, const char* subj, const char* desc) :

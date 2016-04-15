@@ -15,7 +15,7 @@
  */
 
 #include <Json.h>
-#include <types_internal.h>
+#include <Types.h>
 #include <context_trigger_types_internal.h>
 #include "RuleEvaluator.h"
 #include "FactTypes.h"

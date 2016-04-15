@@ -20,6 +20,7 @@
 #include <list>
 #include <map>
 #include <Json.h>
+#include <DBusTypes.h>
 
 namespace ctx {
 
@@ -76,12 +77,12 @@ namespace trigger {
 		std::map<int, SubscrInfo*> __subscrMap;
 		std::map<int, SubscrInfo*> ___readMap;
 
-		int __findSub(request_type type, const char *subject, Json *option);
-		bool __addSub(request_type type, int sid, const char *subject, Json *option, IContextListener* listener);
-		void __removeSub(request_type type, const char *subject, Json *option);
-		void __removeSub(request_type type, int sid);
-		int __addListener(request_type type, int sid, IContextListener* listener);
-		int __removeListener(request_type type, int sid, IContextListener* listener);
+		int __findSub(RequestType type, const char *subject, Json *option);
+		bool __addSub(RequestType type, int sid, const char *subject, Json *option, IContextListener* listener);
+		void __removeSub(RequestType type, const char *subject, Json *option);
+		void __removeSub(RequestType type, int sid);
+		int __addListener(RequestType type, int sid, IContextListener* listener);
+		int __removeListener(RequestType type, int sid, IContextListener* listener);
 
 	};	/* class ContextMonitor */
 

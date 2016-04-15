@@ -17,7 +17,8 @@
 #include <unistd.h>
 #include <glib.h>
 #include <app_manager.h>
-#include <types_internal.h>
+#include <Types.h>
+#include <DBusTypes.h>
 #include "DBusServer.h"
 #include "access_control/PeerCreds.h"
 #include "ClientRequest.h"
