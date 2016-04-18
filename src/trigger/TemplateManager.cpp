@@ -17,7 +17,7 @@
 #include <sstream>
 #include <Types.h>
 #include <context_trigger_types_internal.h>
-#include "../ContextManagerImpl.h"
+#include "../ContextManager.h"
 #include "RuleManager.h"
 #include "TemplateManager.h"
 
@@ -25,7 +25,7 @@ using namespace ctx;
 using namespace ctx::trigger;
 
 TemplateManager *TemplateManager::__instance = NULL;
-ContextManagerImpl *TemplateManager::__contextMgr = NULL;
+ContextManager *TemplateManager::__contextMgr = NULL;
 RuleManager *TemplateManager::__ruleMgr = NULL;
 
 static std::string __intToString(int i)
@@ -44,7 +44,7 @@ TemplateManager::~TemplateManager()
 {
 }
 
-void TemplateManager::setManager(ContextManagerImpl* ctxMgr, RuleManager* ruleMgr)
+void TemplateManager::setManager(ContextManager* ctxMgr, RuleManager* ruleMgr)
 {
 	__contextMgr = ctxMgr;
 	__ruleMgr = ruleMgr;

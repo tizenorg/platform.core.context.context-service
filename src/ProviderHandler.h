@@ -19,11 +19,10 @@
 
 #include <string>
 #include <list>
-#include <ContextProviderBase.h>
+#include <IContextProvider.h>
 
 namespace ctx {
 
-	class Json;
 	class Credentials;
 	class RequestInfo;
 
@@ -31,7 +30,7 @@ namespace ctx {
 	public:
 		typedef std::list<RequestInfo*> RequestList;
 
-		ProviderHandler(const char *subj, ContextProviderInfo &prvd);
+		ProviderHandler(const char *subject, const char *privilege, IContextProvider *provider);
 		~ProviderHandler();
 
 		bool isAllowed(const Credentials *creds);
@@ -46,11 +45,12 @@ namespace ctx {
 
 	private:
 		const char *__subject;
-		ContextProviderInfo __providerInfo;
+		const char *__privilege;
+		IContextProvider *__provider;
 		RequestList __subscribeRequests;
 		RequestList __readRequests;
 
-		ContextProviderBase* __getProvider(RequestInfo *request);
+		IContextProvider* __getProvider(RequestInfo *request);
 		RequestList::iterator __findRequest(RequestList &reqList, Json &option);
 		RequestList::iterator __findRequest(RequestList &reqList, std::string client, int reqId);
 		RequestList::iterator __findRequest(RequestList::iterator begin, RequestList::iterator end, Json &option);

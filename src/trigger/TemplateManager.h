@@ -22,7 +22,7 @@
 
 namespace ctx {
 
-	class ContextManagerImpl;
+	class ContextManager;
 
 namespace trigger {
 
@@ -31,7 +31,7 @@ namespace trigger {
 	class TemplateManager {
 	public:
 		static TemplateManager* getInstance();
-		static void setManager(ContextManagerImpl* ctxMgr, RuleManager* ruleMgr);
+		static void setManager(ContextManager* ctxMgr, RuleManager* ruleMgr);
 		static void destroy();
 
 		bool init();
@@ -46,7 +46,7 @@ namespace trigger {
 		~TemplateManager();
 
 		static TemplateManager *__instance;
-		static ContextManagerImpl *__contextMgr;
+		static ContextManager *__contextMgr;
 		static RuleManager *__ruleMgr;
 
 		DatabaseManager __dbManager;
