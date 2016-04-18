@@ -21,11 +21,12 @@
 #include <DBusTypes.h>
 #include <context_trigger_types_internal.h>
 #include <Json.h>
+#include <ContextProvider.h>
 #include "Server.h"
 #include "access_control/Privilege.h"
 #include "Request.h"
 #include "ProviderHandler.h"
-#include "ContextManagerImpl.h"
+#include "ContextManager.h"
 #include "trigger/TemplateManager.h"
 
 /* Context Providers */
@@ -34,14 +35,16 @@
 #include <internal/PlaceContextProvider.h>
 #include <internal/CustomContextProvider.h>
 
+using namespace ctx;
+
 struct TriggerItemFormat {
 	std::string subject;
 	int operation;
-	ctx::Json attributes;
-	ctx::Json options;
+	Json attributes;
+	Json options;
 	std::string owner;
 	bool unregister;
-	TriggerItemFormat(std::string subj, int ops, ctx::Json attr, ctx::Json opt, std::string own) :
+	TriggerItemFormat(std::string subj, int ops, Json attr, Json opt, std::string own) :
 		subject(subj),
 		operation(ops),
 		attributes(attr),
@@ -59,58 +62,62 @@ struct TriggerItemFormat {
 };
 
 static std::list<TriggerItemFormat> __triggerItemList;
-bool ctx::ContextManagerImpl::__initialized = false;
 
-ctx::ContextManagerImpl::ContextManagerImpl()
+ContextManager *ContextManager::__theInstance = NULL;
+
+ContextManager::ContextManager() :
+	__initialized(false)
 {
+	__theInstance = this;
+	ContextProvider::__setContextManager(this);
 }
 
-ctx::ContextManagerImpl::~ContextManagerImpl()
+ContextManager::~ContextManager()
 {
 	release();
+	__theInstance = NULL;
 }
 
-bool ctx::ContextManagerImpl::init()
+bool ContextManager::init()
 {
 	bool ret;
 
-	ret = initDeviceContextProvider();
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: DeviceContextProvider");
+//	ret = initDeviceContextProvider();
+//	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: DeviceContextProvider");
 
-	ret = initStatisticsContextProvider();
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: StatisticsContextProvider");
+//	ret = initStatisticsContextProvider();
+//	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: StatisticsContextProvider");
 
 	ret = initPlaceContextProvider();
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: PlaceContextProvider");
 
-	ret = initCustomContextProvider();
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: CustomContextProvider");
+//	ret = initCustomContextProvider();
+//	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: CustomContextProvider");
 
 	__initialized = true;
-
 	return true;
 }
 
-void ctx::ContextManagerImpl::release()
+void ContextManager::release()
 {
-	for (auto it = __providerHandleMap.begin(); it != __providerHandleMap.end(); ++it) {
-		delete it->second;
+	for (auto& it : __providerHandleMap) {
+		delete it.second;
 	}
 	__providerHandleMap.clear();
 }
 
-bool ctx::ContextManagerImpl::registerProvider(const char *subject, ctx::ContextProviderInfo &providerInfo)
+bool ContextManager::registerProvider(const char *subject, const char *privilege, ContextProvider *provider)
 {
 	if (__providerHandleMap.find(subject) != __providerHandleMap.end()) {
 		_E("The provider for the subject '%s' is already registered.", subject);
 		return false;
 	}
 
-	_SI("Subj: %s, Priv: %s", subject, providerInfo.privilege);
+	_SI("Subj: %s, Priv: %s", subject, privilege);
 	__providerHandleMap[subject] = NULL;
 
 	auto it = __providerHandleMap.find(subject);
-	ProviderHandler *handle = new(std::nothrow) ProviderHandler(it->first.c_str(), providerInfo);
+	ProviderHandler *handle = new(std::nothrow) ProviderHandler(it->first.c_str(), privilege, provider);
 
 	if (!handle) {
 		_E("Memory allocation failed");
@@ -122,7 +129,7 @@ bool ctx::ContextManagerImpl::registerProvider(const char *subject, ctx::Context
 	return true;
 }
 
-bool ctx::ContextManagerImpl::unregisterProvider(const char *subject)
+bool ContextManager::unregisterProvider(const char *subject)
 {
 	auto it = __providerHandleMap.find(subject);
 	if (it == __providerHandleMap.end()) {
@@ -136,14 +143,14 @@ bool ctx::ContextManagerImpl::unregisterProvider(const char *subject)
 	return true;
 }
 
-bool ctx::ContextManagerImpl::registerTriggerItem(const char *subject, int operation, ctx::Json attributes, ctx::Json options, const char* owner)
+bool ContextManager::registerTriggerItem(const char *subject, int operation, Json attributes, Json options, const char* owner)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 
 	if (!__initialized) {
 		__triggerItemList.push_back(TriggerItemFormat(subject, operation, attributes, options, (owner)? owner : ""));
 	} else {
-		ctx::trigger::TemplateManager* tmplMgr = ctx::trigger::TemplateManager::getInstance();
+		trigger::TemplateManager* tmplMgr = trigger::TemplateManager::getInstance();
 		IF_FAIL_RETURN_TAG(tmplMgr, false, _E, "Memory allocation failed");
 		tmplMgr->registerTemplate(subject, operation, attributes, options, owner);
 	}
@@ -151,14 +158,14 @@ bool ctx::ContextManagerImpl::registerTriggerItem(const char *subject, int opera
 	return true;
 }
 
-bool ctx::ContextManagerImpl::unregisterTriggerItem(const char *subject)
+bool ContextManager::unregisterTriggerItem(const char *subject)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 
 	if (!__initialized) {
 		__triggerItemList.push_back(TriggerItemFormat(subject));
 	} else {
-		ctx::trigger::TemplateManager* tmplMgr = ctx::trigger::TemplateManager::getInstance();
+		trigger::TemplateManager* tmplMgr = trigger::TemplateManager::getInstance();
 		IF_FAIL_RETURN_TAG(tmplMgr, false, _E, "Memory allocation failed");
 		tmplMgr->unregisterTemplate(subject);
 	}
@@ -166,7 +173,7 @@ bool ctx::ContextManagerImpl::unregisterTriggerItem(const char *subject)
 	return true;
 }
 
-bool ctx::ContextManagerImpl::popTriggerItem(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string& owner, bool& unregister)
+bool ContextManager::popTriggerItem(std::string &subject, int &operation, Json &attributes, Json &options, std::string& owner, bool& unregister)
 {
 	IF_FAIL_RETURN(!__triggerItemList.empty(), false);
 
@@ -183,7 +190,7 @@ bool ctx::ContextManagerImpl::popTriggerItem(std::string &subject, int &operatio
 	return true;
 }
 
-void ctx::ContextManagerImpl::assignRequest(ctx::RequestInfo* request)
+void ContextManager::assignRequest(RequestInfo* request)
 {
 	if (__handleCustomRequest(request)) {
 		delete request;
@@ -229,13 +236,13 @@ void ctx::ContextManagerImpl::assignRequest(ctx::RequestInfo* request)
 	}
 }
 
-bool ctx::ContextManagerImpl::isSupported(const char *subject)
+bool ContextManager::isSupported(const char *subject)
 {
 	auto it = __providerHandleMap.find(subject);
 	return (it != __providerHandleMap.end());
 }
 
-bool ctx::ContextManagerImpl::isAllowed(const ctx::Credentials *creds, const char *subject)
+bool ContextManager::isAllowed(const Credentials *creds, const char *subject)
 {
 	IF_FAIL_RETURN(creds, true);	/* In case internal requests */
 	auto it = __providerHandleMap.find(subject);
@@ -243,7 +250,7 @@ bool ctx::ContextManagerImpl::isAllowed(const ctx::Credentials *creds, const cha
 	return it->second->isAllowed(creds);
 }
 
-void ctx::ContextManagerImpl::__publish(const char* subject, ctx::Json &option, int error, ctx::Json &dataUpdated)
+void ContextManager::__publish(const char* subject, Json &option, int error, Json &dataUpdated)
 {
 	_I("Publishing '%s'", subject);
 	_J("Option", option);
@@ -254,7 +261,7 @@ void ctx::ContextManagerImpl::__publish(const char* subject, ctx::Json &option, 
 	it->second->publish(option, error, dataUpdated);
 }
 
-void ctx::ContextManagerImpl::__replyToRead(const char* subject, ctx::Json &option, int error, ctx::Json &dataRead)
+void ContextManager::__replyToRead(const char* subject, Json &option, int error, Json &dataRead)
 {
 	_I("Sending data of '%s'", subject);
 	_J("Option", option);
@@ -268,12 +275,12 @@ void ctx::ContextManagerImpl::__replyToRead(const char* subject, ctx::Json &opti
 
 struct PublishedData {
 	int type;
-	ctx::ContextManagerImpl *mgr;
+	ContextManager *mgr;
 	std::string subject;
 	int error;
-	ctx::Json option;
-	ctx::Json data;
-	PublishedData(int t, ctx::ContextManagerImpl *m, const char* s, ctx::Json& o, int e, ctx::Json& d)
+	Json option;
+	Json data;
+	PublishedData(int t, ContextManager *m, const char* s, Json& o, int e, Json& d)
 		: type(t), mgr(m), subject(s), error(e)
 	{
 		option = o.str();
@@ -281,7 +288,7 @@ struct PublishedData {
 	}
 };
 
-gboolean ctx::ContextManagerImpl::__threadSwitcher(gpointer data)
+gboolean ContextManager::__threadSwitcher(gpointer data)
 {
 	PublishedData *tuple = static_cast<PublishedData*>(data);
 
@@ -300,7 +307,7 @@ gboolean ctx::ContextManagerImpl::__threadSwitcher(gpointer data)
 	return FALSE;
 }
 
-bool ctx::ContextManagerImpl::publish(const char* subject, ctx::Json& option, int error, ctx::Json& dataUpdated)
+bool ContextManager::publish(const char* subject, Json& option, int error, Json& dataUpdated)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 
@@ -312,7 +319,7 @@ bool ctx::ContextManagerImpl::publish(const char* subject, ctx::Json& option, in
 	return true;
 }
 
-bool ctx::ContextManagerImpl::replyToRead(const char* subject, ctx::Json& option, int error, ctx::Json& dataRead)
+bool ContextManager::replyToRead(const char* subject, Json& option, int error, Json& dataRead)
 {
 	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
 
@@ -324,8 +331,9 @@ bool ctx::ContextManagerImpl::replyToRead(const char* subject, ctx::Json& option
 	return true;
 }
 
-bool ctx::ContextManagerImpl::__handleCustomRequest(ctx::RequestInfo* request)
+bool ContextManager::__handleCustomRequest(RequestInfo* request)
 {
+#if 0
 	std::string subject = request->getSubject();
 	IF_FAIL_RETURN(	subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_ADD ||
 					subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_REMOVE ||
@@ -337,31 +345,32 @@ bool ctx::ContextManagerImpl::__handleCustomRequest(ctx::RequestInfo* request)
 		return true;
 	}
 
-	ctx::Json desc = request->getDescription();
+	Json desc = request->getDescription();
 	std::string name;
 	desc.get(NULL, CT_CUSTOM_NAME, &name);
 	std::string subj = pkg_id + std::string("::") + name;
 
 	int error = ERR_NONE;
 	if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_ADD) {
-		ctx::Json tmpl;
+		Json tmpl;
 		desc.get(NULL, CT_CUSTOM_ATTRIBUTES, &tmpl);
 
-		error = ctx::custom_context_provider::addItem(subj, name, tmpl, pkg_id);
+		error = custom_context_provider::addItem(subj, name, tmpl, pkg_id);
 	} else if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_REMOVE) {
-		error = ctx::custom_context_provider::removeItem(subj);
+		error = custom_context_provider::removeItem(subj);
 		if (error == ERR_NONE) {
-			ctx::Json data;
+			Json data;
 			data.set(NULL, CT_CUSTOM_SUBJECT, subj);
 			request->reply(error, data);
 		}
 	} else if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_PUBLISH) {
-		ctx::Json fact;
+		Json fact;
 		desc.get(NULL, CT_CUSTOM_FACT, &fact);
 
-		error = ctx::custom_context_provider::publishData(subj, fact);
+		error = custom_context_provider::publishData(subj, fact);
 	}
 
 	request->reply(error);
+#endif
 	return true;
 }

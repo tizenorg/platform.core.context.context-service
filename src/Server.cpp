@@ -21,14 +21,14 @@
 
 #include <Types.h>
 #include "DBusServer.h"
-#include "ContextManagerImpl.h"
+#include "ContextManager.h"
 #include "trigger/Trigger.h"
 #include "Server.h"
 
 static GMainLoop *mainloop = NULL;
 static bool started = false;
 
-static ctx::ContextManagerImpl *__contextMgr = NULL;
+static ctx::ContextManager *__contextMgr = NULL;
 static ctx::DBusServer *__dbusHandle = NULL;
 static ctx::trigger::Trigger *__contextTrigger = NULL;
 
@@ -55,9 +55,8 @@ void ctx::Server::activate()
 	bool result = false;
 
 	_I("Init Context Manager");
-	__contextMgr = new(std::nothrow) ctx::ContextManagerImpl();
+	__contextMgr = new(std::nothrow) ctx::ContextManager();
 	IF_FAIL_CATCH_TAG(__contextMgr, _E, "Memory allocation failed");
-	context_manager::setInstance(__contextMgr);
 	result = __contextMgr->init();
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
