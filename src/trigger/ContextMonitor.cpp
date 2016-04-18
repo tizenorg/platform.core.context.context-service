@@ -16,7 +16,7 @@
 
 #include <Types.h>
 #include "../access_control/Privilege.h"
-#include "../ContextManagerImpl.h"
+#include "../ContextManager.h"
 #include "ContextMonitor.h"
 #include "IContextListener.h"
 #include "FactRequest.h"
@@ -28,7 +28,7 @@ static int __lastRid;
 static int __lastErr;
 
 ContextMonitor *ContextMonitor::__instance = NULL;
-ContextManagerImpl *ContextMonitor::__contextMgr = NULL;
+ContextManager *ContextMonitor::__contextMgr = NULL;
 
 static int __generateReqId()
 {
@@ -50,7 +50,7 @@ ContextMonitor::~ContextMonitor()
 {
 }
 
-void ContextMonitor::setContextManager(ContextManagerImpl* ctx_mgr)
+void ContextMonitor::setContextManager(ContextManager* ctx_mgr)
 {
 	__contextMgr = ctx_mgr;
 }

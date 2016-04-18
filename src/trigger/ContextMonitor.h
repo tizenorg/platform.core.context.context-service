@@ -24,7 +24,7 @@
 
 namespace ctx {
 
-	class ContextManagerImpl;
+	class ContextManager;
 
 namespace trigger {
 
@@ -34,7 +34,7 @@ namespace trigger {
 	class ContextMonitor {
 	public:
 		static ContextMonitor* getInstance();
-		static void setContextManager(ContextManagerImpl* ctx_mgr);
+		static void setContextManager(ContextManager* ctx_mgr);
 		static void destroy();
 
 		int subscribe(int ruleId, std::string subject, Json option, IContextListener* listener);
@@ -53,7 +53,7 @@ namespace trigger {
 		~ContextMonitor();
 
 		static ContextMonitor *__instance;
-		static ContextManagerImpl *__contextMgr;
+		static ContextManager *__contextMgr;
 
 		int __subscribe(const char* subject, Json* option, IContextListener* listener);
 		void __unsubscribe(const char *subject, int subscriptionId);

@@ -12,7 +12,10 @@ BuildRequires: cmake
 BuildRequires: sed
 BuildRequires: pkgconfig(vconf)
 BuildRequires: pkgconfig(capi-system-info)
+BuildRequires: pkgconfig(capi-system-device)
+BuildRequires: pkgconfig(capi-system-runtime-info)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
+BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(appsvc)
 BuildRequires: pkgconfig(notification)
 BuildRequires: pkgconfig(capi-system-system-settings)

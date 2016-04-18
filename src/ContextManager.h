@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef _CONTEXT_MANAGER_IMPL_H_
-#define _CONTEXT_MANAGER_IMPL_H_
+#ifndef _CONTEXT_CONTEXT_MANAGER_H_
+#define _CONTEXT_CONTEXT_MANAGER_H_
 
-#include <string>
 #include <map>
-#include <glib.h>
-#include <ContextManager.h>
 #include <IContextManager.h>
 
 namespace ctx {
@@ -30,10 +27,9 @@ namespace ctx {
 	class RequestInfo;
 	class ProviderHandler;
 
-	class ContextManagerImpl : public IContextManager {
+	class ContextManager : public IContextManager {
 	public:
-		ContextManagerImpl();
-		~ContextManagerImpl();
+		~ContextManager();
 
 		bool init();
 		void release();
@@ -44,7 +40,7 @@ namespace ctx {
 		bool popTriggerItem(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner, bool& unregister);
 
 		/* From the interface class */
-		bool registerProvider(const char *subject, ContextProviderInfo &providerInfo);
+		bool registerProvider(const char *subject, const char *privilege, ContextProvider *provider);
 		bool unregisterProvider(const char *subject);
 		bool registerTriggerItem(const char *subject, int operation, ctx::Json attributes, ctx::Json options, const char *owner = NULL);
 		bool unregisterTriggerItem(const char *subject);
@@ -52,17 +48,23 @@ namespace ctx {
 		bool replyToRead(const char *subject, ctx::Json &option, int error, ctx::Json &dataRead);
 
 	private:
-		std::map<std::string, ProviderHandler*> __providerHandleMap;
-		static bool __initialized;
+		ContextManager();
 
 		static gboolean __threadSwitcher(gpointer data);
+
 		void __publish(const char *subject, ctx::Json &option, int error, ctx::Json &dataUpdated);
 		void __replyToRead(const char *subject, ctx::Json &option, int error, ctx::Json &dataRead);
 
 		/* For custom request */
 		bool __handleCustomRequest(ctx::RequestInfo* request);
-	};	/* class ContextManagerImpl */
+
+		bool __initialized;
+		std::map<std::string, ProviderHandler*> __providerHandleMap;
+
+		friend class Server;
+
+	};	/* class ContextManager */
 
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_MANAGER_IMPL_H__ */
+#endif	/* _CONTEXT_CONTEXT_MANAGER_H_ */
