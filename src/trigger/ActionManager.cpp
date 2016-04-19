@@ -20,8 +20,7 @@
 #include <device/display.h>
 #include <notification.h>
 #include <notification_internal.h>
-#include <runtime_info.h>
-#include <system_settings.h>
+#include <vconf.h>
 #include <context_trigger_types_internal.h>
 #include <Json.h>
 #include "../DBusServer.h"
@@ -140,16 +139,21 @@ void __triggerActionNotification(ctx::Json& action, std::string pkgId)
 		}
 	}
 
+	int status;
 	bool silent = true;
-	error = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, &silent);
-	if (error != SYSTEM_SETTINGS_ERROR_NONE) {
-		_E("Get system setting(silent mode) failed(%d)", error);
+	error = vconf_get_bool(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL, &status);
+	if (error < 0) {
+		_E("vconf error (%d)", error);
+	} else {
+		silent = (status == 0);
 	}
 
 	bool vibration = true;
-	error = runtime_info_get_value_bool(RUNTIME_INFO_KEY_VIBRATION_ENABLED, &vibration);
-	if (error != RUNTIME_INFO_ERROR_NONE) {
-		_E("Get runtime info(vibration) failed(%d)", error);
+	error = vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &status);
+	if (error < 0) {
+		_E("vconf error (%d)", error);
+	} else {
+		vibration = (status != 0);
 	}
 
 	if (!silent) {

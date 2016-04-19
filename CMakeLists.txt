@@ -14,12 +14,10 @@ SET(DEPS
 	vconf
 	capi-system-info
 	capi-system-device
-	capi-system-runtime-info
 	capi-appfw-app-manager
 	capi-appfw-package-manager
 	appsvc
 	notification
-	capi-system-system-settings
 	cynara-creds-gdbus
 	cynara-client
 	cynara-session
