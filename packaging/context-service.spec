@@ -8,6 +8,12 @@ Source0:    %{name}-%{version}.tar.gz
 Source1:	context-service.service
 Source2:	org.tizen.context.conf
 
+%define BUILD_PROFILE %{?profile}%{!?profile:%{?tizen_profile_name}}
+
+%if "%{?BUILD_PROFILE}" == "tv"
+ExcludeArch: %{arm} aarch64 %ix86 x86_64
+%endif
+
 BuildRequires: cmake
 BuildRequires: sed
 BuildRequires: pkgconfig(vconf)
