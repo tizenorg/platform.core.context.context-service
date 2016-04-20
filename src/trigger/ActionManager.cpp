@@ -139,34 +139,25 @@ void __triggerActionNotification(ctx::Json& action, std::string pkgId)
 		}
 	}
 
-	int status;
-	bool silent = true;
-	error = vconf_get_bool(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL, &status);
+	int soundOn = 0;
+	error = vconf_get_bool(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL, &soundOn);
 	if (error < 0) {
 		_E("vconf error (%d)", error);
-	} else {
-		silent = (status == 0);
-	}
-
-	bool vibration = true;
-	error = vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &status);
-	if (error < 0) {
-		_E("vconf error (%d)", error);
-	} else {
-		vibration = (status != 0);
-	}
-
-	if (!silent) {
-	    error = notification_set_sound(notification, NOTIFICATION_SOUND_TYPE_DEFAULT, NULL);
+	} else if (soundOn) {
+		error = notification_set_sound(notification, NOTIFICATION_SOUND_TYPE_DEFAULT, NULL);
 		if (error != NOTIFICATION_ERROR_NONE) {
 			_E("Set notification sound failed(%d)", error);
 		}
+	}
 
-		if (vibration) {
-			error = notification_set_vibration(notification, NOTIFICATION_VIBRATION_TYPE_DEFAULT, NULL);
-			if (error != NOTIFICATION_ERROR_NONE) {
-				_E("Set notification vibration failed(%d)", error);
-			}
+	int vibrationOn = 0;
+	error = vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &vibrationOn);
+	if (error < 0) {
+		_E("vconf error (%d)", error);
+	} else if (vibrationOn) {
+		error = notification_set_vibration(notification, NOTIFICATION_VIBRATION_TYPE_DEFAULT, NULL);
+		if (error != NOTIFICATION_ERROR_NONE) {
+			_E("Set notification vibration failed(%d)", error);
 		}
 	}
 
