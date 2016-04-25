@@ -28,8 +28,9 @@ BuildRequires: pkgconfig(cynara-creds-gdbus)
 BuildRequires: pkgconfig(cynara-client)
 BuildRequires: pkgconfig(cynara-session)
 
+BuildRequires: pkgconfig(libcontext-server)
 BuildRequires: pkgconfig(context)
-BuildRequires: pkgconfig(context-provider)
+Requires: pkgconfig(context-provider)
 
 Requires(preun): /usr/bin/systemctl
 Requires(post): /usr/bin/systemctl
