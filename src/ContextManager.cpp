@@ -29,12 +29,6 @@
 #include "ContextManager.h"
 #include "trigger/TemplateManager.h"
 
-/* Context Providers */
-#include <internal/DeviceContextProvider.h>
-#include <internal/StatisticsContextProvider.h>
-#include <internal/PlaceContextProvider.h>
-#include <internal/CustomContextProvider.h>
-
 using namespace ctx;
 
 struct TriggerItemFormat {
@@ -76,21 +70,7 @@ ContextManager::~ContextManager()
 
 bool ContextManager::init()
 {
-	bool ret;
-
-	ret = initDeviceContextProvider();
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: DeviceContextProvider");
-
-	ret = initStatisticsContextProvider();
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: StatisticsContextProvider");
-
-	ret = initPlaceContextProvider();
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: PlaceContextProvider");
-
-//	ret = initCustomContextProvider();
-//	IF_FAIL_RETURN_TAG(ret, false, _E, "Initialization failed: CustomContextProvider");
-
-	__initialized = true;
+	__initialized = __providerLoader.loadAll();
 	return true;
 }
 
