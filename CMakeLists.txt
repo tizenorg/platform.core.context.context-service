@@ -21,7 +21,8 @@ SET(DEPS
 	cynara-creds-gdbus
 	cynara-client
 	cynara-session
-	context-provider
+	libcontext-server
+	context
 )
 
 # Common Options
@@ -30,21 +31,19 @@ INCLUDE_DIRECTORIES(
 	/usr/include
 	/usr/include/glib-2.0
 )
-ADD_DEFINITIONS(-O2 -Wall -fPIC -fdata-sections -ffunction-sections -fvisibility=hidden)
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIC -Wl,--as-needed -Wl,--gc-section -Wl,--print-gc-section")
+ADD_DEFINITIONS(-O2 -Wall -fPIC -fPIE -fdata-sections -ffunction-sections -fvisibility=hidden)
+ADD_DEFINITIONS(-DLOG_TAG="CONTEXT")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIC -pie -Wl,--as-needed -Wl,--gc-section -Wl,--print-gc-section")
 
 # Building Daemon
 pkg_check_modules(daemon_pkg REQUIRED ${DEPS})
 
-SET(DAEMON_EXTRA_CFLAGS -fPIE)
 FOREACH(flag ${daemon_pkg_CFLAGS})
-	SET(DAEMON_EXTRA_CFLAGS "${DAEMON_EXTRA_CFLAGS} ${flag}")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
 ENDFOREACH(flag)
 
 ADD_EXECUTABLE(${target} ${SRCS})
-TARGET_LINK_LIBRARIES(${target} ${daemon_pkg_LDFLAGS} -pie)
-SET_TARGET_PROPERTIES(${target} PROPERTIES COMPILE_FLAGS ${DAEMON_EXTRA_CFLAGS})
-SET_TARGET_PROPERTIES(${target} PROPERTIES COMPILE_DEFINITIONS "LOG_TAG=\"CONTEXT\"")
+TARGET_LINK_LIBRARIES(${target} ${daemon_pkg_LDFLAGS} -ldl)
 
 # Installing Daemon
 INSTALL(TARGETS ${target} DESTINATION ${CMAKE_INSTALL_BINDIR})

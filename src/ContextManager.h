@@ -19,6 +19,7 @@
 
 #include <map>
 #include <IContextManager.h>
+#include "ProviderLoader.h"
 
 namespace ctx {
 
@@ -60,6 +61,7 @@ namespace ctx {
 
 		bool __initialized;
 		std::map<std::string, ProviderHandler*> __providerHandleMap;
+		ProviderLoader __providerLoader;
 
 		friend class Server;
 
