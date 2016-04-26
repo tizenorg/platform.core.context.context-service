@@ -17,9 +17,27 @@
 #ifndef _CONTEXT_PROVIDER_LOADER_H_
 #define _CONTEXT_PROVIDER_LOADER_H_
 
+#include <map>
+
 namespace ctx {
 
 	class ContextProvider;
+
+	struct CompareSubjectName {
+		bool operator()(const char *left, const char *right) const {
+			const char *pl = left;
+			const char *pr = right;
+			while (pl != NULL && pr != NULL) {
+				if (*pl < *pr)
+					return true;
+				if (*pl > *pr)
+					return false;
+				++pl;
+				++pr;
+			}
+			return false;
+		}
+	};
 
 	class ProviderLoader {
 	public:
@@ -29,9 +47,14 @@ namespace ctx {
 		ContextProvider* load(const char *subject);
 		bool loadAll();
 
+		static bool init();
+		static bool popTriggerTemplate(std::string &subject, int &operation, Json &attribute, Json &option);
+
 	private:
 		ContextProvider* __load(const char *soPath, const char *subject);
 		void __unload();
+
+		static std::map<const char*, const char*, CompareSubjectName> __providerLibMap;
 	};
 
 }

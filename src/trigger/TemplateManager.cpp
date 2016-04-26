@@ -96,16 +96,23 @@ void TemplateManager::applyTemplates()
 	Json attributes;
 	Json options;
 	std::string owner;
-	bool unregister;
+	//bool unregister;
 	std::string query;
 	query.clear();
 
+	/*
 	while(__contextMgr->popTriggerItem(subject, operation, attributes, options, owner, unregister)) {
 		if (unregister) {
 			unregisterTemplate(subject);
 		} else {
 			registerTemplate(subject, operation, attributes, options, owner);
 		}
+	}
+	*/
+
+	/* FIXME */
+	while (ProviderLoader::popTriggerTemplate(subject, operation, attributes, options)) {
+		registerTemplate(subject, operation, attributes, options, NULL);
 	}
 }
 
