@@ -30,6 +30,7 @@ BuildRequires: pkgconfig(cynara-session)
 
 BuildRequires: pkgconfig(libcontext-server)
 BuildRequires: pkgconfig(context)
+BuildRequires: context-provider-devel
 Requires: context-provider
 
 Requires(preun): /usr/bin/systemctl

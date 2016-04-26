@@ -15,46 +15,19 @@
  */
 
 #include <dlfcn.h>
-#include <dirent.h>
 #include <set>
 #include <Types.h>
 #include <ContextProvider.h>
+#include <ProviderList.h>
 #include "ProviderLoader.h"
 
-#define PROVIDER_SO_PATH "/usr/lib/context"
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 using namespace ctx;
 
 typedef bool (*create_t)();
 
-static bool getSharedObjectPaths(const char *dirPath, std::set<std::string> &soNames)
-{
-	DIR *dir = NULL;
-	struct dirent dirEntry;
-	struct dirent *result;
-	int error;
-
-	dir = opendir(dirPath);
-	IF_FAIL_RETURN_TAG(dir, false, _E, "Failed to open '%s'", dirPath);
-
-	while (true) {
-		error = readdir_r(dir, &dirEntry, &result);
-
-		if (error != 0)
-			continue;
-
-		if (result == NULL)
-			break;
-
-		if (dirEntry.d_type != DT_REG)
-			continue;
-
-		soNames.insert(dirEntry.d_name);
-	}
-
-	closedir(dir);
-	return true;
-}
+std::map<const char*, const char*, CompareSubjectName> ProviderLoader::__providerLibMap;
 
 ProviderLoader::ProviderLoader()
 {
@@ -99,18 +72,45 @@ void ProviderLoader::__unload()
 bool ProviderLoader::loadAll()
 {
 	/* TODO: Remove this function. This is a temporary solution. */
-	std::set<std::string> soNames;
-	std::string soPath;
+	std::set<std::string> soPaths;
 
-	if (!getSharedObjectPaths(PROVIDER_SO_PATH, soNames)) {
+	for (auto it : __providerLibMap) {
+		std::string path = LIB_DIRECTORY;
+		path = path + LIB_PREFIX + it.second + LIB_EXTENSION;
+		soPaths.insert(path);
+	}
+
+	for (std::set<std::string>::iterator it = soPaths.begin(); it != soPaths.end(); ++it) {
+		__load((*it).c_str(), NULL);
+	}
+
+	return true;
+}
+
+bool ProviderLoader::init()
+{
+	int size = ARRAY_SIZE(subjectLibraryList);
+
+	for (int i = 0; i < size; ++i) {
+		__providerLibMap[subjectLibraryList[i].subject] = subjectLibraryList[i].library;
+	}
+
+	return true;
+}
+
+bool ProviderLoader::popTriggerTemplate(std::string &subject, int &operation, Json &attribute, Json &option)
+{
+	static int i = 0;
+	static int size = ARRAY_SIZE(triggerTemplateList);
+
+	if (i == size)
 		return false;
-	}
 
-	for (std::set<std::string>::iterator it = soNames.begin(); it != soNames.end(); ++it) {
-		soPath = PROVIDER_SO_PATH;
-		soPath = soPath + "/" + (*it);
-		__load(soPath.c_str(), NULL);
-	}
+	subject = triggerTemplateList[i].subject;
+	operation = triggerTemplateList[i].operation;
+	attribute = triggerTemplateList[i].attribute;
+	option = triggerTemplateList[i].option;
 
+	++i;
 	return true;
 }
