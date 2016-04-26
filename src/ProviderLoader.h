@@ -40,12 +40,13 @@ namespace ctx {
 	};
 
 	class ProviderLoader {
+		typedef std::map<const char*, const char*, CompareSubjectName> ProviderLibMap;
+
 	public:
 		ProviderLoader();
 		~ProviderLoader();
 
 		ContextProvider* load(const char *subject);
-		bool loadAll();
 
 		static bool init();
 		static bool popTriggerTemplate(std::string &subject, int &operation, Json &attribute, Json &option);
@@ -54,7 +55,8 @@ namespace ctx {
 		ContextProvider* __load(const char *soPath, const char *subject);
 		void __unload();
 
-		static std::map<const char*, const char*, CompareSubjectName> __providerLibMap;
+		void *__soHandle;
+		static ProviderLibMap __providerLibMap;
 	};
 
 }

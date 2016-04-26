@@ -19,14 +19,12 @@
 
 #include <map>
 #include <IContextManager.h>
-#include "ProviderLoader.h"
 
 namespace ctx {
 
 	/* Forward declaration */
 	class Credentials;
 	class RequestInfo;
-	class ProviderHandler;
 
 	class ContextManager : public IContextManager {
 	public:
@@ -38,15 +36,12 @@ namespace ctx {
 		void assignRequest(ctx::RequestInfo *request);
 		bool isSupported(const char *subject);
 		bool isAllowed(const Credentials *creds, const char *subject);
-		bool popTriggerItem(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner, bool& unregister);
 
 		/* From the interface class */
-		bool registerProvider(const char *subject, const char *privilege, ContextProvider *provider);
-		bool unregisterProvider(const char *subject);
-		bool registerTriggerItem(const char *subject, int operation, ctx::Json attributes, ctx::Json options, const char *owner = NULL);
-		bool unregisterTriggerItem(const char *subject);
 		bool publish(const char *subject, ctx::Json &option, int error, ctx::Json &dataUpdated);
 		bool replyToRead(const char *subject, ctx::Json &option, int error, ctx::Json &dataRead);
+
+		bool popTriggerTemplate(std::string &subject, int &operation, Json &attribute, Json &option);
 
 	private:
 		ContextManager();
@@ -55,13 +50,6 @@ namespace ctx {
 
 		void __publish(const char *subject, ctx::Json &option, int error, ctx::Json &dataUpdated);
 		void __replyToRead(const char *subject, ctx::Json &option, int error, ctx::Json &dataRead);
-
-		/* For custom request */
-		bool __handleCustomRequest(ctx::RequestInfo* request);
-
-		bool __initialized;
-		std::map<std::string, ProviderHandler*> __providerHandleMap;
-		ProviderLoader __providerLoader;
 
 		friend class Server;
 

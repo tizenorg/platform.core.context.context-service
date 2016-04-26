@@ -25,11 +25,12 @@
 
 using namespace ctx;
 
-typedef bool (*create_t)();
+typedef ContextProvider* (*create_t)(const char *subject);
 
 std::map<const char*, const char*, CompareSubjectName> ProviderLoader::__providerLibMap;
 
-ProviderLoader::ProviderLoader()
+ProviderLoader::ProviderLoader() :
+	__soHandle(NULL)
 {
 }
 
@@ -40,51 +41,51 @@ ProviderLoader::~ProviderLoader()
 
 ContextProvider* ProviderLoader::load(const char *subject)
 {
-	/* TODO: Implement */
-	return NULL;
+	ProviderLibMap::iterator it = __providerLibMap.find(subject);
+	if (it == __providerLibMap.end()) {
+		_W("No provider for '%s'", subject);
+		return NULL;
+	}
+
+	std::string path = LIB_DIRECTORY;
+	path = path + LIB_PREFIX + it->second + LIB_EXTENSION;
+
+	return __load(path.c_str(), subject);
 }
 
 ContextProvider* ProviderLoader::__load(const char *soPath, const char *subject)
 {
 	_I("Load '%s' from '%s'", subject, soPath);
 
-	void *soHandle = dlopen(soPath, RTLD_LAZY | RTLD_GLOBAL);
-	IF_FAIL_RETURN_TAG(soHandle, NULL, _E, "%s", dlerror());
+	__soHandle = dlopen(soPath, RTLD_LAZY | RTLD_GLOBAL);
+	IF_FAIL_RETURN_TAG(__soHandle, NULL, _E, "%s", dlerror());
 
-	create_t create = reinterpret_cast<create_t>(dlsym(soHandle, "create"));
+	create_t create = reinterpret_cast<create_t>(dlsym(__soHandle, "create"));
 	if (!create) {
 		_E("%s", dlerror());
-		dlclose(soHandle);
+		dlclose(__soHandle);
+		__soHandle = NULL;
 		return NULL;
 	}
 
-	/* TODO: Update this part for dynamic loading */
-	create();
+	ContextProvider *prvd = create(subject);
+	if (!prvd) {
+		_W("No provider for '%s'", subject);
+		dlclose(__soHandle);
+		__soHandle = NULL;
+		return NULL;
+	}
 
-	return NULL;
+	return prvd;
 }
 
 void ProviderLoader::__unload()
 {
-	/* TODO: Implement */
-}
+	if (!__soHandle)
+		return;
 
-bool ProviderLoader::loadAll()
-{
-	/* TODO: Remove this function. This is a temporary solution. */
-	std::set<std::string> soPaths;
-
-	for (auto it : __providerLibMap) {
-		std::string path = LIB_DIRECTORY;
-		path = path + LIB_PREFIX + it.second + LIB_EXTENSION;
-		soPaths.insert(path);
-	}
-
-	for (std::set<std::string>::iterator it = soPaths.begin(); it != soPaths.end(); ++it) {
-		__load((*it).c_str(), NULL);
-	}
-
-	return true;
+	dlclose(__soHandle);
+	__soHandle = NULL;
 }
 
 bool ProviderLoader::init()
