@@ -111,7 +111,7 @@ void TemplateManager::applyTemplates()
 	*/
 
 	/* FIXME */
-	while (ProviderLoader::popTriggerTemplate(subject, operation, attributes, options)) {
+	while (__contextMgr->popTriggerTemplate(subject, operation, attributes, options)) {
 		registerTemplate(subject, operation, attributes, options, "");
 	}
 }

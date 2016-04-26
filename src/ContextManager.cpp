@@ -19,49 +19,23 @@
 
 #include <Types.h>
 #include <DBusTypes.h>
-#include <context_trigger_types_internal.h>
 #include <Json.h>
 #include <ContextProvider.h>
-#include "Server.h"
+
 #include "access_control/Privilege.h"
+#include "trigger/TemplateManager.h"
+#include "Server.h"
 #include "Request.h"
 #include "ProviderHandler.h"
+#include "ProviderLoader.h"
 #include "ContextManager.h"
-#include "trigger/TemplateManager.h"
 
 using namespace ctx;
 
-struct TriggerItemFormat {
-	std::string subject;
-	int operation;
-	Json attributes;
-	Json options;
-	std::string owner;
-	bool unregister;
-	TriggerItemFormat(std::string subj, int ops, Json attr, Json opt, std::string own) :
-		subject(subj),
-		operation(ops),
-		attributes(attr),
-		options(opt),
-		owner(own)
-	{
-		unregister = false;
-	}
-
-	TriggerItemFormat(std::string subj) :
-		subject(subj)
-	{
-		unregister = true;
-	}
-};
-
-static std::list<TriggerItemFormat> __triggerItemList;
-
-ContextManager::ContextManager() :
-	__initialized(false)
+ContextManager::ContextManager()
 {
 	ContextProvider::__setContextManager(this);
-	__providerLoader.init();
+	ProviderLoader::init();
 }
 
 ContextManager::~ContextManager()
@@ -71,111 +45,24 @@ ContextManager::~ContextManager()
 
 bool ContextManager::init()
 {
-	__initialized = __providerLoader.loadAll();
 	return true;
 }
 
 void ContextManager::release()
 {
-	for (auto& it : __providerHandleMap) {
-		delete it.second;
-	}
-	__providerHandleMap.clear();
-}
-
-bool ContextManager::registerProvider(const char *subject, const char *privilege, ContextProvider *provider)
-{
-	if (__providerHandleMap.find(subject) != __providerHandleMap.end()) {
-		_E("The provider for the subject '%s' is already registered.", subject);
-		return false;
-	}
-
-	_SI("Subj: %s, Priv: %s", subject, privilege);
-
-	ProviderHandler *handle = new(std::nothrow) ProviderHandler(subject, privilege, provider);
-	IF_FAIL_RETURN_TAG(handle, false, _E, "Memory allocation failed");
-
-	__providerHandleMap[subject] = handle;
-	return true;
-}
-
-bool ContextManager::unregisterProvider(const char *subject)
-{
-	auto it = __providerHandleMap.find(subject);
-	if (it == __providerHandleMap.end()) {
-		_E("The provider for the subject '%s' is not found.", subject);
-		return false;
-	}
-
-	delete it->second;
-	__providerHandleMap.erase(it);
-
-	return true;
-}
-
-bool ContextManager::registerTriggerItem(const char *subject, int operation, Json attributes, Json options, const char* owner)
-{
-	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
-
-	if (!__initialized) {
-		__triggerItemList.push_back(TriggerItemFormat(subject, operation, attributes, options, (owner)? owner : ""));
-	} else {
-		trigger::TemplateManager* tmplMgr = trigger::TemplateManager::getInstance();
-		IF_FAIL_RETURN_TAG(tmplMgr, false, _E, "Memory allocation failed");
-		tmplMgr->registerTemplate(subject, operation, attributes, options, owner);
-	}
-
-	return true;
-}
-
-bool ContextManager::unregisterTriggerItem(const char *subject)
-{
-	IF_FAIL_RETURN_TAG(subject, false, _E, "Invalid parameter");
-
-	if (!__initialized) {
-		__triggerItemList.push_back(TriggerItemFormat(subject));
-	} else {
-		trigger::TemplateManager* tmplMgr = trigger::TemplateManager::getInstance();
-		IF_FAIL_RETURN_TAG(tmplMgr, false, _E, "Memory allocation failed");
-		tmplMgr->unregisterTemplate(subject);
-	}
-
-	return true;
-}
-
-bool ContextManager::popTriggerItem(std::string &subject, int &operation, Json &attributes, Json &options, std::string& owner, bool& unregister)
-{
-	IF_FAIL_RETURN(!__triggerItemList.empty(), false);
-
-	TriggerItemFormat format = __triggerItemList.front();
-	__triggerItemList.pop_front();
-
-	subject = format.subject;
-	operation = format.operation;
-	attributes = format.attributes;
-	options = format.options;
-	owner = format.owner;
-	unregister = format.unregister;
-
-	return true;
+	ProviderHandler::purge();
 }
 
 void ContextManager::assignRequest(RequestInfo* request)
 {
-	if (__handleCustomRequest(request)) {
-		delete request;
-		return;
-	}
-
-	auto it = __providerHandleMap.find(request->getSubject());
-	if (it == __providerHandleMap.end()) {
-		_W("Unsupported subject");
+	ProviderHandler *handle = ProviderHandler::getInstance(request->getSubject(), true);
+	if (!handle || !handle->isSupported()) {
 		request->reply(ERR_NOT_SUPPORTED);
 		delete request;
 		return;
 	}
 
-	if (!it->second->isAllowed(request->getCredentials())) {
+	if (!handle->isAllowed(request->getCredentials())) {
 		_W("Permission denied");
 		request->reply(ERR_PERMISSION_DENIED);
 		delete request;
@@ -184,17 +71,17 @@ void ContextManager::assignRequest(RequestInfo* request)
 
 	switch (request->getType()) {
 	case REQ_SUBSCRIBE:
-		it->second->subscribe(request);
+		handle->subscribe(request);
 		break;
 	case REQ_UNSUBSCRIBE:
-		it->second->unsubscribe(request);
+		handle->unsubscribe(request);
 		break;
 	case REQ_READ:
 	case REQ_READ_SYNC:
-		it->second->read(request);
+		handle->read(request);
 		break;
 	case REQ_WRITE:
-		it->second->write(request);
+		handle->write(request);
 		break;
 	case REQ_SUPPORT:
 		request->reply(ERR_NONE);
@@ -208,16 +95,24 @@ void ContextManager::assignRequest(RequestInfo* request)
 
 bool ContextManager::isSupported(const char *subject)
 {
-	auto it = __providerHandleMap.find(subject);
-	return (it != __providerHandleMap.end());
+	ProviderHandler *handle = ProviderHandler::getInstance(subject, true);
+
+	if (!handle)
+		return false;
+
+	return handle->isSupported();
 }
 
 bool ContextManager::isAllowed(const Credentials *creds, const char *subject)
 {
 	IF_FAIL_RETURN(creds, true);	/* In case internal requests */
-	auto it = __providerHandleMap.find(subject);
-	IF_FAIL_RETURN(it != __providerHandleMap.end(), false);
-	return it->second->isAllowed(creds);
+
+	ProviderHandler *handle = ProviderHandler::getInstance(subject, true);
+
+	if (!handle)
+		return false;
+
+	return handle->isAllowed(creds);
 }
 
 void ContextManager::__publish(const char* subject, Json &option, int error, Json &dataUpdated)
@@ -225,10 +120,10 @@ void ContextManager::__publish(const char* subject, Json &option, int error, Jso
 	_I("Publishing '%s'", subject);
 	_J("Option", option);
 
-	auto it = __providerHandleMap.find(subject);
-	IF_FAIL_VOID(it != __providerHandleMap.end());
+	ProviderHandler *handle = ProviderHandler::getInstance(subject, false);
+	IF_FAIL_VOID_TAG(handle, _W, "No corresponding provider");
 
-	it->second->publish(option, error, dataUpdated);
+	handle->publish(option, error, dataUpdated);
 }
 
 void ContextManager::__replyToRead(const char* subject, Json &option, int error, Json &dataRead)
@@ -237,10 +132,10 @@ void ContextManager::__replyToRead(const char* subject, Json &option, int error,
 	_J("Option", option);
 	_J("Data", dataRead);
 
-	auto it = __providerHandleMap.find(subject);
-	IF_FAIL_VOID(it != __providerHandleMap.end());
+	ProviderHandler *handle = ProviderHandler::getInstance(subject, false);
+	IF_FAIL_VOID_TAG(handle, _W, "No corresponding provider");
 
-	it->second->replyToRead(option, error, dataRead);
+	handle->replyToRead(option, error, dataRead);
 }
 
 struct PublishedData {
@@ -301,6 +196,12 @@ bool ContextManager::replyToRead(const char* subject, Json& option, int error, J
 	return true;
 }
 
+bool ContextManager::popTriggerTemplate(std::string &subject, int &operation, Json &attribute, Json &option)
+{
+	return ProviderLoader::popTriggerTemplate(subject, operation, attribute, option);
+}
+
+/*
 bool ContextManager::__handleCustomRequest(RequestInfo* request)
 {
 	std::string subject = request->getSubject();
@@ -308,7 +209,6 @@ bool ContextManager::__handleCustomRequest(RequestInfo* request)
 					subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_REMOVE ||
 					subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_PUBLISH, false);
 
-#if 0
 	const char* pkg_id = request->getPackageId();
 	if (pkg_id == NULL) {
 		request->reply(ERR_OPERATION_FAILED);
@@ -341,6 +241,6 @@ bool ContextManager::__handleCustomRequest(RequestInfo* request)
 	}
 
 	request->reply(error);
-#endif
 	return true;
 }
+*/
