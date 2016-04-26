@@ -61,6 +61,7 @@ ContextManager::ContextManager() :
 	__initialized(false)
 {
 	ContextProvider::__setContextManager(this);
+	__providerLoader.init();
 }
 
 ContextManager::~ContextManager()
