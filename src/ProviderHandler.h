@@ -19,7 +19,9 @@
 
 #include <string>
 #include <list>
+#include <map>
 #include <ContextProvider.h>
+#include "ProviderLoader.h"
 
 namespace ctx {
 
@@ -27,12 +29,11 @@ namespace ctx {
 	class RequestInfo;
 
 	class ProviderHandler {
-	public:
 		typedef std::list<RequestInfo*> RequestList;
+		typedef std::map<std::string, ProviderHandler*> InstanceMap;
 
-		ProviderHandler(const char *subject, const char *privilege, ContextProvider *provider);
-		~ProviderHandler();
-
+	public:
+		bool isSupported();
 		bool isAllowed(const Credentials *creds);
 
 		void subscribe(RequestInfo *request);
@@ -43,14 +44,22 @@ namespace ctx {
 		bool publish(ctx::Json &option, int error, ctx::Json &dataUpdated);
 		bool replyToRead(ctx::Json &option, int error, ctx::Json &dataRead);
 
+		static ProviderHandler* getInstance(const char *subject, bool force);
+		static void purge();
+
 	private:
 		const char *__subject;
-		const char *__privilege;
 		ContextProvider *__provider;
 		RequestList __subscribeRequests;
 		RequestList __readRequests;
+		ProviderLoader __loader;
 
-		ContextProvider* __getProvider(RequestInfo *request);
+		static InstanceMap __instanceMap;
+
+		ProviderHandler(const char *subject);
+		~ProviderHandler();
+
+		bool __loadProvider();
 		RequestList::iterator __findRequest(RequestList &reqList, Json &option);
 		RequestList::iterator __findRequest(RequestList &reqList, std::string client, int reqId);
 		RequestList::iterator __findRequest(RequestList::iterator begin, RequestList::iterator end, Json &option);

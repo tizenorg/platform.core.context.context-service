@@ -22,10 +22,10 @@
 
 using namespace ctx;
 
-ProviderHandler::ProviderHandler(const char *subject, const char *privilege, ContextProvider *provider) :
-	__subject(subject),
-	__privilege(privilege),
-	__provider(provider)
+std::map<std::string, ProviderHandler*> ProviderHandler::__instanceMap;
+
+ProviderHandler::ProviderHandler(const char *subject) :
+	__subject(subject)
 {
 }
 
@@ -44,27 +44,65 @@ ProviderHandler::~ProviderHandler()
 	delete __provider;
 }
 
+/* TODO: Return proper error code */
+ProviderHandler* ProviderHandler::getInstance(const char *subject, bool force)
+{
+	InstanceMap::iterator it = __instanceMap.find(subject);
+
+	if (it != __instanceMap.end())
+		return it->second;
+
+	if (!force)
+		return NULL;
+
+	ProviderHandler *handle = new(std::nothrow) ProviderHandler(subject);
+	IF_FAIL_RETURN_TAG(handle, NULL, _E, "Memory allocation failed");
+
+	if (!handle->__loadProvider()) {
+		delete handle;
+		return NULL;
+	}
+
+	__instanceMap[subject] = handle;
+
+	return handle;
+}
+
+void ProviderHandler::purge()
+{
+	for (InstanceMap::iterator it = __instanceMap.begin(); it != __instanceMap.end(); ++it) {
+		delete it->second;
+	}
+
+	__instanceMap.clear();
+}
+
+bool ProviderHandler::isSupported()
+{
+	return __provider->isSupported();
+}
+
 bool ProviderHandler::isAllowed(const Credentials *creds)
 {
 	IF_FAIL_RETURN(creds, true);	/* In case of internal requests */
-	return privilege_manager::isAllowed(creds, __privilege);
-}
 
-ContextProvider* ProviderHandler::__getProvider(RequestInfo *request)
-{
-	/* TODO: When implementing dynamic so loading... */
-	return __provider;
+	std::vector<const char*> priv;
+	__provider->getPrivilege(priv);
+
+	for (unsigned int i = 0; i < priv.size(); ++i) {
+		if (!privilege_manager::isAllowed(creds, priv[i]))
+			return false;
+	}
+
+	return true;
 }
 
 void ProviderHandler::subscribe(RequestInfo *request)
 {
 	_I(CYAN("'%s' subscribes '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
 
-	ContextProvider *provider = __getProvider(request);
-	IF_FAIL_VOID(provider);
-
 	Json requestResult;
-	int error = provider->subscribe(request->getDescription().str(), &requestResult);
+	int error = __provider->subscribe(request->getDescription().str(), &requestResult);
 
 	if (!request->reply(error, requestResult) || error != ERR_NONE) {
 		delete request;
@@ -102,12 +140,8 @@ void ProviderHandler::unsubscribe(RequestInfo *request)
 		return;
 	}
 
-	/* Get the provider */
-	ContextProvider *provider = __getProvider(request);
-	IF_FAIL_VOID(provider);
-
 	/* Stop detecting the subject */
-	int error = provider->unsubscribe(reqFound->getDescription());
+	int error = __provider->unsubscribe(reqFound->getDescription());
 	request->reply(error);
 	delete request;
 	delete reqFound;
@@ -117,11 +151,8 @@ void ProviderHandler::read(RequestInfo *request)
 {
 	_I(CYAN("'%s' reads '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
 
-	ContextProvider *provider = __getProvider(request);
-	IF_FAIL_VOID(provider);
-
 	Json requestResult;
-	int error = provider->read(request->getDescription().str(), &requestResult);
+	int error = __provider->read(request->getDescription().str(), &requestResult);
 
 	if (!request->reply(error, requestResult) || error != ERR_NONE) {
 		delete request;
@@ -135,11 +166,8 @@ void ProviderHandler::write(RequestInfo *request)
 {
 	_I(CYAN("'%s' writes '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
 
-	ContextProvider *provider = __getProvider(request);
-	IF_FAIL_VOID(provider);
-
 	Json requestResult;
-	int error = provider->write(request->getDescription(), &requestResult);
+	int error = __provider->write(request->getDescription(), &requestResult);
 
 	request->reply(error, requestResult);
 	delete request;
@@ -178,6 +206,12 @@ bool ProviderHandler::replyToRead(Json &option, int error, Json &dataRead)
 	}
 
 	return true;
+}
+
+bool ProviderHandler::__loadProvider()
+{
+	__provider = __loader.load(__subject);
+	return (__provider != NULL);
 }
 
 ProviderHandler::RequestList::iterator
