@@ -19,9 +19,10 @@
 #include <set>
 #include <Types.h>
 #include <ContextProvider.h>
+#include <ProviderList.h>
 #include "ProviderLoader.h"
 
-#define PROVIDER_SO_PATH "/usr/lib/context"
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 using namespace ctx;
 
@@ -102,15 +103,43 @@ bool ProviderLoader::loadAll()
 	std::set<std::string> soNames;
 	std::string soPath;
 
-	if (!getSharedObjectPaths(PROVIDER_SO_PATH, soNames)) {
+	if (!getSharedObjectPaths(LIB_DIRECTORY, soNames)) {
 		return false;
 	}
 
 	for (std::set<std::string>::iterator it = soNames.begin(); it != soNames.end(); ++it) {
-		soPath = PROVIDER_SO_PATH;
+		soPath = LIB_DIRECTORY;
 		soPath = soPath + "/" + (*it);
 		__load(soPath.c_str(), NULL);
 	}
 
+	return true;
+}
+
+bool ProviderLoader::init()
+{
+	int size = ARRAY_SIZE(subjectLibraryList);
+
+	for (int i = 0; i < size; ++i) {
+		__providerLibMap[subjectLibraryList[i].subject] = subjectLibraryList[i].library;
+	}
+
+	return true;
+}
+
+bool ProviderLoader::popTriggerTemplate(std::string &subject, int &operation, Json &attribute, Json &option)
+{
+	static int i = 0;
+	static int size = ARRAY_SIZE(triggerTemplateList);
+
+	if (i == size)
+		return false;
+
+	subject = triggerTemplateList[i].subject;
+	operation = triggerTemplateList[i].operation;
+	attribute = triggerTemplateList[i].attribute;
+	option = triggerTemplateList[i].option;
+
+	++i;
 	return true;
 }
