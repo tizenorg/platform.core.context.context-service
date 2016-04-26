@@ -25,27 +25,26 @@ namespace ctx {
 
 	struct CompareSubjectName {
 		bool operator()(const char *left, const char *right) const {
-			const char *pl = left;
-			const char *pr = right;
-			while (pl != NULL && pr != NULL) {
-				if (*pl < *pr)
+			while (*left != '\0' && *right != '\0') {
+				if (*left < *right)
 					return true;
-				if (*pl > *pr)
+				if (*left > *right)
 					return false;
-				++pl;
-				++pr;
+				++left;
+				++right;
 			}
 			return false;
 		}
 	};
 
 	class ProviderLoader {
+		typedef std::map<const char*, const char*, CompareSubjectName> ProviderLibMap;
+
 	public:
 		ProviderLoader();
 		~ProviderLoader();
 
 		ContextProvider* load(const char *subject);
-		bool loadAll();
 
 		static bool init();
 		static bool popTriggerTemplate(std::string &subject, int &operation, Json &attribute, Json &option);
@@ -54,7 +53,8 @@ namespace ctx {
 		ContextProvider* __load(const char *soPath, const char *subject);
 		void __unload();
 
-		static std::map<const char*, const char*, CompareSubjectName> __providerLibMap;
+		void *__soHandle;
+		static ProviderLibMap __providerLibMap;
 	};
 
 }
