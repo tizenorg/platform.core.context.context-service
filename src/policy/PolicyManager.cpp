@@ -38,18 +38,20 @@ void PolicyManager::__init()
 {
 	__subscribe(SUBJ_APP_LOGGER, __ridAppLogging);
 	__subscribe(SUBJ_MEDIA_LOGGER, __ridMediaLogging);
-	__subscribe(SUBJ_SOCIAL_LOGGER, __ridSocialLogging);
 
+#if 0
 	__subscribe(SUBJ_PLACE_DETECTION, __ridPlaceDetection);
+#endif
 }
 
 void PolicyManager::__release()
 {
 	__unsubscribe(SUBJ_APP_LOGGER, __ridAppLogging);
 	__unsubscribe(SUBJ_MEDIA_LOGGER, __ridMediaLogging);
-	__unsubscribe(SUBJ_SOCIAL_LOGGER, __ridSocialLogging);
 
+#if 0
 	__unsubscribe(SUBJ_PLACE_DETECTION, __ridPlaceDetection);
+#endif
 }
 
 void PolicyManager::__subscribe(const char *subject, int &reqId)
