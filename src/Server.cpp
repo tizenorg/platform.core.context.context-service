@@ -23,6 +23,7 @@
 #include "DBusServer.h"
 #include "ContextManager.h"
 #include "trigger/Trigger.h"
+#include "policy/PolicyManager.h"
 #include "Server.h"
 
 static GMainLoop *mainloop = NULL;
@@ -30,6 +31,7 @@ static bool started = false;
 
 static ctx::ContextManager *__contextMgr = NULL;
 static ctx::DBusServer *__dbusHandle = NULL;
+static ctx::PolicyManager *__policyMgr = NULL;
 static ctx::trigger::Trigger *__contextTrigger = NULL;
 
 /* TODO: re-organize activation & deactivation processes */
@@ -60,6 +62,10 @@ void ctx::Server::activate()
 	result = __contextMgr->init();
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
+	_I("Init Policy Manager");
+	__policyMgr = new(std::nothrow) ctx::PolicyManager(__contextMgr);
+	IF_FAIL_CATCH_TAG(__policyMgr, _E, "Memory allocation failed");
+
 	_I("Init Context Trigger");
 	__contextTrigger = new(std::nothrow) ctx::trigger::Trigger();
 	IF_FAIL_CATCH_TAG(__contextTrigger, _E, "Memory allocation failed");
@@ -84,7 +90,10 @@ void ctx::Server::release()
 	if (__contextTrigger)
 		__contextTrigger->release();
 
-	_I("Release Analyzer Manager");
+	_I("Release Policy Manager");
+	delete __policyMgr;
+
+	_I("Release Context Manager");
 	if (__contextMgr)
 		__contextMgr->release();
 
