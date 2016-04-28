@@ -36,6 +36,9 @@ PolicyManager::~PolicyManager()
 
 void PolicyManager::__init()
 {
+	/* TODO: WiFi API has multi-session support issue.
+	   The issue should be fixed, or walkarouned first. */
+	__subscribe(SUBJ_STATE_WIFI, __ridWifiState);
 	__subscribe(SUBJ_APP_LOGGER, __ridAppLogging);
 	__subscribe(SUBJ_MEDIA_LOGGER, __ridMediaLogging);
 
@@ -46,6 +49,7 @@ void PolicyManager::__init()
 
 void PolicyManager::__release()
 {
+	__unsubscribe(SUBJ_STATE_WIFI, __ridWifiState);
 	__unsubscribe(SUBJ_APP_LOGGER, __ridAppLogging);
 	__unsubscribe(SUBJ_MEDIA_LOGGER, __ridMediaLogging);
 

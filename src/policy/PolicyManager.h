@@ -35,6 +35,7 @@ namespace ctx {
 		void __unsubscribe(const char *subject, int reqId);
 
 		ContextManager *__contextMgr;
+		int __ridWifiState;
 		int __ridAppLogging;
 		int __ridMediaLogging;
 		int __ridSocialLogging;
