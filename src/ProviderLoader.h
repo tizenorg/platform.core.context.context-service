@@ -17,6 +17,7 @@
 #ifndef _CONTEXT_PROVIDER_LOADER_H_
 #define _CONTEXT_PROVIDER_LOADER_H_
 
+#include <gmodule.h>
 #include <map>
 
 namespace ctx {
@@ -53,7 +54,7 @@ namespace ctx {
 		ContextProvider* __load(const char *soPath, const char *subject);
 		void __unload();
 
-		void *__soHandle;
+		GModule *__soHandle;
 		static ProviderLibMap __providerLibMap;
 	};
 
