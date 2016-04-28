@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <dlfcn.h>
 #include <set>
 #include <Types.h>
 #include <ContextProvider.h>
@@ -57,21 +56,24 @@ ContextProvider* ProviderLoader::__load(const char *soPath, const char *subject)
 {
 	_SI("Load '%s' from '%s'", subject, soPath);
 
-	__soHandle = dlopen(soPath, RTLD_LAZY | RTLD_GLOBAL);
-	IF_FAIL_RETURN_TAG(__soHandle, NULL, _E, "%s", dlerror());
+	__soHandle = g_module_open(soPath, G_MODULE_BIND_LAZY);
+	IF_FAIL_RETURN_TAG(__soHandle, NULL, _E, "%s", g_module_error());
 
-	create_t create = reinterpret_cast<create_t>(dlsym(__soHandle, "create"));
-	if (!create) {
-		_E("%s", dlerror());
-		dlclose(__soHandle);
+	gpointer symbol;
+
+	if (!g_module_symbol(__soHandle, "create", &symbol) || symbol == NULL) {
+		_E("%s", g_module_error());
+		g_module_close(__soHandle);
 		__soHandle = NULL;
 		return NULL;
 	}
 
+	create_t create = reinterpret_cast<create_t>(symbol);
+
 	ContextProvider *prvd = create(subject);
 	if (!prvd) {
 		_W("No provider for '%s'", subject);
-		dlclose(__soHandle);
+		g_module_close(__soHandle);
 		__soHandle = NULL;
 		return NULL;
 	}
@@ -84,7 +86,7 @@ void ProviderLoader::__unload()
 	if (!__soHandle)
 		return;
 
-	dlclose(__soHandle);
+	g_module_close(__soHandle);
 	__soHandle = NULL;
 }
 

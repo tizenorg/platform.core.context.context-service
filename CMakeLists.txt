@@ -11,6 +11,7 @@ MESSAGE("Sources: ${SRCS}")
 
 # Dependencies
 SET(DEPS
+	gmodule-2.0
 	vconf
 	capi-system-info
 	capi-system-device
@@ -43,7 +44,7 @@ FOREACH(flag ${daemon_pkg_CFLAGS})
 ENDFOREACH(flag)
 
 ADD_EXECUTABLE(${target} ${SRCS})
-TARGET_LINK_LIBRARIES(${target} ${daemon_pkg_LDFLAGS} -ldl)
+TARGET_LINK_LIBRARIES(${target} ${daemon_pkg_LDFLAGS})
 
 # Installing Daemon
 INSTALL(TARGETS ${target} DESTINATION ${CMAKE_INSTALL_BINDIR})

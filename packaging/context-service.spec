@@ -16,6 +16,7 @@ ExcludeArch: %{arm} aarch64 %ix86 x86_64
 
 BuildRequires: cmake
 BuildRequires: sed
+BuildRequires: pkgconfig(gmodule-2.0)
 BuildRequires: pkgconfig(vconf)
 BuildRequires: pkgconfig(capi-system-info)
 BuildRequires: pkgconfig(capi-system-device)
