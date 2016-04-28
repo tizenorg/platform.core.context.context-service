@@ -20,7 +20,7 @@
 #include "Request.h"
 #include "ProviderHandler.h"
 
-#define DELETE_DELAY 10
+#define DELETE_DELAY 20
 
 using namespace ctx;
 
@@ -85,11 +85,17 @@ void ProviderHandler::purge()
 
 bool ProviderHandler::isSupported()
 {
+	/* If idle, self destruct */
+	__scheduleToDelete();
+
 	return __provider->isSupported();
 }
 
 bool ProviderHandler::isAllowed(const Credentials *creds)
 {
+	/* If idle, self destruct */
+	__scheduleToDelete();
+
 	IF_FAIL_RETURN(creds, true);	/* In case of internal requests */
 
 	std::vector<const char*> priv;
@@ -112,6 +118,8 @@ void ProviderHandler::subscribe(RequestInfo *request)
 
 	if (!request->reply(error, requestResult) || error != ERR_NONE) {
 		delete request;
+		/* If idle, self destruct */
+		__scheduleToDelete();
 		return;
 	}
 
@@ -165,6 +173,8 @@ void ProviderHandler::read(RequestInfo *request)
 
 	if (!request->reply(error, requestResult) || error != ERR_NONE) {
 		delete request;
+		/* If idle, self destruct */
+		__scheduleToDelete();
 		return;
 	}
 
