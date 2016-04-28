@@ -20,17 +20,23 @@
 #include "Request.h"
 #include "ProviderHandler.h"
 
+#define DELETE_DELAY 10
+
 using namespace ctx;
 
 std::map<std::string, ProviderHandler*> ProviderHandler::__instanceMap;
 
-ProviderHandler::ProviderHandler(const char *subject) :
-	__subject(subject)
+ProviderHandler::ProviderHandler(const std::string &subject) :
+	__subject(subject),
+	__deleteScheduled(false)
 {
+	_D("Subject: %s", __subject.c_str());
 }
 
 ProviderHandler::~ProviderHandler()
 {
+	_D("Subject: %s", __subject.c_str());
+
 	for (RequestInfo*& info : __subscribeRequests) {
 		delete info;
 	}
@@ -45,7 +51,7 @@ ProviderHandler::~ProviderHandler()
 }
 
 /* TODO: Return proper error code */
-ProviderHandler* ProviderHandler::getInstance(const char *subject, bool force)
+ProviderHandler* ProviderHandler::getInstance(std::string subject, bool force)
 {
 	InstanceMap::iterator it = __instanceMap.find(subject);
 
@@ -99,7 +105,7 @@ bool ProviderHandler::isAllowed(const Credentials *creds)
 
 void ProviderHandler::subscribe(RequestInfo *request)
 {
-	_I(CYAN("'%s' subscribes '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
+	_I(CYAN("'%s' subscribes '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
 
 	Json requestResult;
 	int error = __provider->subscribe(request->getDescription().str(), &requestResult);
@@ -114,7 +120,7 @@ void ProviderHandler::subscribe(RequestInfo *request)
 
 void ProviderHandler::unsubscribe(RequestInfo *request)
 {
-	_I(CYAN("'%s' unsubscribes '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
+	_I(CYAN("'%s' unsubscribes '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
 
 	/* Search the subscribe request to be removed */
 	auto target = __findRequest(__subscribeRequests, request->getClient(), request->getId());
@@ -145,11 +151,14 @@ void ProviderHandler::unsubscribe(RequestInfo *request)
 	request->reply(error);
 	delete request;
 	delete reqFound;
+
+	/* If idle, self destruct */
+	__scheduleToDelete();
 }
 
 void ProviderHandler::read(RequestInfo *request)
 {
-	_I(CYAN("'%s' reads '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
+	_I(CYAN("'%s' reads '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
 
 	Json requestResult;
 	int error = __provider->read(request->getDescription().str(), &requestResult);
@@ -164,13 +173,16 @@ void ProviderHandler::read(RequestInfo *request)
 
 void ProviderHandler::write(RequestInfo *request)
 {
-	_I(CYAN("'%s' writes '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
+	_I(CYAN("'%s' writes '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
 
 	Json requestResult;
 	int error = __provider->write(request->getDescription(), &requestResult);
 
 	request->reply(error, requestResult);
 	delete request;
+
+	/* If idle, self destruct */
+	__scheduleToDelete();
 }
 
 bool ProviderHandler::publish(Json &option, int error, Json &dataUpdated)
@@ -205,13 +217,44 @@ bool ProviderHandler::replyToRead(Json &option, int error, Json &dataRead)
 		__readRequests.erase(prev);
 	}
 
+	/* If idle, self destruct */
+	__scheduleToDelete();
+
 	return true;
 }
 
 bool ProviderHandler::__loadProvider()
 {
-	__provider = __loader.load(__subject);
+	__provider = __loader.load(__subject.c_str());
 	return (__provider != NULL);
+}
+
+bool ProviderHandler::__idle()
+{
+	return __subscribeRequests.empty() && __readRequests.empty();
+}
+
+void ProviderHandler::__scheduleToDelete()
+{
+	if (!__deleteScheduled && __idle()) {
+		__deleteScheduled = true;
+		g_timeout_add_seconds(DELETE_DELAY, __deletor, this);
+		_D("Delete scheduled for '%s' (%#x)", __subject.c_str(), this);
+	}
+}
+
+gboolean ProviderHandler::__deletor(gpointer data)
+{
+	ProviderHandler *handle = static_cast<ProviderHandler*>(data);
+
+	if (handle->__idle()) {
+		__instanceMap.erase(handle->__subject);
+		delete handle;
+		return FALSE;
+	}
+
+	handle->__deleteScheduled = false;
+	return FALSE;
 }
 
 ProviderHandler::RequestList::iterator

@@ -55,7 +55,7 @@ ContextProvider* ProviderLoader::load(const char *subject)
 
 ContextProvider* ProviderLoader::__load(const char *soPath, const char *subject)
 {
-	_I("Load '%s' from '%s'", subject, soPath);
+	_SI("Load '%s' from '%s'", subject, soPath);
 
 	__soHandle = dlopen(soPath, RTLD_LAZY | RTLD_GLOBAL);
 	IF_FAIL_RETURN_TAG(__soHandle, NULL, _E, "%s", dlerror());
