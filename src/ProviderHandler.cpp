@@ -246,7 +246,7 @@ bool ProviderHandler::__idle()
 
 void ProviderHandler::__scheduleToDelete()
 {
-	if (!__deleteScheduled && __idle()) {
+	if (__provider->unloadable() && !__deleteScheduled && __idle()) {
 		__deleteScheduled = true;
 		g_timeout_add_seconds(DELETE_DELAY, __deletor, this);
 		_D("Delete scheduled for '%s' (%#x)", __subject.c_str(), this);
