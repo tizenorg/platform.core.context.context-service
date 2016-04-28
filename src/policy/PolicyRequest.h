@@ -26,6 +26,8 @@ namespace ctx {
 		PolicyRequest(int type, int reqId, const char *subj, const char *desc);
 		~PolicyRequest();
 
+		const char* getClient();
+
 		bool reply(int error);
 		bool reply(int error, ctx::Json &requestResult);
 		bool reply(int error, ctx::Json &requestResult, ctx::Json &dataRead);

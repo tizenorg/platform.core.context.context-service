@@ -27,6 +27,11 @@ PolicyRequest::~PolicyRequest()
 {
 }
 
+const char* PolicyRequest::getClient()
+{
+	return "POLICY";
+}
+
 bool PolicyRequest::reply(int error)
 {
 	return true;
