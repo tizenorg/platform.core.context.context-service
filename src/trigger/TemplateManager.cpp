@@ -179,6 +179,9 @@ std::string TemplateManager::__removeTemplate(std::string &subject)
 
 int TemplateManager::getTemplate(std::string &subject, Json* tmpl)
 {
+	if (!__contextMgr->isSupported(subject.c_str()))
+		return ERR_NOT_SUPPORTED;
+
 	// Update latest template information
 	std::string q = "SELECT * FROM context_trigger_template WHERE name = '" + subject + "'";
 
