@@ -19,6 +19,7 @@
 
 #include <set>
 #include <map>
+#include <DatabaseManager.h>
 
 namespace ctx {
 
@@ -62,8 +63,8 @@ namespace trigger {
 			void __applyTemplates(void);
 
 			std::set<std::string> __uninstalledPackages;
-
 			std::map<int, Rule*> __ruleMap;
+			DatabaseManager __dbManager;
    };	/* class RuleManager */
 
 }	/* namespace trigger */

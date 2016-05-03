@@ -15,10 +15,9 @@
  */
 
 #include <sstream>
-#include <types_internal.h>
+#include <Types.h>
 #include <context_trigger_types_internal.h>
-#include <db_mgr.h>
-#include "../ContextManagerImpl.h"
+#include "../ContextManager.h"
 #include "RuleManager.h"
 #include "TemplateManager.h"
 
@@ -26,7 +25,7 @@ using namespace ctx;
 using namespace ctx::trigger;
 
 TemplateManager *TemplateManager::__instance = NULL;
-ContextManagerImpl *TemplateManager::__contextMgr = NULL;
+ContextManager *TemplateManager::__contextMgr = NULL;
 RuleManager *TemplateManager::__ruleMgr = NULL;
 
 static std::string __intToString(int i)
@@ -45,7 +44,7 @@ TemplateManager::~TemplateManager()
 {
 }
 
-void TemplateManager::setManager(ContextManagerImpl* ctxMgr, RuleManager* ruleMgr)
+void TemplateManager::setManager(ContextManager* ctxMgr, RuleManager* ruleMgr)
 {
 	__contextMgr = ctxMgr;
 	__ruleMgr = ruleMgr;
@@ -81,7 +80,7 @@ bool TemplateManager::init()
 			+ "attributes TEXT DEFAULT '' NOT NULL, options TEXT DEFAULT '' NOT NULL, owner TEXT DEFAULT '' NOT NULL)";
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create template table failed");
 
 	// Apply templates
@@ -97,16 +96,23 @@ void TemplateManager::applyTemplates()
 	Json attributes;
 	Json options;
 	std::string owner;
-	bool unregister;
+	//bool unregister;
 	std::string query;
 	query.clear();
 
+	/*
 	while(__contextMgr->popTriggerItem(subject, operation, attributes, options, owner, unregister)) {
 		if (unregister) {
 			unregisterTemplate(subject);
 		} else {
 			registerTemplate(subject, operation, attributes, options, owner);
 		}
+	}
+	*/
+
+	/* FIXME */
+	while (__contextMgr->popTriggerTemplate(subject, operation, attributes, options)) {
+		registerTemplate(subject, operation, attributes, options, "");
 	}
 }
 
@@ -125,7 +131,7 @@ void TemplateManager::registerTemplate(std::string subject, int operation, Json 
 			+ owner + "'); ";
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(query.c_str(), &record);
+	bool ret = __dbManager.executeSync(query.c_str(), &record);
 	IF_FAIL_VOID_TAG(ret, _E, "Update template db failed");
 
 	if (!owner.empty()) {
@@ -139,7 +145,7 @@ void TemplateManager::unregisterTemplate(std::string subject)
 	std::string query = "DELETE FROM context_trigger_template WHERE name = '" + subject + "'; ";
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(query.c_str(), &record);
+	bool ret = __dbManager.executeSync(query.c_str(), &record);
 	IF_FAIL_VOID_TAG(ret, _E, "Update template db failed");
 
 	__ruleMgr->pauseRuleWithItem(subject);
@@ -173,11 +179,14 @@ std::string TemplateManager::__removeTemplate(std::string &subject)
 
 int TemplateManager::getTemplate(std::string &subject, Json* tmpl)
 {
+	if (!__contextMgr->isSupported(subject.c_str()))
+		return ERR_NOT_SUPPORTED;
+
 	// Update latest template information
 	std::string q = "SELECT * FROM context_trigger_template WHERE name = '" + subject + "'";
 
 	std::vector<Json> record;
-	bool ret = db_manager::execute_sync(q.c_str(), &record);
+	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query template failed");
 	IF_FAIL_RETURN_TAG(record.size() > 0, ERR_NOT_SUPPORTED, _E, "Template(%s) not found", subject.c_str());
 	IF_FAIL_RETURN_TAG(record.size() == 1, ERR_OPERATION_FAILED, _E, "Tepmlate duplicated");

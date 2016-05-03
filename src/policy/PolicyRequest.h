@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Samsung Electronics Co., Ltd.
+ * Copyright (c) 2016 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef __CONTEXT_SERVER_H__
-#define __CONTEXT_SERVER_H__
+#ifndef _CONTEXT_POLICY_REQUEST_H_
+#define _CONTEXT_POLICY_REQUEST_H_
+
+#include "../Request.h"
 
 namespace ctx {
 
-	class RequestInfo;
-
-	class server {
+	class PolicyRequest : public RequestInfo {
 	public:
-		static void initialize();
-		static void activate();
-		static void release();
-		static void send_request(RequestInfo* request);
+		PolicyRequest(int type, int reqId, const char *subj, const char *desc);
+		~PolicyRequest();
 
+		const char* getClient();
+
+		bool reply(int error);
+		bool reply(int error, ctx::Json &requestResult);
+		bool reply(int error, ctx::Json &requestResult, ctx::Json &dataRead);
+		bool publish(int error, ctx::Json &data);
 	};
 
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_SERVER_H__ */
+#endif	/* End of _CONTEXT_POLICY_REQUEST_H_ */

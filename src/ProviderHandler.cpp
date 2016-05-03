@@ -15,75 +15,122 @@
  */
 
 #include <glib.h>
-#include <types_internal.h>
-#include <Json.h>
+#include <Types.h>
 #include "access_control/Privilege.h"
-#include "server.h"
 #include "Request.h"
 #include "ProviderHandler.h"
 
-ctx::ProviderHandler::ProviderHandler(const char *subj, ctx::ContextProviderInfo &prvd) :
-	__subject(subj),
-	__providerInfo(prvd)
+#define DELETE_DELAY 20
+
+using namespace ctx;
+
+std::map<std::string, ProviderHandler*> ProviderHandler::__instanceMap;
+
+ProviderHandler::ProviderHandler(const std::string &subject) :
+	__subject(subject),
+	__deleteScheduled(false)
 {
+	_D("Subject: %s", __subject.c_str());
 }
 
-ctx::ProviderHandler::~ProviderHandler()
+ProviderHandler::~ProviderHandler()
 {
-	for (auto it = __subscribeRequests.begin(); it != __subscribeRequests.end(); ++it) {
-		delete *it;
+	_D("Subject: %s", __subject.c_str());
+
+	for (RequestInfo*& info : __subscribeRequests) {
+		delete info;
 	}
 	__subscribeRequests.clear();
 
-	for (auto it = __readRequests.begin(); it != __readRequests.end(); ++it) {
-		delete *it;
+	for (RequestInfo*& info : __readRequests) {
+		delete info;
 	}
 	__readRequests.clear();
 
-	__providerInfo.destroy(__providerInfo.data);
+	delete __provider;
 }
 
-bool ctx::ProviderHandler::isAllowed(const ctx::Credentials *creds)
+/* TODO: Return proper error code */
+ProviderHandler* ProviderHandler::getInstance(std::string subject, bool force)
 {
-	IF_FAIL_RETURN(creds, true);	/* In case of internal requests */
-	return privilege_manager::isAllowed(creds, __providerInfo.privilege);
-}
+	InstanceMap::iterator it = __instanceMap.find(subject);
 
-ctx::ContextProviderBase* ctx::ProviderHandler::__getProvider(ctx::RequestInfo *request)
-{
-	ContextProviderBase *provider = __providerInfo.create(__providerInfo.data);
-	if (!provider) {
-		_E("Memory allocation failed");
-		delete request;
+	if (it != __instanceMap.end())
+		return it->second;
+
+	if (!force)
+		return NULL;
+
+	ProviderHandler *handle = new(std::nothrow) ProviderHandler(subject);
+	IF_FAIL_RETURN_TAG(handle, NULL, _E, "Memory allocation failed");
+
+	if (!handle->__loadProvider()) {
+		delete handle;
 		return NULL;
 	}
 
-	return provider;
+	__instanceMap[subject] = handle;
+
+	return handle;
 }
 
-void ctx::ProviderHandler::subscribe(ctx::RequestInfo *request)
+void ProviderHandler::purge()
 {
-	_I(CYAN("'%s' subscribes '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
+	for (InstanceMap::iterator it = __instanceMap.begin(); it != __instanceMap.end(); ++it) {
+		delete it->second;
+	}
 
-	ContextProviderBase *provider = __getProvider(request);
-	IF_FAIL_VOID(provider);
+	__instanceMap.clear();
+}
 
-	ctx::Json requestResult;
-	int error = provider->subscribe(__subject, request->getDescription().str(), &requestResult);
+bool ProviderHandler::isSupported()
+{
+	/* If idle, self destruct */
+	__scheduleToDelete();
+
+	return __provider->isSupported();
+}
+
+bool ProviderHandler::isAllowed(const Credentials *creds)
+{
+	/* If idle, self destruct */
+	__scheduleToDelete();
+
+	IF_FAIL_RETURN(creds, true);	/* In case of internal requests */
+
+	std::vector<const char*> priv;
+	__provider->getPrivilege(priv);
+
+	for (unsigned int i = 0; i < priv.size(); ++i) {
+		if (!privilege_manager::isAllowed(creds, priv[i]))
+			return false;
+	}
+
+	return true;
+}
+
+void ProviderHandler::subscribe(RequestInfo *request)
+{
+	_I(CYAN("'%s' subscribes '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
+
+	Json requestResult;
+	int error = __provider->subscribe(request->getDescription().str(), &requestResult);
 
 	if (!request->reply(error, requestResult) || error != ERR_NONE) {
 		delete request;
+		/* If idle, self destruct */
+		__scheduleToDelete();
 		return;
 	}
 
 	__subscribeRequests.push_back(request);
 }
 
-void ctx::ProviderHandler::unsubscribe(ctx::RequestInfo *request)
+void ProviderHandler::unsubscribe(RequestInfo *request)
 {
-	_I(CYAN("'%s' unsubscribes '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
+	_I(CYAN("'%s' unsubscribes '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
 
-	// Search the subscribe request to be removed
+	/* Search the subscribe request to be removed */
 	auto target = __findRequest(__subscribeRequests, request->getClient(), request->getId());
 	if (target == __subscribeRequests.end()) {
 		_W("Unknown request");
@@ -91,66 +138,64 @@ void ctx::ProviderHandler::unsubscribe(ctx::RequestInfo *request)
 		return;
 	}
 
-	// Keep the pointer to the request found
-	RequestInfo *req_found = *target;
+	/* Keep the pointer to the request found */
+	RequestInfo *reqFound = *target;
 
-	// Remove the request from the list
+	/* Remove the request from the list */
 	__subscribeRequests.erase(target);
 
-	// Check if there exist the same requests
-	if (__findRequest(__subscribeRequests, req_found->getDescription()) != __subscribeRequests.end()) {
-		// Do not stop detecting the subject
-		_D("A same request from '%s' exists", req_found->getClient());
+	/* Check if there exist the same requests */
+	if (__findRequest(__subscribeRequests, reqFound->getDescription()) != __subscribeRequests.end()) {
+		/* Do not stop detecting the subject */
+		_D("A same request from '%s' exists", reqFound->getClient());
 		request->reply(ERR_NONE);
 		delete request;
-		delete req_found;
+		delete reqFound;
 		return;
 	}
 
-	// Get the provider
-	ContextProviderBase *provider = __getProvider(request);
-	IF_FAIL_VOID(provider);
-
-	// Stop detecting the subject
-	int error = provider->unsubscribe(__subject, req_found->getDescription());
+	/* Stop detecting the subject */
+	int error = __provider->unsubscribe(reqFound->getDescription());
 	request->reply(error);
 	delete request;
-	delete req_found;
+	delete reqFound;
+
+	/* If idle, self destruct */
+	__scheduleToDelete();
 }
 
-void ctx::ProviderHandler::read(ctx::RequestInfo *request)
+void ProviderHandler::read(RequestInfo *request)
 {
-	_I(CYAN("'%s' reads '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
+	_I(CYAN("'%s' reads '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
 
-	ContextProviderBase *provider = __getProvider(request);
-	IF_FAIL_VOID(provider);
-
-	ctx::Json requestResult;
-	int error = provider->read(__subject, request->getDescription().str(), &requestResult);
+	Json requestResult;
+	int error = __provider->read(request->getDescription().str(), &requestResult);
 
 	if (!request->reply(error, requestResult) || error != ERR_NONE) {
 		delete request;
+		/* If idle, self destruct */
+		__scheduleToDelete();
 		return;
 	}
 
 	__readRequests.push_back(request);
 }
 
-void ctx::ProviderHandler::write(ctx::RequestInfo *request)
+void ProviderHandler::write(RequestInfo *request)
 {
-	_I(CYAN("'%s' writes '%s' (RID-%d)"), request->getClient(), __subject, request->getId());
+	_I(CYAN("'%s' writes '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
 
-	ContextProviderBase *provider = __getProvider(request);
-	IF_FAIL_VOID(provider);
-
-	ctx::Json requestResult;
-	int error = provider->write(__subject, request->getDescription(), &requestResult);
+	Json requestResult;
+	int error = __provider->write(request->getDescription(), &requestResult);
 
 	request->reply(error, requestResult);
 	delete request;
+
+	/* If idle, self destruct */
+	__scheduleToDelete();
 }
 
-bool ctx::ProviderHandler::publish(ctx::Json &option, int error, ctx::Json &dataUpdated)
+bool ProviderHandler::publish(Json &option, int error, Json &dataUpdated)
 {
 	auto end = __subscribeRequests.end();
 	auto target = __findRequest(__subscribeRequests.begin(), end, option);
@@ -165,13 +210,13 @@ bool ctx::ProviderHandler::publish(ctx::Json &option, int error, ctx::Json &data
 	return true;
 }
 
-bool ctx::ProviderHandler::replyToRead(ctx::Json &option, int error, ctx::Json &dataRead)
+bool ProviderHandler::replyToRead(Json &option, int error, Json &dataRead)
 {
 	auto end = __readRequests.end();
 	auto target = __findRequest(__readRequests.begin(), end, option);
 	auto prev = target;
 
-	ctx::Json dummy;
+	Json dummy;
 
 	while (target != end) {
 		(*target)->reply(error, dummy, dataRead);
@@ -182,17 +227,54 @@ bool ctx::ProviderHandler::replyToRead(ctx::Json &option, int error, ctx::Json &
 		__readRequests.erase(prev);
 	}
 
+	/* If idle, self destruct */
+	__scheduleToDelete();
+
 	return true;
 }
 
-ctx::ProviderHandler::RequestList::iterator
-ctx::ProviderHandler::__findRequest(RequestList &reqList, Json &option)
+bool ProviderHandler::__loadProvider()
+{
+	__provider = __loader.load(__subject.c_str());
+	return (__provider != NULL);
+}
+
+bool ProviderHandler::__idle()
+{
+	return __subscribeRequests.empty() && __readRequests.empty();
+}
+
+void ProviderHandler::__scheduleToDelete()
+{
+	if (__provider->unloadable() && !__deleteScheduled && __idle()) {
+		__deleteScheduled = true;
+		g_timeout_add_seconds(DELETE_DELAY, __deletor, this);
+		_D("Delete scheduled for '%s' (%#x)", __subject.c_str(), this);
+	}
+}
+
+gboolean ProviderHandler::__deletor(gpointer data)
+{
+	ProviderHandler *handle = static_cast<ProviderHandler*>(data);
+
+	if (handle->__idle()) {
+		__instanceMap.erase(handle->__subject);
+		delete handle;
+		return FALSE;
+	}
+
+	handle->__deleteScheduled = false;
+	return FALSE;
+}
+
+ProviderHandler::RequestList::iterator
+ProviderHandler::__findRequest(RequestList &reqList, Json &option)
 {
 	return __findRequest(reqList.begin(), reqList.end(), option);
 }
 
-ctx::ProviderHandler::RequestList::iterator
-ctx::ProviderHandler::__findRequest(RequestList &reqList, std::string client, int reqId)
+ProviderHandler::RequestList::iterator
+ProviderHandler::__findRequest(RequestList &reqList, std::string client, int reqId)
 {
 	for (auto it = reqList.begin(); it != reqList.end(); ++it) {
 		if (client == (*it)->getClient() && reqId == (*it)->getId()) {
@@ -202,8 +284,8 @@ ctx::ProviderHandler::__findRequest(RequestList &reqList, std::string client, in
 	return reqList.end();
 }
 
-ctx::ProviderHandler::RequestList::iterator
-ctx::ProviderHandler::__findRequest(RequestList::iterator begin, RequestList::iterator end, Json &option)
+ProviderHandler::RequestList::iterator
+ProviderHandler::__findRequest(RequestList::iterator begin, RequestList::iterator end, Json &option)
 {
 	for (auto it = begin; it != end; ++it) {
 		if (option == (*it)->getDescription()) {

@@ -16,7 +16,7 @@
 
 #include <string>
 #include <cynara-client.h>
-#include <types_internal.h>
+#include <Types.h>
 #include "PeerCreds.h"
 #include "Privilege.h"
 

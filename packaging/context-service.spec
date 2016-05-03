@@ -1,6 +1,6 @@
 Name:       context-service
 Summary:    Context-Service
-Version:    0.7.5
+Version:    0.8.0
 Release:    1
 Group:      Service/Context
 License:    Apache-2.0
@@ -8,23 +8,31 @@ Source0:    %{name}-%{version}.tar.gz
 Source1:	context-service.service
 Source2:	org.tizen.context.conf
 
+%define BUILD_PROFILE %{?profile}%{!?profile:%{?tizen_profile_name}}
+
+%if "%{?BUILD_PROFILE}" == "tv"
+ExcludeArch: %{arm} aarch64 %ix86 x86_64
+%endif
+
 BuildRequires: cmake
 BuildRequires: sed
-BuildRequires: pkgconfig(libtzplatform-config)
+BuildRequires: pkgconfig(gmodule-2.0)
 BuildRequires: pkgconfig(vconf)
-BuildRequires: pkgconfig(sqlite3)
 BuildRequires: pkgconfig(capi-system-info)
+BuildRequires: pkgconfig(capi-system-device)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
+BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(appsvc)
 BuildRequires: pkgconfig(notification)
-BuildRequires: pkgconfig(capi-system-system-settings)
 
 BuildRequires: pkgconfig(cynara-creds-gdbus)
 BuildRequires: pkgconfig(cynara-client)
 BuildRequires: pkgconfig(cynara-session)
 
+BuildRequires: pkgconfig(libcontext-server)
 BuildRequires: pkgconfig(context)
-BuildRequires: pkgconfig(context-provider)
+BuildRequires: context-provider-devel
+Requires: context-provider
 
 Requires(preun): /usr/bin/systemctl
 Requires(post): /usr/bin/systemctl

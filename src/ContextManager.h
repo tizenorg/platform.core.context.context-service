@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef _CONTEXT_MANAGER_IMPL_H_
-#define _CONTEXT_MANAGER_IMPL_H_
+#ifndef _CONTEXT_CONTEXT_MANAGER_H_
+#define _CONTEXT_CONTEXT_MANAGER_H_
 
-#include <string>
 #include <map>
-#include <glib.h>
-#include <ContextManager.h>
 #include <IContextManager.h>
 
 namespace ctx {
@@ -28,12 +25,10 @@ namespace ctx {
 	/* Forward declaration */
 	class Credentials;
 	class RequestInfo;
-	class ProviderHandler;
 
-	class ContextManagerImpl : public IContextManager {
+	class ContextManager : public IContextManager {
 	public:
-		ContextManagerImpl();
-		~ContextManagerImpl();
+		~ContextManager();
 
 		bool init();
 		void release();
@@ -41,28 +36,25 @@ namespace ctx {
 		void assignRequest(ctx::RequestInfo *request);
 		bool isSupported(const char *subject);
 		bool isAllowed(const Credentials *creds, const char *subject);
-		bool popTriggerItem(std::string &subject, int &operation, ctx::Json &attributes, ctx::Json &options, std::string &owner, bool& unregister);
 
 		/* From the interface class */
-		bool registerProvider(const char *subject, ContextProviderInfo &providerInfo);
-		bool unregisterProvider(const char *subject);
-		bool registerTriggerItem(const char *subject, int operation, ctx::Json attributes, ctx::Json options, const char *owner = NULL);
-		bool unregisterTriggerItem(const char *subject);
 		bool publish(const char *subject, ctx::Json &option, int error, ctx::Json &dataUpdated);
 		bool replyToRead(const char *subject, ctx::Json &option, int error, ctx::Json &dataRead);
 
+		bool popTriggerTemplate(std::string &subject, int &operation, Json &attribute, Json &option);
+
 	private:
-		std::map<std::string, ProviderHandler*> __providerHandleMap;
-		static bool __initialized;
+		ContextManager();
 
 		static gboolean __threadSwitcher(gpointer data);
+
 		void __publish(const char *subject, ctx::Json &option, int error, ctx::Json &dataUpdated);
 		void __replyToRead(const char *subject, ctx::Json &option, int error, ctx::Json &dataRead);
 
-		/* For custom request */
-		bool __handleCustomRequest(ctx::RequestInfo* request);
-	};	/* class ContextManagerImpl */
+		friend class Server;
+
+	};	/* class ContextManager */
 
 }	/* namespace ctx */
 
-#endif	/* End of __CONTEXT_MANAGER_IMPL_H__ */
+#endif	/* _CONTEXT_CONTEXT_MANAGER_H_ */

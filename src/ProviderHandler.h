@@ -19,21 +19,21 @@
 
 #include <string>
 #include <list>
-#include <ContextProviderBase.h>
+#include <map>
+#include <ContextProvider.h>
+#include "ProviderLoader.h"
 
 namespace ctx {
 
-	class Json;
 	class Credentials;
 	class RequestInfo;
 
 	class ProviderHandler {
-	public:
 		typedef std::list<RequestInfo*> RequestList;
+		typedef std::map<std::string, ProviderHandler*> InstanceMap;
 
-		ProviderHandler(const char *subj, ContextProviderInfo &prvd);
-		~ProviderHandler();
-
+	public:
+		bool isSupported();
 		bool isAllowed(const Credentials *creds);
 
 		void subscribe(RequestInfo *request);
@@ -44,16 +44,31 @@ namespace ctx {
 		bool publish(ctx::Json &option, int error, ctx::Json &dataUpdated);
 		bool replyToRead(ctx::Json &option, int error, ctx::Json &dataRead);
 
+		static ProviderHandler* getInstance(std::string subject, bool force);
+		static void purge();
+
 	private:
-		const char *__subject;
-		ContextProviderInfo __providerInfo;
+		std::string __subject;
+		ContextProvider *__provider;
 		RequestList __subscribeRequests;
 		RequestList __readRequests;
+		ProviderLoader __loader;
+		bool __deleteScheduled;
 
-		ContextProviderBase* __getProvider(RequestInfo *request);
+		static InstanceMap __instanceMap;
+
+		ProviderHandler(const std::string &subject);
+		~ProviderHandler();
+
+		bool __loadProvider();
+		bool __idle();
+		void __scheduleToDelete();
+
 		RequestList::iterator __findRequest(RequestList &reqList, Json &option);
 		RequestList::iterator __findRequest(RequestList &reqList, std::string client, int reqId);
 		RequestList::iterator __findRequest(RequestList::iterator begin, RequestList::iterator end, Json &option);
+
+		static gboolean __deletor(gpointer data);
 
 	};	/* class ProviderHandler */
 

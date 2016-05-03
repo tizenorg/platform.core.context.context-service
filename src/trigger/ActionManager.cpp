@@ -20,8 +20,7 @@
 #include <device/display.h>
 #include <notification.h>
 #include <notification_internal.h>
-#include <runtime_info.h>
-#include <system_settings.h>
+#include <vconf.h>
 #include <context_trigger_types_internal.h>
 #include <Json.h>
 #include "../DBusServer.h"
@@ -140,29 +139,25 @@ void __triggerActionNotification(ctx::Json& action, std::string pkgId)
 		}
 	}
 
-	bool silent = true;
-	error = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, &silent);
-	if (error != SYSTEM_SETTINGS_ERROR_NONE) {
-		_E("Get system setting(silent mode) failed(%d)", error);
-	}
-
-	bool vibration = true;
-	error = runtime_info_get_value_bool(RUNTIME_INFO_KEY_VIBRATION_ENABLED, &vibration);
-	if (error != RUNTIME_INFO_ERROR_NONE) {
-		_E("Get runtime info(vibration) failed(%d)", error);
-	}
-
-	if (!silent) {
-	    error = notification_set_sound(notification, NOTIFICATION_SOUND_TYPE_DEFAULT, NULL);
+	int soundOn = 0;
+	error = vconf_get_bool(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL, &soundOn);
+	if (error < 0) {
+		_E("vconf error (%d)", error);
+	} else if (soundOn) {
+		error = notification_set_sound(notification, NOTIFICATION_SOUND_TYPE_DEFAULT, NULL);
 		if (error != NOTIFICATION_ERROR_NONE) {
 			_E("Set notification sound failed(%d)", error);
 		}
+	}
 
-		if (vibration) {
-			error = notification_set_vibration(notification, NOTIFICATION_VIBRATION_TYPE_DEFAULT, NULL);
-			if (error != NOTIFICATION_ERROR_NONE) {
-				_E("Set notification vibration failed(%d)", error);
-			}
+	int vibrationOn = 0;
+	error = vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &vibrationOn);
+	if (error < 0) {
+		_E("vconf error (%d)", error);
+	} else if (vibrationOn) {
+		error = notification_set_vibration(notification, NOTIFICATION_VIBRATION_TYPE_DEFAULT, NULL);
+		if (error != NOTIFICATION_ERROR_NONE) {
+			_E("Set notification vibration failed(%d)", error);
 		}
 	}
 

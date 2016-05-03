@@ -22,7 +22,7 @@
 namespace ctx {
 
 	class client_request;
-	class ContextManagerImpl;
+	class ContextManager;
 
 namespace trigger {
 
@@ -33,14 +33,14 @@ namespace trigger {
 			Trigger();
 			~Trigger();
 
-			bool init(ContextManagerImpl* ctxMgr);
+			bool init(ContextManager* ctxMgr);
 			void release();
 
 			bool assignRequest(RequestInfo* request);
 
 		private:
 			void __processRequest(RequestInfo* request);
-			void __processInitialize(ContextManagerImpl* mgr);
+			void __processInitialize(ContextManager* mgr);
 
 			void __addRule(RequestInfo* request);
 			void __removeRule(RequestInfo* request);

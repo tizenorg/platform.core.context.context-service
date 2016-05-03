@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <types_internal.h>
+#include <Types.h>
 #include <context_trigger_types_internal.h>
 #include "Trigger.h"
 #include "ContextMonitor.h"
@@ -33,7 +33,7 @@ Trigger::~Trigger()
 {
 }
 
-bool Trigger::init(ContextManagerImpl* ctxMgr)
+bool Trigger::init(ContextManager* ctxMgr)
 {
 	// Do the necessary initialization process.
 	// This function is called from the main thread during the service launching process.
@@ -99,7 +99,7 @@ void Trigger::__processRequest(RequestInfo* request)
 	}
 }
 
-void Trigger::__processInitialize(ContextManagerImpl* mgr)
+void Trigger::__processInitialize(ContextManager* mgr)
 {
 	// Context Monitor
 	ContextMonitor::setContextManager(mgr);
