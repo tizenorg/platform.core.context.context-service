@@ -65,12 +65,12 @@ TemplateManager* TemplateManager::getInstance()
 
 void TemplateManager::destroy()
 {
+	IF_FAIL_VOID(__instance);
+
 	__instance->applyTemplates();
 
-	if (__instance) {
-		delete __instance;
-		__instance = NULL;
-	}
+	delete __instance;
+	__instance = NULL;
 }
 
 bool TemplateManager::init()
