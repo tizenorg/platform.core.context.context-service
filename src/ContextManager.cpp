@@ -56,13 +56,14 @@ void ContextManager::release()
 void ContextManager::assignRequest(RequestInfo* request)
 {
 	ProviderHandler *handle = ProviderHandler::getInstance(request->getSubject(), true);
+
 	if (!handle || !handle->isSupported()) {
 		request->reply(ERR_NOT_SUPPORTED);
 		delete request;
 		return;
 	}
 
-	if (!handle->isAllowed(request->getCredentials())) {
+	if (request->getType() != REQ_SUPPORT && !handle->isAllowed(request->getCredentials())) {
 		_W("Permission denied");
 		request->reply(ERR_PERMISSION_DENIED);
 		delete request;
