@@ -66,6 +66,7 @@ bool ctx::peer_creds::get(GDBusConnection *connection, const char *uniqueName, c
 	*creds = new(std::nothrow) Credentials(packageId, client, session, user);
 	IF_FAIL_CATCH_TAG(*creds, _E, "Memory allocation failed");
 
+	g_free(app_id);
 	return true;
 
 CATCH:
