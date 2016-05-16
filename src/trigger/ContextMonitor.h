@@ -34,7 +34,7 @@ namespace trigger {
 	class ContextMonitor {
 	public:
 		static ContextMonitor* getInstance();
-		static void setContextManager(ContextManager* ctx_mgr);
+		static void setContextManager(ContextManager* ctxMgr);
 		static void destroy();
 
 		int subscribe(int ruleId, std::string subject, Json option, IContextListener* listener);
@@ -75,7 +75,7 @@ namespace trigger {
 		};
 
 		std::map<int, SubscrInfo*> __subscrMap;
-		std::map<int, SubscrInfo*> ___readMap;
+		std::map<int, SubscrInfo*> __readMap;
 
 		int __findSub(RequestType type, const char *subject, Json *option);
 		bool __addSub(RequestType type, int sid, const char *subject, Json *option, IContextListener* listener);

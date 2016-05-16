@@ -97,6 +97,8 @@ void Trigger::__processRequest(RequestInfo* request)
 	} else {
 		_E("Invalid request");
 	}
+
+	delete request;
 }
 
 void Trigger::__processInitialize(ContextManager* mgr)

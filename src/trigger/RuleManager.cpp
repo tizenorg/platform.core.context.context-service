@@ -53,6 +53,19 @@ RuleManager::RuleManager()
 
 RuleManager::~RuleManager()
 {
+	// Release rule instances
+	_D("Release rule instances");
+	for (auto it = __ruleMap.begin(); it != __ruleMap.end(); ++it) {
+		Rule* rule = static_cast<Rule*>(it->second);
+
+		int error = rule->stop();
+		if (error != ERR_NONE) {
+			_E("Failed to stop rule%d", it->first);
+		}
+
+		delete rule;
+		__ruleMap.erase(it);
+	}
 }
 
 bool RuleManager::init()

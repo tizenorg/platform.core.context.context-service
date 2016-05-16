@@ -50,9 +50,9 @@ ContextMonitor::~ContextMonitor()
 {
 }
 
-void ContextMonitor::setContextManager(ContextManager* ctx_mgr)
+void ContextMonitor::setContextManager(ContextManager* ctxMgr)
 {
-	__contextMgr = ctx_mgr;
+	__contextMgr = ctxMgr;
 }
 
 ContextMonitor* ContextMonitor::getInstance()
@@ -190,7 +190,7 @@ bool ContextMonitor::isAllowed(const char *client, const char *subject)
 int ContextMonitor::__findSub(RequestType type, const char* subject, Json* option)
 {
 	// @return	request id
-	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
+	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &__readMap;
 
 	Json jOpt;
 	if (option) {
@@ -208,7 +208,7 @@ int ContextMonitor::__findSub(RequestType type, const char* subject, Json* optio
 
 bool ContextMonitor::__addSub(RequestType type, int sid, const char* subject, Json* option, IContextListener* listener)
 {
-	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
+	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &__readMap;
 
 	SubscrInfo *info = new(std::nothrow) SubscrInfo(sid, subject, option);
 	IF_FAIL_RETURN_TAG(info, false, _E, "Memory allocation failed");
@@ -220,7 +220,7 @@ bool ContextMonitor::__addSub(RequestType type, int sid, const char* subject, Js
 
 void ContextMonitor::__removeSub(RequestType type, const char* subject, Json* option)
 {
-	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
+	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &__readMap;
 
 	Json jOpt;
 	if (option) {
@@ -238,7 +238,7 @@ void ContextMonitor::__removeSub(RequestType type, const char* subject, Json* op
 
 void ContextMonitor::__removeSub(RequestType type, int sid)
 {
-	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
+	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &__readMap;
 
 	SubscrInfo* info = map->at(sid);
 	info->listenerList.clear();
@@ -252,7 +252,7 @@ void ContextMonitor::__removeSub(RequestType type, int sid)
 int ContextMonitor::__addListener(RequestType type, int sid, IContextListener* listener)
 {
 	// @return	number of listeners for the corresponding sid
-	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
+	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &__readMap;
 
 	auto it = map->find(sid);
 
@@ -265,7 +265,7 @@ int ContextMonitor::__addListener(RequestType type, int sid, IContextListener* l
 int ContextMonitor::__removeListener(RequestType type, int sid, IContextListener* listener)
 {
 	// @return	number of listeners for the corresponding sid
-	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &___readMap;
+	std::map<int, SubscrInfo*>* map = (type == REQ_SUBSCRIBE)? &__subscrMap : &__readMap;
 
 	auto it = map->find(sid);
 
@@ -293,8 +293,8 @@ void ContextMonitor::replyResult(int reqId, int error, const char* subject, Json
 {
 	_D(YELLOW("Condition received: subject(%s), option(%s), fact(%s)"), subject, option->str().c_str(), fact->str().c_str());
 
-	auto it = ___readMap.find(reqId);
-	IF_FAIL_VOID_TAG(it != ___readMap.end(), _E, "Request id not found");
+	auto it = __readMap.find(reqId);
+	IF_FAIL_VOID_TAG(it != __readMap.end(), _E, "Request id not found");
 
 	SubscrInfo* info = it->second;
 	for (auto it2 = info->listenerList.begin(); it2 != info->listenerList.end(); ++it2) {
