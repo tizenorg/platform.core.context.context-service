@@ -61,7 +61,7 @@ ContextProvider* ProviderLoader::__load(const char *soPath, const char *subject)
 
 	gpointer symbol;
 
-	if (!g_module_symbol(__soHandle, "create", &symbol) || symbol == NULL) {
+	if (!g_module_symbol(__soHandle, "CreateProvider", &symbol) || symbol == NULL) {
 		_E("%s", g_module_error());
 		g_module_close(__soHandle);
 		__soHandle = NULL;
