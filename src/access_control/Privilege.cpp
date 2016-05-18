@@ -20,17 +20,34 @@
 #include "PeerCreds.h"
 #include "Privilege.h"
 
+#define CACHE_SIZE 100
+
 class PermissionChecker {
 private:
 	cynara *__cynara;
 
 	PermissionChecker()
 	{
-		if (cynara_initialize(&__cynara, NULL) != CYNARA_API_SUCCESS) {
+		cynara_configuration *conf;
+
+		int err = cynara_configuration_create(&conf);
+		IF_FAIL_VOID_TAG(err == CYNARA_API_SUCCESS, _E, "Cynara configuration creation failed");
+
+		err = cynara_configuration_set_cache_size(conf, CACHE_SIZE);
+		if (err != CYNARA_API_SUCCESS) {
+			_E("Cynara cash size set failed");
+			cynara_configuration_destroy(conf);
+			return;
+		}
+
+		err = cynara_initialize(&__cynara, conf);
+		cynara_configuration_destroy(conf);
+		if (err != CYNARA_API_SUCCESS) {
 			_E("Cynara initialization failed");
 			__cynara = NULL;
 			return;
 		}
+
 		_I("Cynara initialized");
 	}
 
