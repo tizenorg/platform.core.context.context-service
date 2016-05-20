@@ -39,6 +39,15 @@ static const gchar __introspection_xml[] =
 	"			<arg type='s' name='" ARG_RESULT_ADD "' direction='out'/>"
 	"			<arg type='s' name='" ARG_OUTPUT "' direction='out'/>"
 	"		</method>"
+	"		<method name='" METHOD_CHK_PRIV_APPLAUNCH "'>"
+	"			<arg type='i' name='" ARG_RESULT_ERR "' direction='out'/>"
+	"		</method>"
+	"		<method name='" METHOD_CHK_PRIV_CALL "'>"
+	"			<arg type='i' name='" ARG_RESULT_ERR "' direction='out'/>"
+	"		</method>"
+	"		<method name='" METHOD_CHK_PRIV_NOTIFICATION "'>"
+	"			<arg type='i' name='" ARG_RESULT_ERR "' direction='out'/>"
+	"		</method>"
 	"	</interface>"
 	"</node>";
 
@@ -89,7 +98,12 @@ void DBusServer::__processRequest(const char *sender, GVariant *param, GDBusMeth
 	Server::sendRequest(request);
 }
 
-void DBusServer::__onRequestReceived(GDBusConnection *conn, const gchar *sender,
+void DBusServer::__reply(GDBusMethodInvocation *invocation, int error)
+{
+	g_dbus_method_invocation_return_value(invocation, g_variant_new("(i)", error));
+}
+
+void DBusServer::__onMethodCalled(GDBusConnection *conn, const gchar *sender,
 		const gchar *path, const gchar *iface, const gchar *name,
 		GVariant *param, GDBusMethodInvocation *invocation, gpointer userData)
 {
@@ -99,14 +113,14 @@ void DBusServer::__onRequestReceived(GDBusConnection *conn, const gchar *sender,
 	if (STR_EQ(name, METHOD_REQUEST)) {
 		__theInstance->__processRequest(sender, param, invocation);
 	} else {
-		_W("Invalid method: %s", name);
+		__theInstance->__reply(invocation, ERR_NONE);
 	}
 }
 
 void DBusServer::__onBusAcquired(GDBusConnection *conn, const gchar *name, gpointer userData)
 {
 	GDBusInterfaceVTable vtable;
-	vtable.method_call = __onRequestReceived;
+	vtable.method_call = __onMethodCalled;
 	vtable.get_property = NULL;
 	vtable.set_property = NULL;
 
