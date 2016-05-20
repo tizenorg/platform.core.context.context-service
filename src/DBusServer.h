@@ -33,7 +33,7 @@ namespace ctx {
 	private:
 		DBusServer();
 
-		static void __onRequestReceived(GDBusConnection *conn, const gchar *sender,
+		static void __onMethodCalled(GDBusConnection *conn, const gchar *sender,
 				const gchar *path, const gchar *iface, const gchar *name,
 				GVariant *param, GDBusMethodInvocation *invocation, gpointer user_data);
 		static void __onBusAcquired(GDBusConnection *conn, const gchar *name, gpointer userData);
@@ -47,6 +47,7 @@ namespace ctx {
 		void __call(const char *dest, const char *obj, const char *iface, const char *method, GVariant *param);
 
 		void __processRequest(const char *sender, GVariant *param, GDBusMethodInvocation *invocation);
+		void __reply(GDBusMethodInvocation *invocation, int error);
 
 		static DBusServer *__theInstance;
 
