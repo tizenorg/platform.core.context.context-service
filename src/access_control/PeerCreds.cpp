@@ -14,12 +14,17 @@
  * limitations under the License.
  */
 
-#include <cynara-creds-gdbus.h>
-#include <cynara-session.h>
 #include <app_manager.h>
 #include <package_manager.h>
 #include <Types.h>
 #include "PeerCreds.h"
+
+#ifdef LEGACY_SECURITY
+#include <security-server.h>
+#else
+#include <cynara-creds-gdbus.h>
+#include <cynara-session.h>
+#endif
 
 ctx::Credentials::Credentials(char *pkgId, char *cli, char *sess, char *usr) :
 	packageId(pkgId),
@@ -37,7 +42,7 @@ ctx::Credentials::~Credentials()
 	g_free(user);
 }
 
-bool ctx::peer_creds::get(GDBusConnection *connection, const char *uniqueName, ctx::Credentials **creds)
+bool ctx::peer_creds::get(GDBusConnection *connection, const char *uniqueName, const char *cookie, ctx::Credentials **creds)
 {
 	pid_t pid = 0;
 	char *app_id = NULL;
@@ -45,32 +50,46 @@ bool ctx::peer_creds::get(GDBusConnection *connection, const char *uniqueName, c
 	gchar *client = NULL;
 	char *session = NULL;
 	gchar *user = NULL;
-	int err;
 
-	err = cynara_creds_gdbus_get_pid(connection, uniqueName, &pid);
+#ifdef LEGACY_SECURITY
+	gsize size;
+	char *decoded = reinterpret_cast<char*>(g_base64_decode(cookie, &size));
+	IF_FAIL_RETURN_TAG(decoded, false, _E, "Cookie decoding failed");
+
+	pid = security_server_get_cookie_pid(decoded);
+	if (pid <= 0) {
+		_E("security_server_get_cookie_pid() failed");
+		g_free(decoded);
+		return false;
+	}
+	client = security_server_get_smacklabel_cookie(decoded);
+	g_free(decoded);
+	IF_FAIL_RETURN_TAG(client, false, _E, "security_server_get_smacklabel_cookie() failed");
+#else
+	int err = cynara_creds_gdbus_get_pid(connection, uniqueName, &pid);
 	IF_FAIL_RETURN_TAG(err == CYNARA_API_SUCCESS, false, _E, "Peer credentialing failed");
-
-	app_manager_get_app_id(pid, &app_id);
-	package_manager_get_package_id_by_app_id(app_id, &packageId);
-	_D("AppId: %s, PackageId: %s", app_id, packageId);
-
-	err = cynara_creds_gdbus_get_client(connection, uniqueName, CLIENT_METHOD_DEFAULT, &client);
-	IF_FAIL_CATCH_TAG(err == CYNARA_API_SUCCESS, _E, "Peer credentialing failed");
 
 	session = cynara_session_from_pid(pid);
 	IF_FAIL_CATCH_TAG(session, _E, "Peer credentialing failed");
 
+	err = cynara_creds_gdbus_get_client(connection, uniqueName, CLIENT_METHOD_DEFAULT, &client);
+	IF_FAIL_CATCH_TAG(err == CYNARA_API_SUCCESS, _E, "Peer credentialing failed");
+
 	err = cynara_creds_gdbus_get_user(connection, uniqueName, USER_METHOD_DEFAULT, &user);
 	IF_FAIL_CATCH_TAG(err == CYNARA_API_SUCCESS, _E, "Peer credentialing failed");
+#endif
+
+	app_manager_get_app_id(pid, &app_id);
+	package_manager_get_package_id_by_app_id(app_id, &packageId);
+	_D("AppId: %s, PackageId: %s", app_id, packageId);
+	g_free(app_id);
 
 	*creds = new(std::nothrow) Credentials(packageId, client, session, user);
 	IF_FAIL_CATCH_TAG(*creds, _E, "Memory allocation failed");
 
-	g_free(app_id);
 	return true;
 
 CATCH:
-	g_free(app_id);
 	g_free(packageId);
 	g_free(client);
 	g_free(session);
