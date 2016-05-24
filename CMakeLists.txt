@@ -19,12 +19,20 @@ SET(DEPS
 	capi-appfw-package-manager
 	appsvc
 	notification
-	cynara-creds-gdbus
-	cynara-client
-	cynara-session
 	libcontext-server
 	context
 )
+
+IF(${LEGACY_SECURITY})
+	SET(DEPS ${DEPS} security-server)
+ELSE(${LEGACY_SECURITY})
+	SET(DEPS ${DEPS} cynara-creds-gdbus cynara-client cynara-session)
+	ADD_DEFINITIONS(-DLEGACY_SECURITY)
+ENDIF(${LEGACY_SECURITY})
+
+IF(${SYSTEM_SERVICE})
+	ADD_DEFINITIONS(-DSYSTEM_SERVICE)
+ENDIF(${SYSTEM_SERVICE})
 
 # Common Options
 INCLUDE(FindPkgConfig)
