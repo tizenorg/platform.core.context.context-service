@@ -6,7 +6,11 @@ INCLUDE(GNUInstallDirs)
 SET(target "contextd")
 
 # Source Lists
-FILE(GLOB_RECURSE SRCS src/*.cpp)
+FILE(GLOB SRCS src/*.cpp src/access_control/*.cpp src/policy/*.cpp)
+IF(${TRIGGER_SUPPORT})
+	FILE(GLOB SRCS ${SRCS} src/trigger/*.cpp)
+	ADD_DEFINITIONS(-DTRIGGER_SUPPORT)
+ENDIF(${TRIGGER_SUPPORT})
 MESSAGE("Sources: ${SRCS}")
 
 # Dependencies

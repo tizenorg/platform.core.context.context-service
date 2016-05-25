@@ -23,7 +23,6 @@
 #include <ContextProvider.h>
 
 #include "access_control/Privilege.h"
-#include "trigger/TemplateManager.h"
 #include "Server.h"
 #include "Request.h"
 #include "ProviderHandler.h"

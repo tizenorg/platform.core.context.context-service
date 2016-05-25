@@ -11,6 +11,7 @@ Source1:	context-service.service
 
 %define SYSTEM_SERVICE	0
 %define LEGACY_SECURITY	0
+%define TRIGGER_SUPPORT	1
 
 %if "%{?BUILD_PROFILE}" == "tv"
 ExcludeArch: %{arm} aarch64 %ix86 x86_64
@@ -80,7 +81,8 @@ export CXXFLAGS+=" -std=c++0x"
 
 cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DMAJORVER=${MAJORVER} -DFULLVER=%{version} \
 							   -DSYSTEM_SERVICE=%{SYSTEM_SERVICE} \
-							   -DLEGACY_SECURITY=%{LEGACY_SECURITY}
+							   -DLEGACY_SECURITY=%{LEGACY_SECURITY} \
+							   -DTRIGGER_SUPPORT=%{TRIGGER_SUPPORT}
 make %{?jobs:-j%jobs}
 
 %install
