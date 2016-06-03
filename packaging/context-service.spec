@@ -41,7 +41,7 @@ BuildRequires: pkgconfig(cynara-client)
 BuildRequires: pkgconfig(cynara-session)
 %endif
 
-BuildRequires: pkgconfig(libcontext-server)
+BuildRequires: pkgconfig(context-common)
 BuildRequires: pkgconfig(context)
 BuildRequires: context-provider-devel
 Requires: context-provider

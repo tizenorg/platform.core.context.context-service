@@ -23,7 +23,7 @@ SET(DEPS
 	capi-appfw-package-manager
 	appsvc
 	notification
-	libcontext-server
+	context-common
 	context
 )
 
