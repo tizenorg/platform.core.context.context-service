@@ -35,7 +35,7 @@ namespace ctx {
 
 	namespace peer_creds {
 
-		bool get(GDBusConnection *connection, const char *uniqueName, Credentials **creds);
+		bool get(GDBusConnection *connection, const char *uniqueName, const char *cookie, Credentials **creds);
 
 	}	/* namespace peer_creds */
 }	/* namespace ctx */

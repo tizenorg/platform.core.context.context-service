@@ -15,11 +15,19 @@
  */
 
 #include <string>
-#include <cynara-client.h>
 #include <Types.h>
 #include "PeerCreds.h"
 #include "Privilege.h"
 
+#ifdef LEGACY_SECURITY
+
+#include <sys/smack.h>
+#define PRIV_PREFIX "privilege::tizen::"
+
+#else
+
+#include <cynara-client.h>
+#define PRIV_PREFIX "http://tizen.org/privilege/"
 #define CACHE_SIZE 100
 
 class PermissionChecker {
@@ -73,13 +81,20 @@ public:
 		return (ret == CYNARA_API_ACCESS_ALLOWED);
 	}
 };
+#endif
 
 bool ctx::privilege_manager::isAllowed(const ctx::Credentials *creds, const char *privilege)
 {
 	IF_FAIL_RETURN(creds && privilege, true);
 
-	std::string priv = "http://tizen.org/privilege/";
+	std::string priv = PRIV_PREFIX;
 	priv += privilege;
 
+#ifdef LEGACY_SECURITY
+	int ret = smack_have_access(creds->client, priv.c_str(), "rw");
+	_SD("Client: %s, Priv: %s, Enabled: %d", creds->client, privilege, ret);
+	return (ret == 1);
+#else
 	return PermissionChecker::getInstance().hasPermission(creds, priv.c_str());
+#endif
 }

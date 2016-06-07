@@ -81,7 +81,7 @@ void DBusServer::__processRequest(const char *sender, GVariant *param, GDBusMeth
 
 	Credentials *creds = NULL;
 
-	if (!peer_creds::get(__connection, sender, &creds)) {
+	if (!peer_creds::get(__connection, sender, cookie, &creds)) {
 		_E("Peer credentialing failed");
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 		return;
@@ -163,8 +163,13 @@ bool DBusServer::__init()
 	__nodeInfo = g_dbus_node_info_new_for_xml(__introspection_xml, NULL);
 	IF_FAIL_RETURN_TAG(__nodeInfo != NULL, false, _E, "Initialization failed");
 
+#ifdef SYSTEM_SERVICE
+	__owner = g_bus_own_name(G_BUS_TYPE_SYSTEM, DBUS_DEST, G_BUS_NAME_OWNER_FLAGS_NONE,
+			__onBusAcquired, __onNameAcquired, __onNameLost, NULL, NULL);
+#else
 	__owner = g_bus_own_name(G_BUS_TYPE_SESSION, DBUS_DEST, G_BUS_NAME_OWNER_FLAGS_NONE,
 			__onBusAcquired, __onNameAcquired, __onNameLost, NULL, NULL);
+#endif
 
 	__theInstance = this;
 	return true;

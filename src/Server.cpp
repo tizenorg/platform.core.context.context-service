@@ -22,9 +22,12 @@
 #include <Types.h>
 #include "DBusServer.h"
 #include "ContextManager.h"
-#include "trigger/Trigger.h"
 #include "policy/PolicyManager.h"
 #include "Server.h"
+
+#ifdef TRIGGER_SUPPORT
+#include "trigger/Trigger.h"
+#endif
 
 static GMainLoop *mainloop = NULL;
 static bool started = false;
@@ -32,7 +35,10 @@ static bool started = false;
 static ctx::ContextManager *__contextMgr = NULL;
 static ctx::DBusServer *__dbusHandle = NULL;
 static ctx::PolicyManager *__policyMgr = NULL;
+
+#ifdef TRIGGER_SUPPORT
 static ctx::trigger::Trigger *__contextTrigger = NULL;
+#endif
 
 /* TODO: re-organize activation & deactivation processes */
 void ctx::Server::initialize()
@@ -66,11 +72,13 @@ void ctx::Server::activate()
 	__policyMgr = new(std::nothrow) ctx::PolicyManager(__contextMgr);
 	IF_FAIL_CATCH_TAG(__policyMgr, _E, "Memory allocation failed");
 
+#ifdef TRIGGER_SUPPORT
 	_I("Init Context Trigger");
 	__contextTrigger = new(std::nothrow) ctx::trigger::Trigger();
 	IF_FAIL_CATCH_TAG(__contextTrigger, _E, "Memory allocation failed");
 	result = __contextTrigger->init(__contextMgr);
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
+#endif
 
 	started = true;
 	_I(CYAN("Context-Service Launched"));
@@ -86,9 +94,12 @@ CATCH:
 void ctx::Server::release()
 {
 	_I(CYAN("Terminating Context-Service"));
+
+#ifdef TRIGGER_SUPPORT
 	_I("Release Context Trigger");
 	if (__contextTrigger)
 		__contextTrigger->release();
+#endif
 
 	_I("Release Policy Manager");
 	delete __policyMgr;
@@ -103,7 +114,9 @@ void ctx::Server::release()
 
 	g_main_loop_unref(mainloop);
 
+#ifdef TRIGGER_SUPPORT
 	delete __contextTrigger;
+#endif
 	delete __contextMgr;
 	delete __dbusHandle;
 }
@@ -122,9 +135,12 @@ void ctx::Server::sendRequest(ctx::RequestInfo* request)
 		return;
 	}
 
-	if (!__contextTrigger->assignRequest(request)) {
-		__contextMgr->assignRequest(request);
-	}
+#ifdef TRIGGER_SUPPORT
+	if (__contextTrigger->assignRequest(request))
+		return;
+#endif
+
+	__contextMgr->assignRequest(request);
 }
 
 static void __signalHandler(int signo)

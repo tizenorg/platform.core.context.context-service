@@ -17,10 +17,6 @@
 #ifndef _CONTEXT_PRIVILEGE_MANAGER_H_
 #define _CONTEXT_PRIVILEGE_MANAGER_H_
 
-#include <string>
-
-#define PRIV_ALARM_SET "alarm.set"
-
 namespace ctx {
 
 	/* Forward declaration */

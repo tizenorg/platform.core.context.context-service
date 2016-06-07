@@ -6,7 +6,11 @@ INCLUDE(GNUInstallDirs)
 SET(target "contextd")
 
 # Source Lists
-FILE(GLOB_RECURSE SRCS src/*.cpp)
+FILE(GLOB SRCS src/*.cpp src/access_control/*.cpp src/policy/*.cpp)
+IF(${TRIGGER_SUPPORT})
+	FILE(GLOB SRCS ${SRCS} src/trigger/*.cpp)
+	ADD_DEFINITIONS(-DTRIGGER_SUPPORT)
+ENDIF(${TRIGGER_SUPPORT})
 MESSAGE("Sources: ${SRCS}")
 
 # Dependencies
@@ -19,12 +23,20 @@ SET(DEPS
 	capi-appfw-package-manager
 	appsvc
 	notification
-	cynara-creds-gdbus
-	cynara-client
-	cynara-session
-	libcontext-server
+	context-common
 	context
 )
+
+IF(${LEGACY_SECURITY})
+	SET(DEPS ${DEPS} security-server)
+	ADD_DEFINITIONS(-DLEGACY_SECURITY)
+ELSE(${LEGACY_SECURITY})
+	SET(DEPS ${DEPS} cynara-creds-gdbus cynara-client cynara-session)
+ENDIF(${LEGACY_SECURITY})
+
+IF(${SYSTEM_SERVICE})
+	ADD_DEFINITIONS(-DSYSTEM_SERVICE)
+ENDIF(${SYSTEM_SERVICE})
 
 # Common Options
 INCLUDE(FindPkgConfig)
