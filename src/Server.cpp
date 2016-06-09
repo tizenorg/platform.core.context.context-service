@@ -68,10 +68,6 @@ void ctx::Server::activate()
 	result = __contextMgr->init();
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 
-	_I("Init Policy Manager");
-	__policyMgr = new(std::nothrow) ctx::PolicyManager(__contextMgr);
-	IF_FAIL_CATCH_TAG(__policyMgr, _E, "Memory allocation failed");
-
 #ifdef TRIGGER_SUPPORT
 	_I("Init Context Trigger");
 	__contextTrigger = new(std::nothrow) ctx::trigger::Trigger();
@@ -79,6 +75,10 @@ void ctx::Server::activate()
 	result = __contextTrigger->init(__contextMgr);
 	IF_FAIL_CATCH_TAG(result, _E, "Initialization Failed");
 #endif
+
+	_I("Init Policy Manager");
+	__policyMgr = new(std::nothrow) ctx::PolicyManager(__contextMgr);
+	IF_FAIL_CATCH_TAG(__policyMgr, _E, "Memory allocation failed");
 
 	started = true;
 	_I(CYAN("Context-Service Launched"));
@@ -95,14 +95,14 @@ void ctx::Server::release()
 {
 	_I(CYAN("Terminating Context-Service"));
 
+	_I("Release Policy Manager");
+	delete __policyMgr;
+
 #ifdef TRIGGER_SUPPORT
 	_I("Release Context Trigger");
 	if (__contextTrigger)
 		__contextTrigger->release();
 #endif
-
-	_I("Release Policy Manager");
-	delete __policyMgr;
 
 	_I("Release Context Manager");
 	if (__contextMgr)

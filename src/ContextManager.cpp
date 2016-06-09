@@ -29,11 +29,20 @@
 #include "ProviderLoader.h"
 #include "ContextManager.h"
 
+#ifdef TRIGGER_SUPPORT
+#include <CustomRegister.h>
+#include "trigger/TemplateManager.h"
+using namespace ctx::trigger;
+#endif
+
 using namespace ctx;
 
 ContextManager::ContextManager()
 {
 	ContextProvider::__setContextManager(this);
+#ifdef TRIGGER_SUPPORT
+	CustomRegister::__setCustomRegister(this);
+#endif
 	ProviderLoader::init();
 }
 
@@ -200,46 +209,28 @@ bool ContextManager::popTriggerTemplate(std::string &subject, int &operation, Js
 	return ProviderLoader::popTriggerTemplate(subject, operation, attribute, option);
 }
 
-/*
-bool ContextManager::__handleCustomRequest(RequestInfo* request)
+/* Only for explicit request of custom provider */
+bool ContextManager::registerCustomProvider(const char* subject, int operation, ctx::Json &attribute, ctx::Json &option, const char* owner)
 {
-	std::string subject = request->getSubject();
-	IF_FAIL_RETURN(	subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_ADD ||
-					subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_REMOVE ||
-					subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_PUBLISH, false);
+#ifdef TRIGGER_SUPPORT
+	IF_FAIL_RETURN_TAG(ProviderHandler::getInstance(subject, true), false, _E, "Register provider failed");
 
-	const char* pkg_id = request->getPackageId();
-	if (pkg_id == NULL) {
-		request->reply(ERR_OPERATION_FAILED);
-		return true;
-	}
-
-	Json desc = request->getDescription();
-	std::string name;
-	desc.get(NULL, CT_CUSTOM_NAME, &name);
-	std::string subj = pkg_id + std::string("::") + name;
-
-	int error = ERR_NONE;
-	if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_ADD) {
-		Json tmpl;
-		desc.get(NULL, CT_CUSTOM_ATTRIBUTES, &tmpl);
-
-		error = custom_context_provider::addItem(subj, name, tmpl, pkg_id);
-	} else if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_REMOVE) {
-		error = custom_context_provider::removeItem(subj);
-		if (error == ERR_NONE) {
-			Json data;
-			data.set(NULL, CT_CUSTOM_SUBJECT, subj);
-			request->reply(error, data);
-		}
-	} else if (subject == CONTEXT_TRIGGER_SUBJECT_CUSTOM_PUBLISH) {
-		Json fact;
-		desc.get(NULL, CT_CUSTOM_FACT, &fact);
-
-		error = custom_context_provider::publishData(subj, fact);
-	}
-
-	request->reply(error);
+	TemplateManager* tmplMgr = TemplateManager::getInstance();
+	IF_FAIL_RETURN_TAG(tmplMgr, false, _E, "Memory allocation failed");
+	tmplMgr->registerTemplate(subject, operation, attribute, option, owner);
+#endif
 	return true;
 }
-*/
+
+bool ContextManager::unregisterCustomProvider(const char* subject)
+{
+#ifdef TRIGGER_SUPPORT
+	TemplateManager* tmplMgr = TemplateManager::getInstance();
+	IF_FAIL_RETURN_TAG(tmplMgr, false, _E, "Memory allocation failed");
+	tmplMgr->unregisterTemplate(subject);
+
+	int error = ProviderHandler::unregisterCustomProvider(subject);
+	IF_FAIL_RETURN_TAG(error == ERR_NONE, false, _E, "Unregister provider failed");
+#endif
+	return true;
+}

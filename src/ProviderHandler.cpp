@@ -83,6 +83,18 @@ void ProviderHandler::purge()
 	__instanceMap.clear();
 }
 
+int ProviderHandler::unregisterCustomProvider(std::string subject)
+{
+	InstanceMap::iterator it = __instanceMap.find(subject);
+	IF_FAIL_RETURN_TAG(it != __instanceMap.end(), ERR_NOT_SUPPORTED, _E, "'%s' not found", subject.c_str());
+
+	__instanceMap.erase(subject);
+	delete it->second;
+
+	_D("'%s' unregistered", subject.c_str());
+	return ERR_NONE;
+}
+
 bool ProviderHandler::isSupported()
 {
 	/* If idle, self destruct */
@@ -186,6 +198,7 @@ void ProviderHandler::write(RequestInfo *request)
 	_I(CYAN("'%s' writes '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
 
 	Json requestResult;
+	request->getDescription().set(NULL, "packageId", request->getPackageId()? request->getPackageId() : "SYSTEM");
 	int error = __provider->write(request->getDescription(), &requestResult);
 
 	request->reply(error, requestResult);

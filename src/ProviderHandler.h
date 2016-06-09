@@ -46,6 +46,7 @@ namespace ctx {
 
 		static ProviderHandler* getInstance(std::string subject, bool force);
 		static void purge();
+		static int unregisterCustomProvider(std::string subject);
 
 	private:
 		std::string __subject;
