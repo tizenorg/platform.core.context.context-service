@@ -83,6 +83,36 @@ void ProviderHandler::purge()
 	__instanceMap.clear();
 }
 
+int ProviderHandler::registerCustomProvider(std::string subject, int operation, ctx::Json &attribute, ctx::Json &option, const char* owner)
+{
+	InstanceMap::iterator it = __instanceMap.find(subject);
+	IF_FAIL_RETURN_TAG(it == __instanceMap.end(), ERR_OPERATION_FAILED, _E, "'%s' already registered", subject.c_str());
+
+	ProviderHandler *handle = new(std::nothrow) ProviderHandler(subject);
+	IF_FAIL_RETURN_TAG(handle, ERR_OUT_OF_MEMORY, _E, "Memory allocation failed");
+
+	if (!handle->__loadProvider()) {
+		delete handle;
+		return ERR_OUT_OF_MEMORY;
+	}
+
+	__instanceMap[subject] = handle;
+
+	return ERR_NONE;
+}
+
+int ProviderHandler::unregisterCustomProvider(std::string subject)
+{
+	InstanceMap::iterator it = __instanceMap.find(subject);
+	IF_FAIL_RETURN_TAG(it != __instanceMap.end(), ERR_NOT_SUPPORTED, _E, "'%s' not found", subject.c_str());
+
+	__instanceMap.erase(subject);
+	delete it->second;
+
+	_D("'%s' unregistered", subject.c_str());
+	return ERR_NONE;
+}
+
 bool ProviderHandler::isSupported()
 {
 	/* If idle, self destruct */
@@ -186,7 +216,9 @@ void ProviderHandler::write(RequestInfo *request)
 	_I(CYAN("'%s' writes '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
 
 	Json requestResult;
-	int error = __provider->write(request->getDescription(), &requestResult);
+	Json description = request->getDescription().str();
+	description.set(NULL, "packageId", request->getPackageId());
+	int error = __provider->write(description, &requestResult);
 
 	request->reply(error, requestResult);
 	delete request;
