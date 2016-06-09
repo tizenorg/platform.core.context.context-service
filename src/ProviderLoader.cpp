@@ -42,7 +42,7 @@ ContextProvider* ProviderLoader::load(const char *subject)
 {
 	ProviderLibMap::iterator it = __providerLibMap.find(subject);
 	if (it == __providerLibMap.end()) {
-		_W("No provider for '%s'", subject);
+		_W("No provider for 'ProviderLoader%s'", subject);
 		return NULL;
 	}
 
