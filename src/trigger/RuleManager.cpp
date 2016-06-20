@@ -23,7 +23,7 @@
 #include "Rule.h"
 #include "Timer.h"
 
-#define RULE_TABLE "context_trigger_rule"
+#define RULE_TABLE "ContextTriggerRule"
 
 using namespace ctx;
 using namespace ctx::trigger;
@@ -75,7 +75,7 @@ bool RuleManager::init()
 
 	// Create tables into db (rule, template)
 	std::string q1 = std::string("status INTEGER DEFAULT 0 NOT NULL, creator TEXT DEFAULT '' NOT NULL,")
-			+ "package_id TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '',"
+			+ "packageId TEXT DEFAULT '' NOT NULL, description TEXT DEFAULT '',"
 			+ "details TEXT DEFAULT '' NOT NULL";
 	ret = __dbManager.createTableSync(RULE_TABLE, q1.c_str(), NULL);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Create rule table failed");
@@ -99,7 +99,7 @@ void RuleManager::handleRuleOfUninstalledPackage(std::string pkgId)
 int RuleManager::__getUninstalledApp(void)
 {
 	// Return number of uninstalled apps
-	std::string q1 = "SELECT DISTINCT package_id FROM context_trigger_rule";
+	std::string q1 = "SELECT DISTINCT packageId FROM ContextTriggerRule";
 
 	std::vector<Json> record;
 	bool ret = __dbManager.executeSync(q1.c_str(), &record);
@@ -109,7 +109,7 @@ int RuleManager::__getUninstalledApp(void)
 	for (std::vector<Json>::iterator vecPos = record.begin(); vecPos != vecEnd; ++vecPos) {
 		Json elem = *vecPos;
 		std::string pkgId;
-		elem.get(NULL, "package_id", &pkgId);
+		elem.get(NULL, "packageId", &pkgId);
 
 		if (isUninstalledPackage(pkgId)) {
 			__uninstalledPackages.insert(pkgId);
@@ -152,16 +152,16 @@ int RuleManager::__clearRuleOfUninstalledPackage(bool isInit)
 	// Package list
 	std::string pkgList = "(";
 	std::set<std::string>::iterator it = __uninstalledPackages.begin();
-	pkgList += "package_id = '" + *it + "'";
+	pkgList += "packageId = '" + *it + "'";
 	it++;
 	for (; it != __uninstalledPackages.end(); ++it) {
-		pkgList += " OR package_id = '" + *it + "'";
+		pkgList += " OR packageId = '" + *it + "'";
 	}
 	pkgList += ")";
 
 	// After event received, disable all the enabled rules of uninstalled apps
 	if (!isInit) {
-		std::string q1 = "SELECT row_id FROM context_trigger_rule WHERE status = 2 and (";
+		std::string q1 = "SELECT rowId FROM ContextTriggerRule WHERE status = 2 and (";
 		q1 += pkgList;
 		q1 += ")";
 
@@ -173,7 +173,7 @@ int RuleManager::__clearRuleOfUninstalledPackage(bool isInit)
 		for (std::vector<Json>::iterator vecPos = record.begin(); vecPos != vecEnd; ++vecPos) {
 			Json elem = *vecPos;
 			int ruleId;
-			elem.get(NULL, "row_id", &ruleId);
+			elem.get(NULL, "rowId", &ruleId);
 			error = disableRule(ruleId);
 			IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to disable rule");
 		}
@@ -181,7 +181,7 @@ int RuleManager::__clearRuleOfUninstalledPackage(bool isInit)
 	}
 
 	// Delete rules of uninstalled packages from DB
-	std::string q2 = "DELETE FROM context_trigger_rule WHERE " + pkgList;
+	std::string q2 = "DELETE FROM ContextTriggerRule WHERE " + pkgList;
 	std::vector<Json> dummy;
 	ret = __dbManager.executeSync(q2.c_str(), &dummy);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to remove rules from db");
@@ -194,10 +194,10 @@ int RuleManager::__clearRuleOfUninstalledPackage(bool isInit)
 
 int RuleManager::pauseRuleWithItem(std::string& subject)
 {
-	std::string q = "SELECT row_id FROM context_trigger_rule WHERE (status=2) AND (details LIKE '%\"ITEM_NAME\":\"" + subject + "\"%');";
+	std::string q = "SELECT rowId FROM ContextTriggerRule WHERE (status=2) AND (details LIKE '%\"ITEM_NAME\":\"" + subject + "\"%');";
 	std::vector<Json> record;
 	bool ret = __dbManager.executeSync(q.c_str(), &record);
-	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to query row_ids to be paused");
+	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to query rowIds to be paused");
 	IF_FAIL_RETURN(record.size() > 0, ERR_NONE);
 
 	_D("Pause rules related to %s", subject.c_str());
@@ -205,7 +205,7 @@ int RuleManager::pauseRuleWithItem(std::string& subject)
 	for (std::vector<Json>::iterator vecPos = record.begin(); vecPos != vecEnd; ++vecPos) {
 		Json elem = *vecPos;
 		int rowId;
-		elem.get(NULL, "row_id", &rowId);
+		elem.get(NULL, "rowId", &rowId);
 
 		int error = pauseRule(rowId);
 		IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to disable rules using custom item");
@@ -216,7 +216,7 @@ int RuleManager::pauseRuleWithItem(std::string& subject)
 
 int RuleManager::resumeRuleWithItem(std::string& subject)
 {
-	std::string q = "SELECT row_id FROM context_trigger_rule WHERE (status=1) AND (details LIKE '%\"ITEM_NAME\":\"" + subject + "\"%');";
+	std::string q = "SELECT rowId FROM ContextTriggerRule WHERE (status=1) AND (details LIKE '%\"ITEM_NAME\":\"" + subject + "\"%');";
 	std::vector<Json> record;
 	bool ret = __dbManager.executeSync(q.c_str(), &record);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query paused rule ids failed");
@@ -228,7 +228,7 @@ int RuleManager::resumeRuleWithItem(std::string& subject)
 	for (std::vector<Json>::iterator vecPos = record.begin(); vecPos != vecEnd; ++vecPos) {
 		Json elem = *vecPos;
 		int rowId;
-		elem.get(NULL, "row_id", &rowId);
+		elem.get(NULL, "rowId", &rowId);
 
 		int error = enableRule(rowId);
 		IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to resume rule");
@@ -240,11 +240,11 @@ int RuleManager::resumeRuleWithItem(std::string& subject)
 bool RuleManager::__reenableRule(void)
 {
 	int error;
-	std::string q = "SELECT row_id FROM context_trigger_rule WHERE status = 2";
+	std::string q = "SELECT rowId FROM ContextTriggerRule WHERE status = 2";
 
 	std::vector<Json> record;
 	bool ret = __dbManager.executeSync(q.c_str(), &record);
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Query row_ids of enabled rules failed");
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Query rowIds of enabled rules failed");
 	IF_FAIL_RETURN_TAG(record.size() > 0, true, _D, "No rule to re-enable");
 
 	_D(YELLOW("Re-enable rule started"));
@@ -255,11 +255,11 @@ bool RuleManager::__reenableRule(void)
 	for (std::vector<Json>::iterator vecPos = record.begin(); vecPos != vecEnd; ++vecPos) {
 		Json elem = *vecPos;
 		int rowId;
-		elem.get(NULL, "row_id", &rowId);
+		elem.get(NULL, "rowId", &rowId);
 
 		error = enableRule(rowId);
 		if (error == ERR_NOT_SUPPORTED) {
-			qRowId += "(row_id = " + __intToString(rowId) + ") OR ";
+			qRowId += "(rowId = " + __intToString(rowId) + ") OR ";
 		} else if (error != ERR_NONE) {
 			_E("Re-enable rule%d failed(%d)", rowId, error);
 		}
@@ -268,7 +268,7 @@ bool RuleManager::__reenableRule(void)
 	qRowId = qRowId.substr(0, qRowId.length() - 4);
 
 	// For rules which is failed to re-enable
-	std::string qUpdate = "UPDATE context_trigger_rule SET status = 1 WHERE " + qRowId;
+	std::string qUpdate = "UPDATE ContextTriggerRule SET status = 1 WHERE " + qRowId;
 	std::vector<Json> record2;
 	ret = __dbManager.executeSync(qUpdate.c_str(), &record2);
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Failed to update rules as paused");
@@ -429,13 +429,13 @@ bool RuleManager::__ruleEquals(Json& lRule, Json& rRule)
 
 int64_t RuleManager::__getDuplicatedRuleId(std::string pkgId, Json& rule)
 {
-	std::string q = "SELECT row_id, description, details FROM context_trigger_rule WHERE package_id = '";
+	std::string q = "SELECT rowId, description, details FROM ContextTriggerRule WHERE packageId = '";
 	q += pkgId;
 	q += "'";
 
 	std::vector<Json> record;
 	bool ret = __dbManager.executeSync(q.c_str(), &record);
-	IF_FAIL_RETURN_TAG(ret, false, _E, "Query row_id, details by package id failed");
+	IF_FAIL_RETURN_TAG(ret, false, _E, "Query rowId, details by package id failed");
 
 	Json rDetails;
 	rule.get(NULL, CT_RULE_DETAILS, &rDetails);
@@ -453,14 +453,14 @@ int64_t RuleManager::__getDuplicatedRuleId(std::string pkgId, Json& rule)
 
 		if (__ruleEquals(rDetails, details)) {
 			int64_t rowId;
-			elem.get(NULL, "row_id", &rowId);
+			elem.get(NULL, "rowId", &rowId);
 
 			// Description comparison
 			std::string desc;
 			elem.get(NULL, "description", &desc);
 			if (rDesc.compare(desc)) {
 				// Only description is changed
-				std::string qUpdate = "UPDATE context_trigger_rule SET description='" + rDesc + "' WHERE row_id = " + __intToString(rowId);
+				std::string qUpdate = "UPDATE ContextTriggerRule SET description='" + rDesc + "' WHERE rowId = " + __intToString(rowId);
 
 				std::vector<Json> dummy;
 				ret = __dbManager.executeSync(qUpdate.c_str(), &dummy);
@@ -539,7 +539,7 @@ int RuleManager::addRule(std::string creator, const char* pkgId, Json rule, Json
 	rule.get(NULL, CT_RULE_DETAILS, &details);
 	record.set(NULL, "creator", creator);
 	if (pkgId) {
-		record.set(NULL, "package_id", pkgId);
+		record.set(NULL, "packageId", pkgId);
 	}
 	record.set(NULL, "description", description);
 
@@ -563,7 +563,7 @@ int RuleManager::removeRule(int ruleId)
 	bool ret;
 
 	// Delete rule from DB
-	std::string query = "DELETE FROM 'context_trigger_rule' where row_id = ";
+	std::string query = "DELETE FROM 'ContextTriggerRule' where rowId = ";
 	query += __intToString(ruleId);
 
 	std::vector<Json> record;
@@ -589,14 +589,14 @@ int RuleManager::enableRule(int ruleId)
 	Rule* rule;
 
 	// Get rule Json by rule id;
-	query = "SELECT details, package_id FROM context_trigger_rule WHERE row_id = ";
+	query = "SELECT details, packageId FROM ContextTriggerRule WHERE rowId = ";
 	query += idStr;
 	error = (__dbManager.executeSync(query.c_str(), &record))? ERR_NONE : ERR_OPERATION_FAILED;
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Query rule by rule id failed");
 
 	record[0].get(NULL, "details", &tmp);
 	jRule = tmp;
-	record[0].get(NULL, "package_id", &pkgId);
+	record[0].get(NULL, "packageId", &pkgId);
 
 	// Create a rule instance
 	rule = new(std::nothrow) Rule(ruleId, jRule, pkgId.c_str(), this);
@@ -607,7 +607,7 @@ int RuleManager::enableRule(int ruleId)
 	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Failed to start rule%d", ruleId);
 
 	// Update db to set 'enabled'
-	query = "UPDATE context_trigger_rule SET status = 2 WHERE row_id = ";
+	query = "UPDATE ContextTriggerRule SET status = 2 WHERE rowId = ";
 	query += idStr;
 	error = (__dbManager.executeSync(query.c_str(), &dummy))? ERR_NONE : ERR_OPERATION_FAILED;
 	IF_FAIL_CATCH_TAG(error == ERR_NONE, _E, "Update db failed");
@@ -646,7 +646,7 @@ int RuleManager::disableRule(int ruleId)
 	}
 
 	// Update db to set 'disabled'	// TODO skip while clear uninstalled rule
-	std::string query = "UPDATE context_trigger_rule SET status = 0 WHERE row_id = ";
+	std::string query = "UPDATE ContextTriggerRule SET status = 0 WHERE rowId = ";
 	query += __intToString(ruleId);
 	std::vector<Json> record;
 	ret = __dbManager.executeSync(query.c_str(), &record);
@@ -670,7 +670,7 @@ int RuleManager::pauseRule(int ruleId)
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to stop rule%d", ruleId);
 
 	// Update db to set 'paused'
-	std::string query = "UPDATE context_trigger_rule SET status = 1 WHERE row_id = ";
+	std::string query = "UPDATE ContextTriggerRule SET status = 1 WHERE rowId = ";
 
 	query += __intToString(ruleId);
 	std::vector<Json> record;
@@ -688,7 +688,7 @@ int RuleManager::pauseRule(int ruleId)
 int RuleManager::checkRule(std::string pkgId, int ruleId)
 {
 	// Get package id
-	std::string q = "SELECT package_id FROM context_trigger_rule WHERE row_id =";
+	std::string q = "SELECT packageId FROM ContextTriggerRule WHERE rowId =";
 	q += __intToString(ruleId);
 
 	std::vector<Json> record;
@@ -700,7 +700,7 @@ int RuleManager::checkRule(std::string pkgId, int ruleId)
 	}
 
 	std::string p;
-	record[0].get(NULL, "package_id", &p);
+	record[0].get(NULL, "packageId", &p);
 
 	if (p.compare(pkgId) == 0) {
 		return ERR_NONE;
@@ -711,7 +711,7 @@ int RuleManager::checkRule(std::string pkgId, int ruleId)
 
 bool RuleManager::isRuleEnabled(int ruleId)
 {
-	std::string q = "SELECT status FROM context_trigger_rule WHERE row_id =";
+	std::string q = "SELECT status FROM ContextTriggerRule WHERE rowId =";
 	q += __intToString(ruleId);
 
 	std::vector<Json> record;
@@ -726,9 +726,9 @@ bool RuleManager::isRuleEnabled(int ruleId)
 
 int RuleManager::getRuleById(std::string pkgId, int ruleId, Json* requestResult)
 {
-	std::string q = "SELECT description FROM context_trigger_rule WHERE (package_id = '";
+	std::string q = "SELECT description FROM ContextTriggerRule WHERE (packageId = '";
 	q += pkgId;
-	q += "') and (row_id = ";
+	q += "') and (rowId = ";
 	q += __intToString(ruleId);
 	q += ")";
 
@@ -755,7 +755,7 @@ int RuleManager::getRuleIds(std::string pkgId, Json* requestResult)
 {
 	(*requestResult) = "{ \"" CT_RULE_ARRAY_ENABLED "\" : [ ] , \"" CT_RULE_ARRAY_DISABLED "\" : [ ] }";
 
-	std::string q = "SELECT row_id, status FROM context_trigger_rule WHERE (package_id = '";
+	std::string q = "SELECT rowId, status FROM ContextTriggerRule WHERE (packageId = '";
 	q += pkgId;
 	q += "')";
 
@@ -769,7 +769,7 @@ int RuleManager::getRuleIds(std::string pkgId, Json* requestResult)
 		std::string id;
 		int status;
 
-		elem.get(NULL, "row_id", &id);
+		elem.get(NULL, "rowId", &id);
 		elem.get(NULL, "status", &status);
 
 		if (status >= 1) {
