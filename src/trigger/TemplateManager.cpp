@@ -75,7 +75,7 @@ void TemplateManager::destroy()
 
 bool TemplateManager::init()
 {
-	std::string q = std::string("CREATE TABLE IF NOT EXISTS context_trigger_template ")
+	std::string q = std::string("CREATE TABLE IF NOT EXISTS ContextTriggerTemplate ")
 			+ "(name TEXT DEFAULT '' NOT NULL PRIMARY KEY, operation INTEGER DEFAULT 3 NOT NULL, "
 			+ "attributes TEXT DEFAULT '' NOT NULL, options TEXT DEFAULT '' NOT NULL, owner TEXT DEFAULT '' NOT NULL)";
 
@@ -96,21 +96,9 @@ void TemplateManager::applyTemplates()
 	Json attributes;
 	Json options;
 	std::string owner;
-	//bool unregister;
 	std::string query;
 	query.clear();
 
-	/*
-	while(__contextMgr->popTriggerItem(subject, operation, attributes, options, owner, unregister)) {
-		if (unregister) {
-			unregisterTemplate(subject);
-		} else {
-			registerTemplate(subject, operation, attributes, options, owner);
-		}
-	}
-	*/
-
-	/* FIXME */
 	while (__contextMgr->popTriggerTemplate(subject, operation, attributes, options)) {
 		registerTemplate(subject, operation, attributes, options, "");
 	}
@@ -122,11 +110,11 @@ void TemplateManager::registerTemplate(std::string subject, int operation, Json 
 	_J("Attr", attributes);
 	_J("Opt", options);
 
-	std::string query = "UPDATE context_trigger_template SET operation=" + __intToString(operation)
+	std::string query = "UPDATE ContextTriggerTemplate SET operation=" + __intToString(operation)
 			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "', owner='" + owner
 			+ "' WHERE name='" + subject + "'; ";
 
-	query += "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options, owner) VALUES ('"
+	query += "INSERT OR IGNORE INTO ContextTriggerTemplate (name, operation, attributes, options, owner) VALUES ('"
 			+ subject + "', " + __intToString(operation) + ", '" + attributes.str() + "', '" + options.str() + "', '"
 			+ owner + "'); ";
 
@@ -142,7 +130,7 @@ void TemplateManager::registerTemplate(std::string subject, int operation, Json 
 void TemplateManager::unregisterTemplate(std::string subject)
 {
 	_D("[Remove template] Subject: %s", subject.c_str());
-	std::string query = "DELETE FROM context_trigger_template WHERE name = '" + subject + "'; ";
+	std::string query = "DELETE FROM ContextTriggerTemplate WHERE name = '" + subject + "'; ";
 
 	std::vector<Json> record;
 	bool ret = __dbManager.executeSync(query.c_str(), &record);
@@ -158,11 +146,11 @@ std::string TemplateManager::__addTemplate(std::string &subject, int &operation,
 	_J("Attr", attributes);
 	_J("Opt", options);
 
-	std::string query = "UPDATE context_trigger_template SET operation=" + __intToString(operation)
+	std::string query = "UPDATE ContextTriggerTemplate SET operation=" + __intToString(operation)
 			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "', owner='" + owner
 			+ "' WHERE name='" + subject + "'; ";
 
-	query += "INSERT OR IGNORE INTO context_trigger_template (name, operation, attributes, options, owner) VALUES ('"
+	query += "INSERT OR IGNORE INTO ContextTriggerTemplate (name, operation, attributes, options, owner) VALUES ('"
 			+ subject + "', " + __intToString(operation) + ", '" + attributes.str() + "', '" + options.str() + "', '"
 			+ owner + "'); ";
 
@@ -172,7 +160,7 @@ std::string TemplateManager::__addTemplate(std::string &subject, int &operation,
 std::string TemplateManager::__removeTemplate(std::string &subject)
 {
 	_D("[Remove template] Subject: %s", subject.c_str());
-	std::string query = "DELETE FROM context_trigger_template WHERE name = '" + subject + "'; ";
+	std::string query = "DELETE FROM ContextTriggerTemplate WHERE name = '" + subject + "'; ";
 
 	return query;
 }
@@ -183,7 +171,7 @@ int TemplateManager::getTemplate(std::string &subject, Json* tmpl)
 		return ERR_NOT_SUPPORTED;
 
 	// Update latest template information
-	std::string q = "SELECT * FROM context_trigger_template WHERE name = '" + subject + "'";
+	std::string q = "SELECT * FROM ContextTriggerTemplate WHERE name = '" + subject + "'";
 
 	std::vector<Json> record;
 	bool ret = __dbManager.executeSync(q.c_str(), &record);

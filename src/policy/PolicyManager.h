@@ -40,6 +40,7 @@ namespace ctx {
 		int __ridMediaLogging;
 		int __ridSocialLogging;
 		int __ridPlaceDetection;
+		int __ridCustomManager;
 
 		friend class Server;
 	};

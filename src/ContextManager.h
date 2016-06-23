@@ -19,6 +19,7 @@
 
 #include <map>
 #include <IContextManager.h>
+#include <ICustomRegister.h>
 
 namespace ctx {
 
@@ -26,7 +27,7 @@ namespace ctx {
 	class Credentials;
 	class RequestInfo;
 
-	class ContextManager : public IContextManager {
+	class ContextManager : public IContextManager, ICustomRegister {
 	public:
 		~ContextManager();
 
@@ -40,6 +41,8 @@ namespace ctx {
 		/* From the interface class */
 		bool publish(const char *subject, ctx::Json &option, int error, ctx::Json &dataUpdated);
 		bool replyToRead(const char *subject, ctx::Json &option, int error, ctx::Json &dataRead);
+		bool registerCustomProvider(const char* subject, int operation, ctx::Json &attribute, ctx::Json &option, const char* owner);
+		bool unregisterCustomProvider(const char* subject);
 
 		bool popTriggerTemplate(std::string &subject, int &operation, Json &attribute, Json &option);
 
