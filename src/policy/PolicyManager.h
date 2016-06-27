@@ -17,6 +17,8 @@
 #ifndef _CONTEXT_POLICY_MANAGER_H_
 #define _CONTEXT_POLICY_MANAGER_H_
 
+#include <map>
+
 namespace ctx {
 
 	class ContextManger;
@@ -28,23 +30,14 @@ namespace ctx {
 	private:
 		PolicyManager(ContextManager *contextMgr);
 
-		void __init();
-		void __release();
-
-		void __subscribe(const char *subject, int &reqId);
-		void __unsubscribe(const char *subject, int reqId);
+		void __subscribe(const char *subject);
 
 		ContextManager *__contextMgr;
-		int __ridWifiState;
-		int __ridAppLogging;
-		int __ridMediaLogging;
-		int __ridSocialLogging;
-		int __ridPlaceDetection;
-		int __ridCustomManager;
+		std::map<int, const char*> __subscriptionMap;
 
 		friend class Server;
 	};
 
 }	/* namespace ctx */
 
-#endif	/* End of _CONTEXT_POLICY_MANAGER_H_ */
+#endif	/* _CONTEXT_POLICY_MANAGER_H_ */
