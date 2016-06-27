@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <Types.h>
+#include <Json.h>
 #include <app_control.h>
 #include <app_control_internal.h>
 #include <bundle.h>
@@ -22,7 +24,6 @@
 #include <notification_internal.h>
 #include <vconf.h>
 #include <context_trigger_types_internal.h>
-#include <Json.h>
 #include "../DBusServer.h"
 #include "ActionManager.h"
 

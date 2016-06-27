@@ -16,6 +16,7 @@
 
 #include <glib.h>
 #include <Types.h>
+#include <ProviderTypes.h>
 #include "access_control/Privilege.h"
 #include "Request.h"
 #include "ProviderHandler.h"
@@ -198,7 +199,7 @@ void ProviderHandler::write(RequestInfo *request)
 	_I(CYAN("'%s' writes '%s' (RID-%d)"), request->getClient(), __subject.c_str(), request->getId());
 
 	Json requestResult;
-	request->getDescription().set(NULL, "packageId", request->getPackageId()? request->getPackageId() : "SYSTEM");
+	request->getDescription().set(NULL, KEY_CLIENT_PKG_ID, request->getPackageId()? request->getPackageId() : "SYSTEM");
 	int error = __provider->write(request->getDescription(), &requestResult);
 
 	request->reply(error, requestResult);
