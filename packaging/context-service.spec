@@ -1,6 +1,6 @@
 Name:       context-service
 Summary:    Context-Service
-Version:    0.9.1
+Version:    0.9.2
 Release:    1
 Group:      Service/Context
 License:    Apache-2.0
@@ -79,7 +79,7 @@ export CXXFLAGS+=" -std=c++0x"
 #export CXXFLAGS+=" -DTIZEN_ENGINEER_MODE"
 #export   FFLAGS+=" -DTIZEN_ENGINEER_MODE"
 
-cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DMAJORVER=${MAJORVER} -DFULLVER=%{version} \
+cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DMAJORVER=${MAJORVER} -DFULLVER=%{version} -DPROFILE=%{?BUILD_PROFILE} \
 							   -DSYSTEM_SERVICE=%{SYSTEM_SERVICE} \
 							   -DLEGACY_SECURITY=%{LEGACY_SECURITY} \
 							   -DTRIGGER_SUPPORT=%{TRIGGER_SUPPORT}

@@ -27,19 +27,22 @@ using namespace ctx;
 PolicyManager::PolicyManager(ContextManager *contextMgr) :
 	__contextMgr(contextMgr)
 {
+#ifdef _MOBILE_
 	__subscribe(SUBJ_STATE_WIFI);
 	__subscribe(SUBJ_APP_LOGGER);
 	__subscribe(SUBJ_MEDIA_LOGGER);
-
 	__subscribe(SUBJ_SENSOR_PEDOMETER);
 	__subscribe(SUBJ_SENSOR_PRESSURE);
+//	__subscribe(SUBJ_PLACE_DETECTION);
+#endif
+
+#ifdef _WEARABLE_
+	__subscribe(SUBJ_SENSOR_PEDOMETER);
+	__subscribe(SUBJ_SENSOR_PRESSURE);
+#endif
 
 #ifdef TRIGGER_SUPPORT
 	__subscribe(SUBJ_CUSTOM);
-#endif
-
-#if 0
-	__subscribe(SUBJ_PLACE_DETECTION);
 #endif
 }
 
