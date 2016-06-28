@@ -17,6 +17,7 @@
 #include <Types.h>
 #include <DBusTypes.h>
 #include <ProviderTypes.h>
+#include <SensorRecorderTypes.h>
 #include "../ContextManager.h"
 #include "PolicyRequest.h"
 #include "PolicyManager.h"
@@ -26,63 +27,48 @@ using namespace ctx;
 PolicyManager::PolicyManager(ContextManager *contextMgr) :
 	__contextMgr(contextMgr)
 {
-	__init();
+#ifdef _MOBILE_
+	__subscribe(SUBJ_STATE_WIFI);
+	__subscribe(SUBJ_APP_LOGGER);
+	__subscribe(SUBJ_MEDIA_LOGGER);
+	__subscribe(SUBJ_SENSOR_PEDOMETER);
+	__subscribe(SUBJ_SENSOR_PRESSURE);
+//	__subscribe(SUBJ_PLACE_DETECTION);
+#endif
+
+#ifdef _WEARABLE_
+	__subscribe(SUBJ_SENSOR_PEDOMETER);
+	__subscribe(SUBJ_SENSOR_PRESSURE);
+#endif
+
+#ifdef TRIGGER_SUPPORT
+	__subscribe(SUBJ_CUSTOM);
+#endif
 }
 
 PolicyManager::~PolicyManager()
 {
-	__release();
+	for (auto &it : __subscriptionMap) {
+		PolicyRequest *req = new(std::nothrow) PolicyRequest(REQ_UNSUBSCRIBE, it.first, it.second, NULL);
+		if (!req) {
+			_E("Memory allocation failed");
+			continue;
+		}
+		__contextMgr->assignRequest(req);
+	}
+
+	__subscriptionMap.clear();
 }
 
-void PolicyManager::__init()
-{
-	/* TODO: WiFi API has multi-session support issue.
-	   The issue should be fixed, or walkarouned first. */
-	__subscribe(SUBJ_STATE_WIFI, __ridWifiState);
-	__subscribe(SUBJ_APP_LOGGER, __ridAppLogging);
-	__subscribe(SUBJ_MEDIA_LOGGER, __ridMediaLogging);
-
-#ifdef TRIGGER_SUPPORT
-	__subscribe(SUBJ_CUSTOM, __ridCustomManager);
-#endif
-
-#if 0
-	__subscribe(SUBJ_PLACE_DETECTION, __ridPlaceDetection);
-#endif
-}
-
-void PolicyManager::__release()
-{
-	__unsubscribe(SUBJ_STATE_WIFI, __ridWifiState);
-	__unsubscribe(SUBJ_APP_LOGGER, __ridAppLogging);
-	__unsubscribe(SUBJ_MEDIA_LOGGER, __ridMediaLogging);
-
-#ifdef TRIGGER_SUPPORT
-	__unsubscribe(SUBJ_CUSTOM, __ridCustomManager);
-#endif
-
-#if 0
-	__unsubscribe(SUBJ_PLACE_DETECTION, __ridPlaceDetection);
-#endif
-}
-
-void PolicyManager::__subscribe(const char *subject, int &reqId)
+void PolicyManager::__subscribe(const char *subject)
 {
 	static int rid = 0;
 	++rid;
 
-	reqId = rid;
-
-	PolicyRequest *req = new(std::nothrow) PolicyRequest(REQ_SUBSCRIBE, reqId, subject, NULL);
+	PolicyRequest *req = new(std::nothrow) PolicyRequest(REQ_SUBSCRIBE, rid, subject, NULL);
 	IF_FAIL_VOID_TAG(req, _E, "Memory allocation failed");
 
 	__contextMgr->assignRequest(req);
-}
 
-void PolicyManager::__unsubscribe(const char *subject, int reqId)
-{
-	PolicyRequest *req = new(std::nothrow) PolicyRequest(REQ_UNSUBSCRIBE, reqId, subject, NULL);
-	IF_FAIL_VOID_TAG(req, _E, "Memory allocation failed");
-
-	__contextMgr->assignRequest(req);
+	__subscriptionMap[rid] = subject;
 }
