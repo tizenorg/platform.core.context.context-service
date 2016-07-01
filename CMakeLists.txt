@@ -17,11 +17,9 @@ MESSAGE("Sources: ${SRCS}")
 SET(DEPS
 	gmodule-2.0
 	vconf
-	capi-system-info
 	capi-system-device
 	capi-appfw-app-manager
 	capi-appfw-package-manager
-	appsvc
 	notification
 	context-common
 	context
