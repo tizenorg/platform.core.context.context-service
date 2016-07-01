@@ -1,6 +1,6 @@
 Name:       context-service
 Summary:    Context-Service
-Version:    0.9.2
+Version:    0.9.3
 Release:    1
 Group:      Service/Context
 License:    Apache-2.0
@@ -26,11 +26,9 @@ ExcludeArch: %{arm} aarch64 %ix86 x86_64
 BuildRequires: cmake
 BuildRequires: pkgconfig(gmodule-2.0)
 BuildRequires: pkgconfig(vconf)
-BuildRequires: pkgconfig(capi-system-info)
 BuildRequires: pkgconfig(capi-system-device)
 BuildRequires: pkgconfig(capi-appfw-app-manager)
 BuildRequires: pkgconfig(capi-appfw-package-manager)
-BuildRequires: pkgconfig(appsvc)
 BuildRequires: pkgconfig(notification)
 
 %if %{LEGACY_SECURITY}

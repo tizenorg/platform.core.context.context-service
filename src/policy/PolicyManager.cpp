@@ -39,6 +39,8 @@ PolicyManager::PolicyManager(ContextManager *contextMgr) :
 #ifdef _WEARABLE_
 	__subscribe(SUBJ_SENSOR_PEDOMETER);
 	__subscribe(SUBJ_SENSOR_PRESSURE);
+	__subscribe(SUBJ_SENSOR_SLEEP_MONITOR);
+	__subscribe(SUBJ_SENSOR_HEART_RATE);
 #endif
 
 #ifdef TRIGGER_SUPPORT
