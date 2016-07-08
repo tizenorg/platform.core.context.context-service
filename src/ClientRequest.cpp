@@ -75,7 +75,7 @@ bool ctx::ClientRequest::reply(int error)
 bool ctx::ClientRequest::reply(int error, ctx::Json& requestResult)
 {
 	IF_FAIL_RETURN(__invocation, true);
-	IF_FAIL_RETURN(__type != REQ_READ_SYNC, true);
+	IF_FAIL_RETURN(error != ERR_NONE || __type != REQ_READ_SYNC, true);
 
 	std::string result = requestResult.str();
 	IF_FAIL_RETURN(!result.empty(), false);
