@@ -50,7 +50,8 @@ INCLUDE_DIRECTORIES(
 	/usr/include
 	/usr/include/glib-2.0
 )
-ADD_DEFINITIONS(-O2 -Wall -fPIC -fPIE -fdata-sections -ffunction-sections -fvisibility=hidden)
+
+ADD_DEFINITIONS(-O2 -Wall -fPIC -fPIE -fdata-sections -ffunction-sections -fvisibility=hidden -fprofile-arcs -ftest-coverage)
 ADD_DEFINITIONS(-DLOG_TAG="CONTEXT")
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIC -pie -Wl,--as-needed -Wl,--gc-section -Wl,--print-gc-section")
 

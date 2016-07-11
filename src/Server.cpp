@@ -85,12 +85,12 @@ void ctx::Server::activate()
 	return;
 
 CATCH:
-	_E(RED("Launching Failed"));
+	_E(RED("Launching Failed"));	//LCOV_EXCL_LINE
 
 	// Stop the main loop
-	g_main_loop_quit(mainloop);
+	g_main_loop_quit(mainloop);		//LCOV_EXCL_LINE
 }
-
+//LCOV_EXCL_START
 void ctx::Server::release()
 {
 	_I(CYAN("Terminating Context-Service"));
@@ -120,6 +120,7 @@ void ctx::Server::release()
 	delete __contextMgr;
 	delete __dbusHandle;
 }
+//LCOV_EXCL_STOP
 
 static gboolean __postponeRequestAssignment(gpointer data)
 {
@@ -145,7 +146,7 @@ void ctx::Server::sendRequest(ctx::RequestInfo* request)
 
 static void __signalHandler(int signo)
 {
-	_I("SIGNAL %d received", signo);
+	_I("SIGNAL %d received", signo);	//LCOV_EXCL_LINE
 
 	// Stop the main loop
 	g_main_loop_quit(mainloop);
@@ -153,6 +154,7 @@ static void __signalHandler(int signo)
 
 int main(int argc, char* argv[])
 {
+	setenv("GCOV_PREFIX", "/tmp", 1);
 	static struct sigaction signalAction;
 	signalAction.sa_handler = __signalHandler;
 	sigemptyset(&signalAction.sa_mask);

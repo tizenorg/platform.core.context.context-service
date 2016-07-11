@@ -82,14 +82,14 @@ int Rule::stop(void)
 	// Unsubscribe event
 	int error = ContextMonitor::getInstance()->unsubscribe(id, __event->name, __event->option, this);
 	if (error == ERR_NOT_SUPPORTED) {
-		_E("Stop rule%d (event not supported)");
+		_E("Stop rule%d (event not supported)");	//LCOV_EXCL_LINE
 		return ERR_NONE;
 	}
 	IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to stop rule%d", id);
 
 	return error;
 }
-
+//LCOV_EXCL_START
 bool Rule::__setConditionOptionBasedOnEvent(Json& option)
 {
 	// Set condition option if it references event data
@@ -202,3 +202,4 @@ gboolean Rule::__handleUninstalledRule(gpointer data)
 
 	return FALSE;
 }
+//LCOV_EXCL_STOP

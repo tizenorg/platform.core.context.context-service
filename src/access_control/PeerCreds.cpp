@@ -89,10 +89,12 @@ bool ctx::peer_creds::get(GDBusConnection *connection, const char *uniqueName, c
 
 	return true;
 
-CATCH:
+CATCH:	//LCOV_EXCL_START
+	g_free(app_id);
 	g_free(packageId);
 	g_free(client);
 	g_free(session);
 	g_free(user);
+	//LCOV_EXCL_STOP
 	return false;
 }

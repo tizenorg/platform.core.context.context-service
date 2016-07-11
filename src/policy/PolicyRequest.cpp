@@ -22,10 +22,11 @@ PolicyRequest::PolicyRequest(int type, int reqId, const char *subj, const char *
 	RequestInfo(type, reqId, subj, desc)
 {
 }
-
+//LCOV_EXCL_START
 PolicyRequest::~PolicyRequest()
 {
 }
+//LCOV_EXCL_STOP
 
 const char* PolicyRequest::getClient()
 {

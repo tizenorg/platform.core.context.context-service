@@ -48,6 +48,7 @@ PolicyManager::PolicyManager(ContextManager *contextMgr) :
 #endif
 }
 
+//LCOV_EXCL_START
 PolicyManager::~PolicyManager()
 {
 	for (auto &it : __subscriptionMap) {
@@ -61,6 +62,7 @@ PolicyManager::~PolicyManager()
 
 	__subscriptionMap.clear();
 }
+//LCOV_EXCL_STOP
 
 void PolicyManager::__subscribe(const char *subject)
 {

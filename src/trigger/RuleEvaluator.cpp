@@ -32,7 +32,7 @@
 
 using namespace ctx;
 using namespace ctx::trigger;
-
+//LCOV_EXCL_START
 RuleEvaluator::RuleEvaluator()
 {
 }
@@ -326,3 +326,4 @@ bool RuleEvaluator::evaluateRule(Json rule, Json fact)
 
 	return ret;
 }
+//LCOV_EXCL_STOP

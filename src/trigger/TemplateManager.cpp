@@ -39,11 +39,11 @@ static std::string __intToString(int i)
 TemplateManager::TemplateManager()
 {
 }
-
+//LCOV_EXCL_START
 TemplateManager::~TemplateManager()
 {
 }
-
+//LCOV_EXCL_STOP
 void TemplateManager::setManager(ContextManager* ctxMgr, RuleManager* ruleMgr)
 {
 	__contextMgr = ctxMgr;
@@ -62,7 +62,7 @@ TemplateManager* TemplateManager::getInstance()
 
 	return __instance;
 }
-
+//LCOV_EXCL_START
 void TemplateManager::destroy()
 {
 	IF_FAIL_VOID(__instance);
@@ -72,6 +72,7 @@ void TemplateManager::destroy()
 	delete __instance;
 	__instance = NULL;
 }
+//LCOV_EXCL_STOP
 
 bool TemplateManager::init()
 {
@@ -139,12 +140,13 @@ void TemplateManager::unregisterTemplate(std::string subject)
 	__ruleMgr->pauseRuleWithItem(subject);
 }
 
-
 std::string TemplateManager::__addTemplate(std::string &subject, int &operation, Json &attributes, Json &options, std::string &owner)
 {
+	//LCOV_EXCL_START
 	_D("[Add template] Subject: %s, Ops: %d, Owner: %s", subject.c_str(), operation, owner.c_str());
 	_J("Attr", attributes);
 	_J("Opt", options);
+	//LCOV_EXCL_STOP
 
 	std::string query = "UPDATE ContextTriggerTemplate SET operation=" + __intToString(operation)
 			+ ", attributes='" + attributes.str() + "', options='" + options.str() + "', owner='" + owner

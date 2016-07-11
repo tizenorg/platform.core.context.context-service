@@ -43,7 +43,7 @@ private:
 
 		err = cynara_configuration_set_cache_size(conf, CACHE_SIZE);
 		if (err != CYNARA_API_SUCCESS) {
-			_E("Cynara cache size set failed");
+			_E("Cynara cache size set failed");	//LCOV_EXCL_LINE
 			cynara_configuration_destroy(conf);
 			return;
 		}
@@ -51,14 +51,14 @@ private:
 		err = cynara_initialize(&__cynara, conf);
 		cynara_configuration_destroy(conf);
 		if (err != CYNARA_API_SUCCESS) {
-			_E("Cynara initialization failed");
+			_E("Cynara initialization failed");	//LCOV_EXCL_LINE
 			__cynara = NULL;
 			return;
 		}
 
 		_I("Cynara initialized");
 	}
-
+	//LCOV_EXCL_START
 	~PermissionChecker()
 	{
 		if (__cynara)
@@ -66,6 +66,7 @@ private:
 
 		_I("Cynara deinitialized");
 	}
+	//LCOV_EXCL_STOP
 
 public:
 	static PermissionChecker& getInstance()

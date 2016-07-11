@@ -28,10 +28,11 @@ Trigger::Trigger() :
 	__ruleMgr(NULL)
 {
 }
-
+//LCOV_EXCL_START
 Trigger::~Trigger()
 {
 }
+//LCOV_EXCL_STOP
 
 bool Trigger::init(ContextManager* ctxMgr)
 {
@@ -42,7 +43,7 @@ bool Trigger::init(ContextManager* ctxMgr)
 
 	return true;
 }
-
+//LCOV_EXCL_START
 void Trigger::release()
 {
 	// Release the occupied resources.
@@ -58,6 +59,7 @@ void Trigger::release()
 	_D("Context Monitor Destroy");
 	ContextMonitor::destroy();
 }
+//LCOV_EXCL_STOP
 
 bool Trigger::assignRequest(RequestInfo* request)
 {
@@ -95,7 +97,7 @@ void Trigger::__processRequest(RequestInfo* request)
 	} else if (subject == CONTEXT_TRIGGER_SUBJECT_GET_TEMPLATE) {
 		__getTemplate(request);
 	} else {
-		_E("Invalid request");
+		_E("Invalid request");	//LCOV_EXCL_LINE
 	}
 
 	delete request;
@@ -117,12 +119,12 @@ void Trigger::__processInitialize(ContextManager* mgr)
 
 	// Initialization
 	if (!tmplMgr->init()) {
-		_E("Template manager initialization failed");
+		_E("Template manager initialization failed");	//LCOV_EXCL_LINE
 		raise(SIGTERM);
 	}
 
 	if (!__ruleMgr->init()) {
-		_E("Context trigger initialization failed");
+		_E("Context trigger initialization failed");	//LCOV_EXCL_LINE
 		raise(SIGTERM);
 	}
 }
@@ -266,7 +268,7 @@ void Trigger::__getTemplate(RequestInfo* request)
 
 	TemplateManager* tmplMgr = TemplateManager::getInstance();
 	if (!tmplMgr) {
-		_E("Memory allocation failed");
+		_E("Memory allocation failed");	//LCOV_EXCL_LINE
 		request->reply(ERR_OUT_OF_MEMORY);
 		return;
 	}

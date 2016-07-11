@@ -70,6 +70,9 @@ export   CFLAGS+=" -fno-common"
 export CXXFLAGS+=" -Wnon-virtual-dtor"
 export CXXFLAGS+=" -std=c++0x"
 
+export CXXFLAGS+=" -fprofile-arcs -ftest-coverage"
+export LDFLAGS+=" -lgcov"
+
 #export   CFLAGS+=" -Wcast-qual"
 #export CXXFLAGS+=" -Wcast-qual"
 
