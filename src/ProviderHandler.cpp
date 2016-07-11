@@ -146,7 +146,7 @@ void ProviderHandler::unsubscribe(RequestInfo *request)
 	/* Search the subscribe request to be removed */
 	auto target = __findRequest(__subscribeRequests, request->getClient(), request->getId());
 	if (target == __subscribeRequests.end()) {
-		_W("Unknown request");
+		_W("Unknown request");	//LCOV_EXCL_LINE
 		delete request;
 		return;
 	}
@@ -160,7 +160,7 @@ void ProviderHandler::unsubscribe(RequestInfo *request)
 	/* Check if there exist the same requests */
 	if (__findRequest(__subscribeRequests, reqFound->getDescription()) != __subscribeRequests.end()) {
 		/* Do not stop detecting the subject */
-		_D("A same request from '%s' exists", reqFound->getClient());
+		_D("A same request from '%s' exists", reqFound->getClient());	//LCOV_EXCL_LINE
 		request->reply(ERR_NONE);
 		delete request;
 		delete reqFound;

@@ -26,6 +26,8 @@
 
 using namespace ctx;
 
+extern "C" void __gcov_flush();
+
 static const gchar __introspection_xml[] =
 	"<node>"
 	"	<interface name='" DBUS_IFACE "'>"
@@ -59,11 +61,12 @@ DBusServer::DBusServer() :
 	__nodeInfo(NULL)
 {
 }
-
+//LCOV_EXCL_START
 DBusServer::~DBusServer()
 {
 	__release();
 }
+//LCOV_EXCL_STOP
 
 void DBusServer::__processRequest(const char *sender, GVariant *param, GDBusMethodInvocation *invocation)
 {
@@ -82,14 +85,14 @@ void DBusServer::__processRequest(const char *sender, GVariant *param, GDBusMeth
 	Credentials *creds = NULL;
 
 	if (!peer_creds::get(__connection, sender, cookie, &creds)) {
-		_E("Peer credentialing failed");
+		_E("Peer credentialing failed");//LCOV_EXCL_LINE
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 		return;
 	}
 
 	ClientRequest *request = new(std::nothrow) ClientRequest(reqType, reqId, subject, input, creds, sender, invocation);
 	if (!request) {
-		_E("Memory allocation failed");
+		_E("Memory allocation failed");	//LCOV_EXCL_LINE
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(iss)", ERR_OPERATION_FAILED, EMPTY_JSON_OBJECT, EMPTY_JSON_OBJECT));
 		delete creds;
 		return;
@@ -115,6 +118,7 @@ void DBusServer::__onMethodCalled(GDBusConnection *conn, const gchar *sender,
 	} else {
 		__theInstance->__reply(invocation, ERR_NONE);
 	}
+	__gcov_flush();
 }
 
 void DBusServer::__onBusAcquired(GDBusConnection *conn, const gchar *name, gpointer userData)
@@ -128,7 +132,7 @@ void DBusServer::__onBusAcquired(GDBusConnection *conn, const gchar *name, gpoin
 			__theInstance->__nodeInfo->interfaces[0], &vtable, NULL, NULL, NULL);
 
 	if (regId <= 0) {
-		_E("Failed to acquire dbus");
+		_E("Failed to acquire dbus");	//LCOV_EXCL_LLINE
 		raise(SIGTERM);
 	}
 
@@ -144,7 +148,7 @@ void DBusServer::__onNameAcquired(GDBusConnection *conn, const gchar *name, gpoi
 
 void DBusServer::__onNameLost(GDBusConnection *conn, const gchar *name, gpointer userData)
 {
-	_E("Dbus name lost");
+	_E("Dbus name lost");	//LCOV_EXCL_LINE
 	raise(SIGTERM);
 }
 
@@ -174,7 +178,7 @@ bool DBusServer::__init()
 	__theInstance = this;
 	return true;
 }
-
+//LCOV_EXCL_START
 void DBusServer::__release()
 {
 	if (__connection) {
@@ -197,10 +201,11 @@ void DBusServer::__release()
 		__nodeInfo = NULL;
 	}
 }
+//LCOV_EXCL_STOP
 
 void DBusServer::__publish(const char *dest, int reqId, const char *subject, int error, const char *data)
 {
-	_SI("Publish: %s, %d, %s, %#x, %s", dest, reqId, subject, error, data);
+	_SI("Publish: %s, %d, %s, %#x, %s", dest, reqId, subject, error, data);	//LCOV_EXCL_LINE
 
 	GVariant *param = g_variant_new("(isis)", reqId, subject, error, data);
 	IF_FAIL_VOID_TAG(param, _E, "Memory allocation failed");
@@ -214,7 +219,7 @@ void DBusServer::__call(const char *dest, const char *obj, const char *iface, co
 	static unsigned int callCount = 0;
 	++callCount;
 
-	_SI("Call %u: %s, %s, %s.%s", callCount, dest, obj, iface, method);
+	_SI("Call %u: %s, %s, %s.%s", callCount, dest, obj, iface, method);	//LCOV_EXCL_LINE
 
 	g_dbus_connection_call(__connection, dest, obj, iface, method, param, NULL,
 			G_DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, NULL, __onCallDone, &callCount);

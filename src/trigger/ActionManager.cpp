@@ -30,7 +30,7 @@
 static void __triggerActionAppControl(ctx::Json& action);
 static void __triggerActionNotification(ctx::Json& action, std::string pkgId);
 static void __triggerActionDbusCall(ctx::Json& action);
-
+//LCOV_EXCL_START
 void ctx::trigger::action_manager::triggerAction(ctx::Json& action, std::string pkgId)
 {
 	std::string type;
@@ -203,3 +203,4 @@ void __triggerActionDbusCall(ctx::Json& action)
 
 	ctx::DBusServer::call(busName, object, iface, method, param);
 }
+//LCOV_EXCL_STOP

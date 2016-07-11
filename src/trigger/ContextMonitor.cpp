@@ -36,7 +36,7 @@ static int __generateReqId()
 
 	if (++reqId < 0) {
 		// Overflow handling
-		reqId = 1;
+		reqId = 1;	//LCOV_EXCL_LINE
 	}
 
 	return reqId;
@@ -45,10 +45,11 @@ static int __generateReqId()
 ContextMonitor::ContextMonitor()
 {
 }
-
+//LCOV_EXCL_START
 ContextMonitor::~ContextMonitor()
 {
 }
+//LCOV_EXCL_STOP
 
 void ContextMonitor::setContextManager(ContextManager* ctxMgr)
 {
@@ -66,7 +67,7 @@ ContextMonitor* ContextMonitor::getInstance()
 
 	return __instance;
 }
-
+//LCOV_EXCL_START
 void ContextMonitor::destroy()
 {
 	if (__instance) {
@@ -74,6 +75,7 @@ void ContextMonitor::destroy()
 		__instance = NULL;
 	}
 }
+//LCOV_EXCL_STOP
 
 int ContextMonitor::subscribe(int ruleId, std::string subject, Json option, IContextListener* listener)
 {
@@ -91,7 +93,7 @@ int ContextMonitor::__subscribe(const char* subject, Json* option, IContextListe
 	int rid = __findSub(REQ_SUBSCRIBE, subject, option);
 	if (rid > 0) {
 		__addListener(REQ_SUBSCRIBE, rid, listener);
-		_D("Duplicated request for %s", subject);
+		_D("Duplicated request for %s", subject);	//LCOV_EXCL_LINE
 		return rid;
 	}
 
@@ -106,7 +108,7 @@ int ContextMonitor::__subscribe(const char* subject, Json* option, IContextListe
 
 	if (__lastErr != ERR_NONE) {
 		__removeSub(REQ_SUBSCRIBE, rid);
-		_E("Subscription request failed: %#x", __lastErr);
+		_E("Subscription request failed: %#x", __lastErr);	//LCOV_EXCL_LINE
 		return __lastErr;
 	}
 
@@ -117,7 +119,7 @@ int ContextMonitor::unsubscribe(int ruleId, std::string subject, Json option, IC
 {
 	int rid = __findSub(REQ_SUBSCRIBE, subject.c_str(), &option);
 	if (rid < 0) {
-		_D("Invalid unsubscribe request");
+		_D("Invalid unsubscribe request");	//LCOV_EXCL_LINE
 		return ERR_INVALID_PARAMETER;
 	}
 
@@ -291,7 +293,7 @@ void ContextMonitor::replyResult(int reqId, int error, Json* requestResult)
 
 void ContextMonitor::replyResult(int reqId, int error, const char* subject, Json* option, Json* fact)
 {
-	_D(YELLOW("Condition received: subject(%s), option(%s), fact(%s)"), subject, option->str().c_str(), fact->str().c_str());
+	_D(YELLOW("Condition received: subject(%s), option(%s), fact(%s)"), subject, option->str().c_str(), fact->str().c_str());	//LCOV_EXCL_LINE
 
 	auto it = __readMap.find(reqId);
 	IF_FAIL_VOID_TAG(it != __readMap.end(), _E, "Request id not found");
@@ -306,7 +308,7 @@ void ContextMonitor::replyResult(int reqId, int error, const char* subject, Json
 
 void ContextMonitor::publishFact(int reqId, int error, const char* subject, Json* option, Json* fact)
 {
-	_D(YELLOW("Event received: subject(%s), option(%s), fact(%s)"), subject, option->str().c_str(), fact->str().c_str());
+	_D(YELLOW("Event received: subject(%s), option(%s), fact(%s)"), subject, option->str().c_str(), fact->str().c_str());	//LCOV_EXCL_LINE
 
 	auto it = __subscrMap.find(reqId);
 	IF_FAIL_VOID_TAG(it != __subscrMap.end(), _E, "Request id not found");

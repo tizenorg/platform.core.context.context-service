@@ -42,7 +42,7 @@ ContextProvider* ProviderLoader::load(const char *subject)
 {
 	ProviderLibMap::iterator it = __providerLibMap.find(subject);
 	if (it == __providerLibMap.end()) {
-		_W("No provider for '%s'", subject);
+		_W("No provider for '%s'", subject);	//LCOV_EXCL_LINE
 		return NULL;
 	}
 
@@ -62,7 +62,7 @@ ContextProvider* ProviderLoader::__load(const char *soPath, const char *subject)
 	gpointer symbol;
 
 	if (!g_module_symbol(__soHandle, "CreateProvider", &symbol) || symbol == NULL) {
-		_E("%s", g_module_error());
+		_E("%s", g_module_error());	//LCOV_EXCL_LINE
 		g_module_close(__soHandle);
 		__soHandle = NULL;
 		return NULL;
@@ -72,7 +72,7 @@ ContextProvider* ProviderLoader::__load(const char *soPath, const char *subject)
 
 	ContextProvider *prvd = create(subject);
 	if (!prvd) {
-		_W("No provider for '%s'", subject);
+		_W("No provider for '%s'", subject);	//LCOV_EXCL_LINE
 		g_module_close(__soHandle);
 		__soHandle = NULL;
 		return NULL;

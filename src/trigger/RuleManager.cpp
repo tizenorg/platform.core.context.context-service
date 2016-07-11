@@ -34,7 +34,7 @@ static int __stringToInt(std::string str)
 	std::istringstream convert(str);
 
 	if (!(convert >> i))
-		i = 0;
+		i = 0;	//LCOV_EXCL_LINE
 
 	return i;
 }
@@ -50,7 +50,7 @@ static std::string __intToString(int i)
 RuleManager::RuleManager()
 {
 }
-
+//LCOV_EXCL_START
 RuleManager::~RuleManager()
 {
 	// Release rule instances
@@ -67,7 +67,7 @@ RuleManager::~RuleManager()
 	}
 	__ruleMap.clear();
 }
-
+//LCOV_EXCL_STOP
 bool RuleManager::init()
 {
 	bool ret;
@@ -130,10 +130,10 @@ bool RuleManager::isUninstalledPackage(std::string pkgId)
 		package_info_destroy(pkgInfo);
 	} else if (error == PACKAGE_MANAGER_ERROR_NO_SUCH_PACKAGE) {
 		// Uninstalled package found
-		_D("Uninstalled package found: %s", pkgId.c_str());
+		_D("Uninstalled package found: %s", pkgId.c_str());	//LCOV_EXCL_LINE
 		return true;
 	} else {
-		_E("Failed to get package info(%s): %d", pkgId.c_str(), error);
+		_E("Failed to get package info(%s): %d", pkgId.c_str(), error);	//LCOV_EXCL_LINE
 	}
 
 	return false;
@@ -148,7 +148,7 @@ int RuleManager::__clearRuleOfUninstalledPackage(bool isInit)
 	int error;
 	bool ret;
 
-	_D("Clear uninstalled packages' rule started");
+	_D("Clear uninstalled packages' rule started");	//LCOV_EXCL_LINE
 	// Package list
 	std::string pkgList = "(";
 	std::set<std::string>::iterator it = __uninstalledPackages.begin();
@@ -177,7 +177,7 @@ int RuleManager::__clearRuleOfUninstalledPackage(bool isInit)
 			error = disableRule(ruleId);
 			IF_FAIL_RETURN_TAG(error == ERR_NONE, error, _E, "Failed to disable rule");
 		}
-		_D("Uninstalled packages' rules are disabled");
+		_D("Uninstalled packages' rules are disabled");	//LCOV_EXCL_LINE
 	}
 
 	// Delete rules of uninstalled packages from DB
@@ -185,7 +185,7 @@ int RuleManager::__clearRuleOfUninstalledPackage(bool isInit)
 	std::vector<Json> dummy;
 	ret = __dbManager.executeSync(q2.c_str(), &dummy);
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to remove rules from db");
-	_D("Uninstalled packages' rules are deleted from db");
+	_D("Uninstalled packages' rules are deleted from db");	//LCOV_EXCL_LINE
 
 	__uninstalledPackages.clear();
 
@@ -200,7 +200,7 @@ int RuleManager::pauseRuleWithItem(std::string& subject)
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Failed to query rowIds to be paused");
 	IF_FAIL_RETURN(record.size() > 0, ERR_NONE);
 
-	_D("Pause rules related to %s", subject.c_str());
+	_D("Pause rules related to %s", subject.c_str());	//LCOV_EXCL_LINE
 	std::vector<Json>::iterator vecEnd = record.end();
 	for (std::vector<Json>::iterator vecPos = record.begin(); vecPos != vecEnd; ++vecPos) {
 		Json elem = *vecPos;
@@ -222,7 +222,7 @@ int RuleManager::resumeRuleWithItem(std::string& subject)
 	IF_FAIL_RETURN_TAG(ret, ERR_OPERATION_FAILED, _E, "Query paused rule ids failed");
 	IF_FAIL_RETURN(record.size() > 0, ERR_NONE);
 
-	_D("Resume rules related to %s", subject.c_str());
+	_D("Resume rules related to %s", subject.c_str());	//LCOV_EXCL_LINE
 	std::string qRowId;
 	std::vector<Json>::iterator vecEnd = record.end();
 	for (std::vector<Json>::iterator vecPos = record.begin(); vecPos != vecEnd; ++vecPos) {
@@ -247,7 +247,7 @@ bool RuleManager::__reenableRule(void)
 	IF_FAIL_RETURN_TAG(ret, false, _E, "Query rowIds of enabled rules failed");
 	IF_FAIL_RETURN_TAG(record.size() > 0, true, _D, "No rule to re-enable");
 
-	_D(YELLOW("Re-enable rule started"));
+	_D(YELLOW("Re-enable rule started"));	//LCOV_EXCL_LINE
 
 	std::string qRowId;
 	qRowId.clear();
@@ -261,7 +261,7 @@ bool RuleManager::__reenableRule(void)
 		if (error == ERR_NOT_SUPPORTED) {
 			qRowId += "(rowId = " + __intToString(rowId) + ") OR ";
 		} else if (error != ERR_NONE) {
-			_E("Re-enable rule%d failed(%d)", rowId, error);
+			_E("Re-enable rule%d failed(%d)", rowId, error);	//LCOV_EXCL_LINE
 		}
 	}
 	IF_FAIL_RETURN(!qRowId.empty(), true);
@@ -465,9 +465,9 @@ int64_t RuleManager::__getDuplicatedRuleId(std::string pkgId, Json& rule)
 				std::vector<Json> dummy;
 				ret = __dbManager.executeSync(qUpdate.c_str(), &dummy);
 				if (ret) {
-					_D("Rule%lld description is updated", rowId);
+					_D("Rule%lld description is updated", rowId);	//LCOV_EXCL_LINE
 				} else {
-					_W("Failed to update description of rule%lld", rowId);
+					_W("Failed to update description of rule%lld", rowId);	//LCOV_EXCL_LINE
 				}
 			}
 
@@ -493,7 +493,7 @@ int RuleManager::__verifyRule(Json& rule, const char* creator)
 
 	if (creator) {
 		if (!ctxMonitor->isAllowed(creator, eventName.c_str())) {
-			_W("Permission denied for '%s'", eventName.c_str());
+			_W("Permission denied for '%s'", eventName.c_str());	//LCOV_EXCL_LINE
 			return ERR_PERMISSION_DENIED;
 		}
 	}
@@ -506,7 +506,7 @@ int RuleManager::__verifyRule(Json& rule, const char* creator)
 		IF_FAIL_RETURN_TAG(ctxMonitor->isSupported(condName), ERR_NOT_SUPPORTED, _I, "Condition(%s) is not supported", condName.c_str());
 
 		if (!ctxMonitor->isAllowed(creator, condName.c_str())) {
-			_W("Permission denied for '%s'", condName.c_str());
+			_W("Permission denied for '%s'", condName.c_str());	//LCOV_EXCL_LINE
 			return ERR_PERMISSION_DENIED;
 		}
 	}
@@ -681,7 +681,7 @@ int RuleManager::pauseRule(int ruleId)
 	delete rule;
 	__ruleMap.erase(it);
 
-	_D(YELLOW("Pause Rule%d"), ruleId);
+	_D(YELLOW("Pause Rule%d"), ruleId);	//LCOV_EXCL_LINE
 	return ERR_NONE;
 }
 

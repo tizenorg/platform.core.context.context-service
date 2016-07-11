@@ -45,21 +45,23 @@ ContextManager::ContextManager()
 #endif
 	ProviderLoader::init();
 }
-
+//LCOV_EXCL_START
 ContextManager::~ContextManager()
 {
 	release();
 }
+//LCOV_EXCL_STOP
 
 bool ContextManager::init()
 {
 	return true;
 }
-
+//LCOV_EXCL_START
 void ContextManager::release()
 {
 	ProviderHandler::purge();
 }
+//LCOV_EXCL_STOP
 
 void ContextManager::assignRequest(RequestInfo* request)
 {
@@ -71,7 +73,7 @@ void ContextManager::assignRequest(RequestInfo* request)
 	}
 
 	if (request->getType() != REQ_SUPPORT && !handle->isAllowed(request->getCredentials())) {
-		_W("Permission denied");
+		_W("Permission denied");	//LCOV_EXCL_LINE
 		request->reply(ERR_PERMISSION_DENIED);
 		delete request;
 		return;
@@ -96,7 +98,7 @@ void ContextManager::assignRequest(RequestInfo* request)
 		delete request;
 		break;
 	default:
-		_E("Invalid type of request");
+		_E("Invalid type of request");	//LCOV_EXCL_LINE
 		delete request;
 	}
 }
@@ -125,8 +127,8 @@ bool ContextManager::isAllowed(const Credentials *creds, const char *subject)
 
 void ContextManager::__publish(const char* subject, Json &option, int error, Json &dataUpdated)
 {
-	_I("Publishing '%s'", subject);
-	_J("Option", option);
+	_I("Publishing '%s'", subject);	//LCOV_EXCL_LINE
+	_J("Option", option);	//LCOV_EXCL_LINE
 
 	ProviderHandler *handle = ProviderHandler::getInstance(subject, false);
 	IF_FAIL_VOID_TAG(handle, _W, "No corresponding provider");
@@ -136,9 +138,9 @@ void ContextManager::__publish(const char* subject, Json &option, int error, Jso
 
 void ContextManager::__replyToRead(const char* subject, Json &option, int error, Json &dataRead)
 {
-	_I("Sending data of '%s'", subject);
-	_J("Option", option);
-	_J("Data", dataRead);
+	_I("Sending data of '%s'", subject);	//LCOV_EXCL_LINE
+	_J("Option", option);	//LCOV_EXCL_LINE
+	_J("Data", dataRead);	//LCOV_EXCL_LINE
 
 	ProviderHandler *handle = ProviderHandler::getInstance(subject, false);
 	IF_FAIL_VOID_TAG(handle, _W, "No corresponding provider");
@@ -173,7 +175,7 @@ gboolean ContextManager::__threadSwitcher(gpointer data)
 		tuple->mgr->__replyToRead(tuple->subject.c_str(), tuple->option, tuple->error, tuple->data);
 		break;
 	default:
-		_W("Invalid type");
+		_W("Invalid type");	//LCOV_EXCL_LINE
 	}
 
 	delete tuple;
