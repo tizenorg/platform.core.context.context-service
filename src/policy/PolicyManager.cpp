@@ -34,6 +34,7 @@ PolicyManager::PolicyManager(ContextManager *contextMgr) :
 	__subscribe(SUBJ_SENSOR_PEDOMETER);
 	__subscribe(SUBJ_SENSOR_PRESSURE);
 //	__subscribe(SUBJ_PLACE_DETECTION);
+	__subscribe(SUBJ_BATTERY_LOGGER);
 #endif
 
 #ifdef _WEARABLE_
